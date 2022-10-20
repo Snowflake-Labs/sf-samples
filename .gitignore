@@ -102,3 +102,7 @@ dist
 
 # TernJS port file
 .tern-port
+geospatial/.DS_Store
+geospatial/streamlit-apps/.DS_Store
+geospatial/streamlit-apps/apps/.DS_Store
+geospatial/streamlit-apps/.streamlit/.DS_Store
