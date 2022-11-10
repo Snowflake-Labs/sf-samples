@@ -7,19 +7,15 @@ handler = 'udf'
 AS $$
 import pyproj
 import shapely
-from shapely.ops import transform
+import shapely
 from shapely.geometry import shape, mapping
 from shapely.validation import make_valid
-from shapely import wkb, wkt
 def udf(geo):
     g1 = shape(geo)
     if g1.is_valid == True:
-        project = pyproj.Transformer.from_crs(4326, 3857, always_xy=True).transform
-        g1 = transform(project, g1)
-        g1 = g1.buffer(1, 1, 2)
-        g1 = g1.simplify(1)
-        project = pyproj.Transformer.from_crs(3857, 4326, always_xy=True).transform
-        fixed_shape = transform(project, g1)
+        g1 = g1.buffer(0.000001, resolution = 1, join_style = 1)
+        g1 = g1.simplify(0.000001)
+        fixed_shape = g1
     else:
         fixed_shape = make_valid(g1)
     return  mapping(fixed_shape)
