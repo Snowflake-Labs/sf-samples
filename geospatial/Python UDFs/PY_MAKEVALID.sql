@@ -5,8 +5,6 @@ runtime_version = 3.8
 packages = ('shapely', 'pyproj')
 handler = 'udf'
 AS $$
-import pyproj
-import shapely
 import shapely
 from shapely.geometry import shape, mapping
 from shapely.validation import make_valid
