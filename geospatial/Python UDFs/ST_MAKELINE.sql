@@ -10,8 +10,8 @@ from shapely.geometry import Point, LineString
 from shapely.geometry import shape, mapping
 def udf(g1):
     geo_object = gpd.GeoSeries([shape(i) for i in g1])
-    shape_union = LineString(geo_object.tolist())
-    return mapping(shape_union)
+    final_shape = LineString(geo_object.tolist())
+    return mapping(final_shape)
 $$;
 
 SELECT PY_MAKELINE((ARRAY_AGG(st_asgeojson(geo))) FROM OBJ_OF_INTEREST_SO;
