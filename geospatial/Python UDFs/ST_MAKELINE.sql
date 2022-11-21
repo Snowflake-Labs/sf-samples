@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION PY_MAKELINE(g1 array)
 returns geography
 language python
 runtime_version = 3.8
-packages = ('geopandas','shapely', 'numpy==1.22.3')
+packages = ('geopandas','shapely')
 handler = 'udf'
 AS $$
 import geopandas as gpd
