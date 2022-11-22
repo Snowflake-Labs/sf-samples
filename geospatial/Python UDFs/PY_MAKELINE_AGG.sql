@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION PY_MAKELINE(g1 array)
+CREATE OR REPLACE FUNCTION PY_MAKELINE_AGG(g1 array)
 returns geography
 language python
 runtime_version = 3.8
@@ -14,4 +14,4 @@ def udf(g1):
     return mapping(final_shape)
 $$;
 
-SELECT PY_MAKELINE((ARRAY_AGG(st_asgeojson(geo))) FROM OBJ_OF_INTEREST_SO;
+SELECT PY_MAKELINE_AGG((ARRAY_AGG(st_asgeojson(geo))) FROM OBJ_OF_INTEREST_SO;
