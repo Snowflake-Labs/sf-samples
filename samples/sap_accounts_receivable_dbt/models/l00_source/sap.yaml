@@ -1,0 +1,2571 @@
+version: 2
+sources:
+  - name: sap_sample
+    database: "{{ var('source_database') }}"
+    schema: "{{ var('source_schema') }}"
+    quoting:
+      database: false
+      schema: false
+      identifier: true    
+    tables:
+    - name: 0customer_attr
+      columns:
+      - name: ERDAT
+        description: Date on which the record was created
+      - name: KONZS
+        description: Group key
+      - name: REGIO
+        description: |
+          Region (State, Province, County)
+      - name: CCC02
+      - name: DEAR5
+      - name: KNAZK
+      - name: UMSAT
+      - name: EXABL
+      - name: NAME1
+        description: Name 1
+      - name: LZONE
+      - name: BAHNE
+      - name: BRSCH
+        description: Industry key
+      - name: CASSD
+      - name: COUNC
+        description: County Code
+      - name: DATLT
+        description: Data communication line no.
+      - name: DUEFL
+      - name: STCD4
+        description: Tax Number 4
+      - name: VBUND
+        description: Company ID of Trading Partner
+      - name: XZEMP
+        description: |
+          Indicator: Alternative Payee in Document Allowed?
+      - name: BRAN5
+        description: Industry Code 5
+      - name: KATR7
+      - name: KTOKD
+        description: Customer Account Group
+      - name: KUNNR
+        description: Ship-to party
+      - name: NIELS
+      - name: STKZU
+        description: Liable for VAT
+      - name: DEAR3
+      - name: fullname
+      - name: ABRVW
+        description: Usage indicator
+      - name: BRAN1
+        description: Industry Code 1
+      - name: ERNAM
+        description: Name of Person who Created the Object
+      - name: KATR3
+      - name: NAME2
+        description: Name 2
+      - name: PFACH
+        description: PO Box
+      - name: BRAN4
+        description: Industry Code 4
+      - name: KATR8
+      - name: MCOD2
+        description: Search term for matchcode search
+      - name: STCD2
+        description: Tax Number 2
+      - name: TXLW1
+      - name: TELFX
+        description: Fax Number
+      - name: DEAR2
+      - name: CIVVE
+      - name: DTAMS
+        description: Report key for data medium exchange
+      - name: ETIKG
+      - name: LIFNR
+        description: Vendor's account number
+      - name: ORT01
+        description: City
+      - name: XICMS
+      - name: CCC03
+      - name: KATR2
+      - name: KDKG1
+      - name: KNRZA
+      - name: NAME3
+        description: Name 3
+      - name: ORT02
+        description: District
+      - name: PSTLZ
+        description: Postal Code
+      - name: TELX1
+        description: Telex number
+      - name: UMJAH
+      - name: RPMKR
+      - name: TELBX
+        description: Telebox number
+      - name: TELF2
+        description: Second telephone number
+      - name: ADRNR
+        description: Address
+      - name: BAHNS
+        description: Train station
+      - name: BRAN2
+        description: Industry Code 2
+      - name: CFOPC
+      - name: DEAR1
+      - name: EKONT
+      - name: GFORM
+      - name: KATR9
+      - name: KDKG4
+      - name: MCOD3
+        description: Search term for matchcode search
+      - name: PSTL2
+        description: P.O. Box Postal Code
+      - name: DTAWS
+        description: Instruction key for data medium exchange
+      - name: INSPBYDEBI
+      - name: MCOD1
+        description: Search term for matchcode search
+      - name: NAME4
+        description: Name 4
+      - name: STCD1
+        description: Tax Number 1
+      - name: TELF1
+        description: Supplier's Telephone Number
+      - name: TXJCD
+        description: Tax Jurisdiction
+      - name: TXLW2
+      - name: STCEG
+        description: VAT Registration Number
+      - name: BEGRU
+        description: Authorization Group
+      - name: KATR6
+      - name: KDKG3
+      - name: LOEVM
+        description: Deletion flag for customer (sales level)
+      - name: XKNZA
+      - name: XXIPI
+      - name: KATR4
+      - name: AUFSD
+        description: Customer order block (sales area)
+      - name: CITYC
+        description: City Code
+      - name: JMJAH
+      - name: STKZA
+        description: 'Indicator: Business Partner Subject to Equalization Tax?'
+      - name: FISKN
+        description: Account number of the master record with fiscal address
+      - name: HZUOR
+      - name: JMZAH
+      - name: KATR10
+      - name: KDKG2
+      - name: MANDT
+        description: Client
+      - name: STCDT
+      - name: TELTX
+        description: Teletex number
+      - name: UMSA1
+      - name: UWAER
+      - name: XSUBT
+      - name: KDKG5
+      - name: SPERZ
+        description: Payment Block
+      - name: ANRED
+        description: Title
+      - name: BBBNR
+        description: International location number  (part 1)
+      - name: CCC01
+      - name: CCC04
+      - name: DEAR4
+      - name: FAKSD
+        description: Billing block for customer (sales and distribution)
+      - name: FITYP
+      - name: KNURL
+      - name: LAND1
+        description: Country Key
+      - name: PFORT
+        description: PO Box city
+      - name: KUKLA
+        description: Customer classification
+      - name: LIFSD
+        description: Customer delivery block (sales area)
+      - name: PERIV
+        description: Fiscal Year Variant
+      - name: SORTL
+        description: Sort field
+      - name: SPRAS
+        description: Language Key
+      - name: MILVE
+      - name: LOCCO
+      - name: STCD3
+        description: Tax Number 3
+      - name: BBSNR
+        description: International location number (Part 2)
+      - name: BRAN3
+        description: Industry Code 3
+      - name: BUBKZ
+        description: Check digit for the international location number
+      - name: KATR1
+      - name: KATR5
+      - name: SPERR
+        description: Physical Inventory Blocking Indicator
+      - name: DEAR6
+        description: |
+          Indicator: Customer
+      - name: KTOCD
+      - name: STKZN
+        description: Natural Person
+      - name: STRAS
+        description: Street and House Number
+      - name: WERKS
+        description: Plant
+      - name: INSPATDEBI
+      - name: XCPDK
+        description: 'Indicator: Is the account a one-time account?'
+    - name: 0recipcntry_text
+      columns:
+      - name: KEY1
+      - name: TXTLG
+        description: Asset Description
+      - name: TXTMD
+      - name: DATEFROM
+        description: Date for Beginning of Validity
+      - name: LANGU
+        description: Language Key
+      - name: DATETO
+        description: Date Validity Ends
+      - name: TXTSH
+    - name: 0customer_text
+      columns:
+      - name: TXTMD
+      - name: KUNNR
+        description: Ship-to party
+      - name: MANDT
+        description: Client
+    - name: 0employee_attr
+      columns:
+      - name: ENDDA
+      - name: TRFGB
+      - name: MOLGA
+      - name: ANSAL
+      - name: KOKRS
+        description: Controlling Area
+      - name: PERSG
+      - name: SLLEV
+      - name: ABKRS
+      - name: ANCUR
+      - name: BEGDA
+      - name: TRFGR
+      - name: VDSK1
+      - name: STAT2
+      - name: TRFKZ
+      - name: BUKRS
+        description: Company Code
+      - name: PLANS
+      - name: WERKS
+        description: Plant
+      - name: BSGRD
+      - name: RFPNR
+      - name: STELL
+      - name: BTRTL
+      - name: SLGRP
+      - name: SLREG
+      - name: SNAME
+      - name: TRFST
+      - name: ORGEH
+      - name: NCSDATE
+      - name: PERNR
+        description: Personnel Number
+      - name: EMPCT
+      - name: KOSTL
+        description: Cost Center
+      - name: TRFAR
+      - name: SLTYP
+      - name: ANSVH
+      - name: PERSK
+    - name: 0fi_ar_4
+      meta:
+        sap_help_link: https://help.sap.com/saphelp_nw73/helpdata/en/a9/508853f65d3d58e10000000a174cb4/content.htm
+        based_on_data_source: 0FI_AR_4
+      description: '{{ doc("fi_ar_4") }}'
+      columns:
+      - name: BLDAT
+        description: Document Date in Document
+      - name: SK1DT
+        description: Cash discount 1 due date
+      - name: BSTAT
+        description: Document Status
+      - name: HWAE3
+        description: Currency Key of Third Local Currency
+      - name: KKBER
+        description: Credit control area
+      - name: HKONT
+        description: General Ledger Account
+      - name: BUDAT
+        description: Posting Date in the Document
+      - name: WSKTO
+        description: Cash discount amount
+      - name: ZTERM
+        description: Terms of payment key
+      - name: SGTXT
+        description: Item Text
+      - name: KTOPL
+        description: Chart of Accounts
+      - name: RSTGR
+        description: Reson code
+      - name: ZLSPR
+        description: Payment Block Key
+      - name: XARCH
+        description: 'Indicator: Original document archived'
+      - name: SAKNR
+        description: G/L Account Number
+      - name: MANSP
+        description: Dunning block
+      - name: KUNNR
+        description: Ship-to party
+      - name: UMSKZ
+        description: Special G/L Indicator
+      - name: WRHAB
+        description: Credit Amount in Document Currency
+      - name: XREF1
+      - name: ZBD1P
+      - name: HWAE2
+        description: Currency Key of Second Local Currency
+      - name: WRSHB
+        description: Foreign Currency Amount with Signs (+/-)
+      - name: ZBD2T
+        description: Cash discount days 2
+      - name: DMBE2
+        description: Amount in Second Local Currency or Group Currency
+      - name: DMBE3
+        description: Amount in Third Local Currency or First Freely-Def. Currency
+      - name: MSCHL
+        description: Dunning key
+      - name: WRSOL
+        description: Debit Amount in Document Currency
+      - name: ZUONR
+        description: Assignment Number
+      - name: REBZG
+        description: Document No. of the Invoice to Which the Transaction Belongs
+      - name: ZBD3T
+        description: Net Payment Terms Period
+      - name: FILKD
+        description: Account number of subsidiary
+      - name: FISCPER
+        description: Fiscal year / period
+      - name: REBZZ
+        description: Invoice item
+      - name: FISCVAR
+        description: Fiscal year variant
+      - name: UMSKS
+      - name: SHKZG
+        description: Debit/Credit Indicator
+      - name: SKNTO
+        description: Cash discount amount
+      - name: UPOSZ
+        description: Due date item number
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: AWKEY
+        description: Object key
+      - name: BUZEI
+        description: Number of Line Item Within Accounting Document
+      - name: XBLNR
+        description: Reference Document Number
+      - name: XREF3
+        description: Reference key for line item
+      - name: KOART
+        description: Account type
+      - name: SK2DT
+        description: Cash discount 2 due date
+      - name: SKFBT
+        description: Cash discount base
+      - name: XREF2
+        description: Reference key 2
+      - name: ZFBDT
+        description: Baseline Date for Due Date Calculation
+      - name: ZBD2P
+        description: Cash discount percentage 2
+      - name: REBZJ
+        description: Fiscal Year of the Relevant Invoice (for Credit Memo)
+      - name: XNEGP
+        description: 'Indicator: Negative Posting'
+      - name: DMBTR
+        description: Amount in local currency
+      - name: MABER
+        description: Dunning area
+      - name: GJAHR
+        description: Fiscal Year
+      - name: AUGDT
+        description: Clearing Date
+      - name: BSCHL
+        description: Posting Key
+      - name: DMHAB
+        description: Credit Amount in Local Currency
+      - name: DMSHB
+        description: Amount in Local Currency with +/- Signs
+      - name: PROJK
+        description: Work Breakdown Structure Element (WBS Element)
+      - name: ZBD1T
+        description: Cash discount days 1
+      - name: MADAT
+        description: Date of last dunning
+      - name: MANST
+        description: Dunning level
+      - name: MONAT
+        description: Fiscal period
+      - name: LAND1
+        description: Country Key
+      - name: ZLSCH
+        description: Payment method
+      - name: AUGBL
+        description: Document Number of the Clearing Document
+      - name: LCURR
+        description: Currency key of the local currency
+      - name: BUKRS
+        description: Company Code
+      - name: STATUSPS
+        description: Status of FI Item
+      - name: CPUDT
+        description: Day On Which Accounting Document Was Entered
+      - name: NETDT
+        description: Due date for net payment
+      - name: WAERS
+        description: Local Currency
+      - name: AWTYP
+        description: Reference procedure
+      - name: BLART
+        description: Document type
+      - name: UPDMOD
+        description: 'BW Delta Process: Record Mode'
+      - name: WRBTR
+        description: Amount in document currency
+      - name: BELNR
+        description: Accounting Document Number
+      - name: DMSOL
+        description: Debit Amount in Local Currency
+    - name: 0material_attr
+      columns:
+      - name: FIBER_PART4
+        description: Percentage Share of Fiber (Component 4)
+      - name: COLOR_ATINN
+        description: Internal Charactieristic Number for Color Characteristics
+      - name: INHME
+        description: Content unit
+      - name: KUNNR
+        description: Ship-to party
+      - name: RPA_WGH4
+        description: Material group hierarchy level
+      - name: VABME
+        description: Variable Purchase Order Unit Active
+      - name: VPSTA
+        description: Maintenance status of complete material
+      - name: AENAM
+        description: Name of person who changed object
+      - name: FERTH
+        description: Production/inspection memo
+      - name: KZKFG
+        description: Configurable Material
+      - name: EANNR
+        description: European Article Number (EAN) - obsolete!!!!!
+      - name: MSTDV
+        description: Date from which the X-distr.-chain material status is valid
+      - name: BEGRU
+        description: Authorization Group
+      - name: FIBER_CODE1
+        description: Fiber Code for Textiles (Component 1)
+      - name: FIBER_PART3
+        description: Percentage Share of Fiber (Component 3)
+      - name: MEINS
+        description: Base Unit of Measure
+      - name: RDMHD
+        description: Rounding rule for calculation of SLED
+      - name: SIZE1_ATINN
+        description: Internal Char. Number for Characteristics for Main Sizes
+      - name: VHART
+        description: Packaging Material Type
+      - name: FIBER_PART5
+      - name: AESZN
+        description: Document change number (without document management system)
+      - name: ETIFO
+        description: Label form
+      - name: NTGEW
+        description: Net weight
+      - name: WESCH
+        description: 'Quantity: Number of GR/GI slips to be printed'
+      - name: ZEIAR
+        description: Document type (without Document Management system)
+      - name: MHDHB
+        description: Total shelf life
+      - name: TRAGR
+        description: Transportation Group
+      - name: BISMT
+        description: Old material number
+      - name: FUELG
+        description: Maximum level (by volume)
+      - name: KZREV
+        description: Revision Level Has Been Assigned to the Material
+      - name: MLGUT
+        description: Empties Bill of Material
+      - name: RBNRM
+        description: Catalog Profile
+      - name: EKWSL
+        description: Purchasing Value Key
+      - name: ENTAR
+        description: Disposal type
+      - name: LAEDA
+        description: Date of Last Change
+      - name: MBRSH
+        description: Industry Sector
+      - name: BWVOR
+        description: Procurement rule
+      - name: CARE_CODE
+        description: Care Codes (such as Washing Code, Ironing Code, etc.)
+      - name: ERGEW
+        description: Allowed packaging weight
+      - name: BWSCL
+        description: Source of Supply
+      - name: SAISO
+        description: Season Category
+      - name: VPREH
+        description: Comparison price unit
+      - name: COLOR
+        description: Characteristic Value for Colors of Variants
+      - name: RAUBE
+        description: Storage conditions
+      - name: AEKLK
+        description: Stock Transfer Net Change Costing
+      - name: BRAND_ID
+        description: Brand
+      - name: CADKZ
+        description: CAD Indicator
+      - name: CMETH
+        description: Quantity Conversion Method
+      - name: DATAB
+        description: Valid-From Date
+      - name: DISST
+        description: Low-Level Code
+      - name: FIBER_CODE2
+        description: Fiber Code for Textiles (Component 2)
+      - name: ILOOS
+        description: 'Indicator: In Bulk/Liquid'
+      - name: TAKLV
+        description: Tax classification of the material
+      - name: SAISJ
+        description: Season Year
+      - name: GEWTO
+        description: Excess Weight Tolerance for Handling unit
+      - name: KZUMW
+        description: Environmentally Relevant
+      - name: LABOR
+        description: Laboratory/design office
+      - name: LIQDT
+        description: Deletion date
+      - name: MSTAV
+        description: Cross-distribution-chain material status
+      - name: NRFHG
+        description: Material qualifies for discount in kind
+      - name: SPART
+        description: Division
+      - name: STFAK
+        description: Stacking factor
+      - name: ZEIFO
+        description: Page format of document (without Document Management system)
+      - name: EAN11
+        description: International Article Number (EAN/UPC)
+      - name: NORMT
+        description: Industry Standard Description (such as ANSI or ISO)
+      - name: RPA_WGH1
+        description: Material group hierarchy level
+      - name: BFLME
+        description: Generic Material with Logistical Variants
+      - name: BRGEW
+        description: Gross weight
+      - name: FIBER_PART1
+        description: Percentage Share of Fiber (Component 1)
+      - name: MFRPN
+        description: Manufacturer Part Number
+      - name: VOLUM
+        description: Volume
+      - name: XGCHP
+        description: Approved Batch Record Required
+      - name: SIZE1
+        description: Characteristic Value for Main Sizes of Variants
+      - name: NSNID
+        description: NATO Stock Number
+      - name: BLANZ
+        description: Number of sheets (without Document Management system)
+      - name: ERGEI
+        description: Unit of weight (allowed packaging weight)
+      - name: GROES
+        description: Size/dimensions
+      - name: LVORM
+        description: Flag Material for Deletion at Client Level
+      - name: SPROF
+        description: Pricing profile for variants
+      - name: MTART
+        description: Material type
+      - name: KZGVH
+        description: Packaging Material is Closed Packaging
+      - name: ERSDA
+        description: Created On
+      - name: KZEFF
+        description: Assign effectivity parameter values/ override change numbers
+      - name: FORMT
+        description: Page Format of Production Memo
+      - name: HOEHE
+        description: Height
+      - name: PROFL
+        description: Dangerous Goods Indicator Profile
+      - name: VOLEH
+        description: Volume unit
+      - name: XCHPF
+        description: Batch management requirement indicator
+      - name: KOSCH
+        description: Product allocation determination procedure
+      - name: KZNFM
+        description: 'Indicator: The material has a follow-up material'
+      - name: BSTME
+        description: Purchase Order Unit of Measure
+      - name: FIBER_CODE3
+        description: Fiber Code for Textiles (Component 3)
+      - name: MFRNR
+        description: Manufacturer number
+      - name: RPA_WGH3
+        description: Material group hierarchy level
+      - name: MTPOS_MARA
+        description: General item category group
+      - name: PRDHA
+        description: Product hierarchy
+      - name: VOLTO
+        description: Excess Volume Tolerance of the Handling Unit
+      - name: MHDRZ
+        description: Minimum Remaining Shelf Life
+      - name: ZZDISMM
+      - name: FIBER_CODE5
+      - name: MHDLP
+        description: Storage percentage
+      - name: MSTDE
+        description: Date from which the cross-plant material status is valid
+      - name: BLATT
+        description: Page number of document (without Document Management system)
+      - name: BMATN
+        description: Number of firm's own (internal) inventory-managed material
+      - name: ERVOE
+        description: Volume unit (allowed packaging volume)
+      - name: IPRKZ
+        description: Period Indicator for Shelf Life Expiration Date
+      - name: KZWSM
+        description: Units of measure usage
+      - name: PRZUS
+        description: 'Indicator: Product composition printed on packaging'
+      - name: RPA_WGH2
+        description: Material group hierarchy level
+      - name: ZEINR
+        description: Document number (without document management system)
+      - name: INHBR
+        description: Gross contents
+      - name: ETIAR
+        description: Label type
+      - name: FIBER_PART2
+        description: Percentage Share of Fiber (Component 2)
+      - name: SIZE2
+        description: Characteristic Value for Second Size for Variants
+      - name: ATTYP
+        description: Material Category
+      - name: ERVOL
+        description: Allowed packaging volume
+      - name: QMPUR
+        description: QM in Procurement Is Active
+      - name: STOFF
+        description: Hazardous material number
+      - name: MAGRV
+        description: 'Material Group: Packaging Materials'
+      - name: WRKST
+        description: Basic Material
+      - name: EXTWG
+        description: External Material Group
+      - name: IHIVI
+        description: 'Indicator: Highly Viscous'
+      - name: MPROF
+        description: Mfr part profile
+      - name: SERLV
+        description: Level of Explicitness for Serial Number
+      - name: TEMPB
+        description: Temperature conditions indicator
+      - name: ETIAG
+        description: 'IS-R Labeling: material grouping (deactivated in 4.0)'
+      - name: SAITY
+        description: Rollout in a Season
+      - name: COMPL
+        description: Material completion level
+      - name: FASHGRD
+        description: Fashion Grade
+      - name: FIBER_CODE4
+        description: Fiber Code for Textiles (Component 4)
+      - name: INHAL
+        description: Net contents
+      - name: LAENG
+        description: Length
+      - name: MATKL
+        description: Material Group
+      - name: MSTAE
+        description: Cross-Plant Material Status
+      - name: NUMTP
+        description: Category of International Article Number (EAN)
+      - name: PLGTP
+        description: Price Band Category
+      - name: SATNR
+        description: Cross-Plant Configurable Material
+      - name: ZEIVR
+        description: Document version (without Document Management system)
+      - name: GEWEI
+        description: Weight Unit
+      - name: ERNAM
+        description: Name of Person who Created the Object
+      - name: FREE_CHAR
+        description: Characteristic Value for Evaluation Purposes
+      - name: KZKUP
+        description: 'Indicator: Material can be co-product'
+      - name: MATNR
+        description: Material Number
+      - name: MEABM
+        description: Unit of Dimension for Length/Width/Height
+      - name: MANDT
+        description: Client
+      - name: PMATA
+        description: Pricing Reference Material
+      - name: SIZE2_ATINN
+        description: Internal Char. Number for Characteristics for Second Sizes
+      - name: BEHVO
+        description: Container requirements
+      - name: BREIT
+        description: Width
+      - name: CUOBF
+        description: Internal object number
+      - name: PSTAT
+        description: Maintenance status
+    - name: 2lis_11_v_itm
+      columns:
+      - name: MATKL
+        description: Material Group
+      - name: WAKTION
+        description: Promotion
+      - name: KURST
+        description: Exchange Rate Type
+      - name: PSPDNR
+        description: Forwarding Agent
+      - name: ROCANCEL
+        description: 'Indicator: Cancel Data Record'
+      - name: SHKZG
+        description: Debit/Credit Indicator
+      - name: WAERK
+        description: SD document currency
+      - name: KVGR2
+        description: Customer group 2
+      - name: ROUTE
+        description: Route
+      - name: VRKME
+        description: Sales unit
+      - name: HWAER
+        description: Local Currency
+      - name: VKBUR
+        description: Sales office
+      - name: KVGR4
+        description: Customer group 4
+      - name: LFIMG_AVME
+      - name: VTWEG
+        description: Distribution Channel
+      - name: MVGR4
+        description: Material group 4
+      - name: ABGRU
+        description: Reason for Rejection of Sales Documents
+      - name: MVGR2
+        description: Material group 2
+      - name: UMVKZ
+        description: Numerator (factor) for conversion of sales quantity into SKU
+      - name: MCBW_LFWRT
+      - name: ERDAT
+        description: Date on which the record was created
+      - name: MCBW_NETPR_AVKM
+        description: 'BW: Net Price Referring to Sales Quantity for Order Item'
+      - name: VKGRP
+        description: Sales group
+      - name: PERIV
+        description: Fiscal Year Variant
+      - name: SPART
+        description: Division
+      - name: KURSK_DAT
+        description: Translation date
+      - name: PKUNWE
+        description: Ship-to party
+      - name: KVGR3
+        description: Customer group 3
+      - name: POSNR
+        description: Item number of the SD document
+      - name: STCUR
+        description: Exchange rate for statistics (Exch.rate at time of creation)
+      - name: VSTEL
+        description: Shipping Point / Receiving Point
+      - name: PKUNRG
+        description: Payer
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: MATNR
+        description: Material Number
+      - name: BUKRS
+        description: Company Code
+      - name: MEINS
+        description: Base Unit of Measure
+      - name: MVGR1
+        description: Material group 1
+      - name: MATWA
+        description: Material entered
+      - name: PKUNRE
+        description: Bill-to party
+      - name: VOLEH
+        description: Volume unit
+      - name: EAN11
+        description: International Article Number (EAN/UPC)
+      - name: MCEX_APCAMPAIGN
+        description: Campaign of referred sales order item for BW-Extraction
+      - name: LIFSK
+        description: Delivery Block (Document Header)
+      - name: PVRTNR
+        description: Sales employee
+      - name: ANZOAUPO
+      - name: PS_POSID
+        description: Work Breakdown Structure Element (WBS Element)
+      - name: BZIRK
+        description: Sales District
+      - name: UMVKN
+        description: Denominator (Divisor) for Conversion of Sales Qty into SKU
+      - name: MVGR3
+        description: Material group 3
+      - name: WERKS
+        description: Plant
+      - name: VKORG
+        description: Sales Organization
+      - name: KUNNR
+        description: Ship-to party
+      - name: FAKSK
+        description: Billing Block in SD Document
+      - name: INCO1
+        description: Incoterms (Part 1)
+      - name: OAUME
+      - name: FAKSP
+        description: Billing Block for Item
+      - name: KDGRP
+        description: Customer Group
+      - name: INCO2
+        description: Incoterms (Part 2)
+      - name: KURSK
+        description: Exchange Rate for Price Determination
+      - name: MVGR5
+        description: Material group 5
+      - name: OAUWE
+      - name: VBTYP
+        description: SD Document Category
+      - name: STADAT
+        description: Statistics date
+      - name: CHARG
+        description: Batch Number
+      - name: KVGR5
+        description: Customer group 5
+      - name: PRODH
+        description: Product hierarchy
+      - name: SPARA
+        description: Division for order header
+      - name: STWAE
+        description: Statistics Currency
+      - name: ABSTA
+        description: Rejection Status (Item)
+      - name: KVGR1
+        description: Customer group 1
+    - name: 2lis_11_vaitm
+      columns:
+      - name: MCBW_NETPR_AVKM
+        description: 'BW: Net Price Referring to Sales Quantity for Order Item'
+      - name: PS_POSID
+        description: Work Breakdown Structure Element (WBS Element)
+      - name: UVALL
+        description: Incompletion Status (Item)
+      - name: BWVORG
+        description: SAP BW transaction key
+      - name: KURSK
+        description: Exchange Rate for Price Determination
+      - name: ERDAT
+        description: Date on which the record was created
+      - name: KURST
+        description: Exchange Rate Type
+      - name: SPARA
+        description: Division for order header
+      - name: UVPRS
+        description: Pricing Incompletion Status (Item)
+      - name: VGBEL
+        description: Document number of the reference document
+      - name: ZMENG
+        description: Target Quantity in Sales Units
+      - name: MVGR5
+        description: Material group 5
+      - name: BRGEW
+        description: Gross weight
+      - name: PKUNRE
+        description: Bill-to party
+      - name: WMINR
+        description: Product catalog number
+      - name: AEDAT
+        description: Date of Last Change
+      - name: FBUDA
+        description: Date on which services are rendered
+      - name: NETPR
+        description: Net Price
+      - name: ABGRU
+        description: Reason for Rejection of Sales Documents
+      - name: LFMNG
+        description: Minimum Delivery Quantity in Delivery Note Processing
+      - name: MATWA
+        description: Material entered
+      - name: SPART
+        description: Division
+      - name: UEBTK
+        description: Unlimited Overdelivery Allowed
+      - name: HWAER
+        description: Local Currency
+      - name: PERIV
+        description: Fiscal Year Variant
+      - name: VOLUM
+        description: Volume
+      - name: WAVWR
+        description: Cost in document currency
+      - name: BNDDT
+        description: Date Until Which Bid/Quotation is Binding (Valid-To Date)
+      - name: KZWI6
+        description: Subtotal 6 from pricing procedure for condition
+      - name: FKDAT
+        description: Billing Date
+      - name: VKGRP
+        description: Sales group
+      - name: FAKSP
+        description: Billing Block for Item
+      - name: UNTTO
+        description: Underdelivery Tolerance
+      - name: MCEX_APCAMPAIGN
+        description: Campaign of referred sales order item for BW-Extraction
+      - name: MWSBP
+        description: Tax amount in document currency
+      - name: VGTYP_AK
+        description: Sales Document Category of Reference Doc. in Order Header
+      - name: VOLEH
+        description: Volume unit
+      - name: NTGEW
+        description: Net weight
+      - name: UEBTO
+        description: Overdelivery Tolerance
+      - name: KZWI2
+        description: Subtotal 2 from pricing procedure for condition
+      - name: MATNR
+        description: Material Number
+      - name: VRKME
+        description: Sales unit
+      - name: ERNAM
+        description: Name of Person who Created the Object
+      - name: UMVKZ
+        description: Numerator (factor) for conversion of sales quantity into SKU
+      - name: VGPOS
+        description: Item number of the reference item
+      - name: WAKTION
+        description: Promotion
+      - name: KNUMA_AG
+        description: Sales deal
+      - name: UVFAK
+        description: Billing Incompletion Status (Item)
+      - name: KZWI4
+        description: Subtotal 4 from pricing procedure for condition
+      - name: AUART
+        description: Sales Document Type
+      - name: UVVLK
+        description: Delivery Incompletion Status (Item)
+      - name: KVGR1
+        description: Customer group 1
+      - name: KZWI3
+        description: Subtotal 3 from pricing procedure for condition
+      - name: LGORT
+        description: Storage location
+      - name: KTGRD
+        description: Account Assignment Group for this customer
+      - name: NETWR
+        description: Net order value in order currency
+      - name: VBTYP
+        description: SD Document Category
+      - name: CHARG
+        description: Batch Number
+      - name: INCO2
+        description: Incoterms (Part 2)
+      - name: MVGR1
+        description: Material group 1
+      - name: VDATU
+        description: Date of update for statistics updating
+      - name: UMVKN
+        description: Denominator (Divisor) for Conversion of Sales Qty into SKU
+      - name: ERZET
+        description: Entry time
+      - name: VSTEL
+        description: Shipping Point / Receiving Point
+      - name: VGTYP
+        description: SD Document Category
+      - name: MVGR2
+        description: Material group 2
+      - name: PRSDT
+        description: Date for Pricing and Exchange Rate
+      - name: PVRTNR
+        description: Sales employee
+      - name: VKBUR
+        description: Sales office
+      - name: AUGRU
+        description: Order Reason (Reason for the Business Transaction)
+      - name: UMZIN
+        description: Factor for Converting Sales Units to Base Units (Target Qty)
+      - name: UMZIZ
+        description: Factor for Converting Sales Units to Base Units (Target Qty)
+      - name: INCO1
+        description: Incoterms (Part 1)
+      - name: MEINS
+        description: Base Unit of Measure
+      - name: MVGR3
+        description: Material group 3
+      - name: SUGRD
+        description: Reason for material substitution
+      - name: KZWI1
+        description: Subtotal 1 from pricing procedure for condition
+      - name: BZIRK
+        description: Sales District
+      - name: KUNNR
+        description: Ship-to party
+      - name: LSMENG
+        description: Cumulative Required Delivery Qty (All Dlv-Relev.Sched.Lines)
+      - name: KVGR5
+        description: Customer group 5
+      - name: EAN11
+        description: International Article Number (EAN/UPC)
+      - name: KWMENG
+        description: Cumulative order quantity in sales units
+      - name: STCUR
+        description: Exchange rate for statistics (Exch.rate at time of creation)
+      - name: STWAE
+        description: Statistics Currency
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: ROUTE
+        description: Route
+      - name: PRODH
+        description: Product hierarchy
+      - name: AWAHR
+        description: Order Probability of the Item
+      - name: SOBKZ
+        description: Special Stock Indicator
+      - name: ANZAUPO
+        description: Number of Order Items
+      - name: KZWI5
+        description: Subtotal 5 from pricing procedure for condition
+      - name: PSTYV
+        description: Sales document item category
+      - name: PKUNRG
+        description: Payer
+      - name: ANGDT
+        description: Quotation/Inquiry is Valid From
+      - name: PSPDNR
+        description: Forwarding Agent
+      - name: KMEIN
+        description: Condition Unit
+      - name: KVGR2
+        description: Customer group 2
+      - name: LIFSK
+        description: Delivery Block (Document Header)
+      - name: ROCANCEL
+        description: 'Indicator: Cancel Data Record'
+      - name: BUKRS
+        description: Company Code
+      - name: KVGR3
+        description: Customer group 3
+      - name: FAKSK
+        description: Billing Block in SD Document
+      - name: KBMENG
+        description: Cumulative Confirmed Quantity in Sales Unit
+      - name: MVGR4
+        description: Material group 4
+      - name: PABLA
+        description: Unloading point of the ship-to party
+      - name: POSNR
+        description: Item number of the SD document
+      - name: ABSTA
+        description: Rejection Status (Item)
+      - name: STADAT
+        description: Statistics date
+      - name: WERKS
+        description: Plant
+      - name: KPEIN
+        description: Condition Pricing Unit
+      - name: KURSK_DAT
+        description: Translation date
+      - name: MATKL
+        description: Material Group
+      - name: BWAPPLNM
+        description: Application Component
+      - name: CMKUA
+        description: Credit data exchange rate for requested delivery date
+      - name: KDGRP
+        description: Customer Group
+      - name: KVGR4
+        description: Customer group 4
+      - name: GEWEI
+        description: Weight Unit
+      - name: ZIEME
+        description: Target Quantity UoM
+      - name: WAERK_VBAK
+        description: SD document currency
+      - name: APOPLANNED
+        description: Planning in APO
+      - name: KLMENG
+        description: Cumulative Confirmed Quantity in Base Unit
+      - name: VKORG
+        description: Sales Organization
+      - name: VTWEG
+        description: Distribution Channel
+      - name: ZWERT
+        description: Target Value for Outline Agreement in Document Currency
+      - name: PKUNWE
+        description: Ship-to party
+      - name: WAERK
+        description: SD document currency
+    - name: 0matl_group_text
+      columns:
+      - name: TXTLG
+        description: Asset Description
+      - name: LANGU
+        description: Language Key
+      - name: TXTMD
+      - name: TXTSH
+      - name: KEY1
+      - name: DATEFROM
+        description: Date for Beginning of Validity
+      - name: DATETO
+        description: Date Validity Ends
+    - name: 2lis_11_v_scl
+      columns:
+      - name: HWAER
+        description: Local Currency
+      - name: STADAT
+        description: Statistics date
+      - name: UMVKN
+        description: Denominator (Divisor) for Conversion of Sales Qty into SKU
+      - name: PVRTNR
+        description: Sales employee
+      - name: BZIRK
+        description: Sales District
+      - name: KVGR4
+        description: Customer group 4
+      - name: MCBW_BWERT
+      - name: VKBUR
+        description: Sales office
+      - name: MVGR4
+        description: Material group 4
+      - name: CHARG
+        description: Batch Number
+      - name: LIFSP
+        description: Schedule Line Blocked for Delivery
+      - name: PKUNWE
+        description: Ship-to party
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: VOLEH
+        description: Volume unit
+      - name: VRKME
+        description: Sales unit
+      - name: PRODH
+        description: Product hierarchy
+      - name: EDATU
+        description: Schedule line date
+      - name: OLFMNG
+      - name: VKORG
+        description: Sales Organization
+      - name: KUNNR
+        description: Ship-to party
+      - name: BMENG
+        description: Confirmed Quantity
+      - name: KVGR3
+        description: Customer group 3
+      - name: PKUNRG
+        description: Payer
+      - name: VSMNG
+        description: delivered_quantity
+      - name: WMENG
+        description: Order Quantity in Sales Units
+      - name: PERIV
+        description: Fiscal Year Variant
+      - name: VKGRP
+        description: Sales group
+      - name: LIFSK
+        description: Delivery Block (Document Header)
+      - name: MCEX_APCAMPAIGN
+        description: Campaign of referred sales order item for BW-Extraction
+      - name: MVGR3
+        description: Material group 3
+      - name: ETENR
+        description: Schedule Line Number
+      - name: MATNR
+        description: Material Number
+      - name: KURST
+        description: Exchange Rate Type
+      - name: SPART
+        description: Division
+      - name: GEWEI
+        description: Weight Unit
+      - name: KURSK
+        description: Exchange Rate for Price Determination
+      - name: MCBW_VSWRT
+      - name: STCUR
+        description: Exchange rate for statistics (Exch.rate at time of creation)
+      - name: B_DELAY
+      - name: EAN11
+        description: International Article Number (EAN/UPC)
+      - name: KDGRP
+        description: Customer Group
+      - name: MCBW_NETPR_AVKM
+        description: 'BW: Net Price Referring to Sales Quantity for Order Item'
+      - name: MVGR5
+        description: Material group 5
+      - name: APOPLANNED
+        description: Planning in APO
+      - name: STWAE
+        description: Statistics Currency
+      - name: MATKL
+        description: Material Group
+      - name: VBTYP
+        description: SD Document Category
+      - name: MEINS
+        description: Base Unit of Measure
+      - name: LDDAT
+        description: Loading Date
+      - name: MCBW_WWERT
+      - name: PSPDNR
+        description: Forwarding Agent
+      - name: UMVKZ
+        description: Numerator (factor) for conversion of sales quantity into SKU
+      - name: FAKSP
+        description: Billing Block for Item
+      - name: INCO1
+        description: Incoterms (Part 1)
+      - name: KVGR5
+        description: Customer group 5
+      - name: WLDATBE
+        description: Desired del. date in confirmed schedule lines
+      - name: ROCANCEL
+        description: 'Indicator: Cancel Data Record'
+      - name: MVGR1
+        description: Material group 1
+      - name: KVGR2
+        description: Customer group 2
+      - name: MCBW_OLFWRT
+      - name: POSNR
+        description: Item number of the SD document
+      - name: TDDAT
+        description: Transportation Planning Date
+      - name: ERDAT
+        description: Date on which the record was created
+      - name: FAKSK
+        description: Billing Block in SD Document
+      - name: INCO2
+        description: Incoterms (Part 2)
+      - name: ROUTE
+        description: Route
+      - name: WERKS
+        description: Plant
+      - name: BUKRS
+        description: Company Code
+      - name: ABSTA
+        description: Rejection Status (Item)
+      - name: PKUNRE
+        description: Bill-to party
+      - name: WADAT
+        description: Planned Goods Movement Date
+      - name: VTWEG
+        description: Distribution Channel
+      - name: ETTYP
+        description: Schedule line category
+      - name: MBDAT
+        description: Material Staging/Availability Date
+      - name: MVGR2
+        description: Material group 2
+      - name: PS_POSID
+        description: Work Breakdown Structure Element (WBS Element)
+      - name: VSTEL
+        description: Shipping Point / Receiving Point
+      - name: KVGR1
+        description: Customer group 1
+      - name: SPARA
+        description: Division for order header
+      - name: WAERK
+        description: SD document currency
+      - name: SHKZG
+        description: Debit/Credit Indicator
+    - name: 2lis_11_v_ssl
+      columns:
+      - name: RECORD_DELETED
+      - name: LFGSA
+      - name: VBTYP
+        description: SD Document Category
+      - name: VBEP_DELETED
+      - name: MCEX_W_LFUHR
+      - name: POSNR_VL
+      - name: MCEX_B_WADAT
+      - name: VBELN_VL
+      - name: UMVKZ
+        description: Numerator (factor) for conversion of sales quantity into SKU
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: MCEX_WBSTA_LOW
+      - name: UMVKN
+        description: Denominator (Divisor) for Conversion of Sales Qty into SKU
+      - name: POSNR
+        description: Item number of the SD document
+      - name: VRKME
+        description: Sales unit
+      - name: MCEX_I_WADAT
+      - name: MEINS
+        description: Base Unit of Measure
+      - name: MCEX_B_LFDAT
+      - name: MCEX_I_LFUHRLATE
+      - name: WMENG
+        description: Order Quantity in Sales Units
+      - name: LIFSP
+        description: Schedule Line Blocked for Delivery
+      - name: MCEX_I_WADATLATE
+      - name: MCEX_B_LFUHR
+      - name: WBSTA
+        description: Goods Movement Status
+      - name: ETENR
+        description: Schedule Line Number
+      - name: MCEX_I_LFDAT
+      - name: MCEX_W_LFDAT
+      - name: MCEX_I_LFUHR
+      - name: ROCANCEL
+        description: 'Indicator: Cancel Data Record'
+      - name: VSMNG
+      - name: BMENG
+        description: Confirmed Quantity
+      - name: LFSTA
+      - name: MCEX_I_LFDATLATE
+    - name: 2lis_11_vascl
+      columns:
+      - name: APOPLANNED
+        description: Planning in APO
+      - name: AWAHR
+        description: Order Probability of the Item
+      - name: LOGSYS
+        description: Logical system
+      - name: BNDDT
+        description: Date Until Which Bid/Quotation is Binding (Valid-To Date)
+      - name: BMENG
+        description: Confirmed Quantity
+      - name: KURSK_DAT
+        description: Translation date
+      - name: PKUNWE
+        description: Ship-to party
+      - name: STADAT
+        description: Statistics date
+      - name: TDDAT
+        description: Transportation Planning Date
+      - name: VWPOS
+        description: Item Usage
+      - name: VTWEG
+        description: Distribution Channel
+      - name: KVGR3
+        description: Customer group 3
+      - name: KUNNR
+        description: Ship-to party
+      - name: KTGRD
+        description: Account Assignment Group for this customer
+      - name: MATNR
+        description: Material Number
+      - name: PRODH
+        description: Product hierarchy
+      - name: STOCKLOC
+        description: First Inventory-Managing Location
+      - name: AUART
+        description: Sales Document Type
+      - name: POSNR
+        description: Item number of the SD document
+      - name: STWAE
+        description: Statistics Currency
+      - name: VRKME
+        description: Sales unit
+      - name: FACELOC
+        description: Customer-Facing Location
+      - name: MVGR2
+        description: Material group 2
+      - name: SUGRD
+        description: Reason for material substitution
+      - name: UVFAK
+        description: Billing Incompletion Status (Item)
+      - name: VKGRP
+        description: Sales group
+      - name: BZIRK
+        description: Sales District
+      - name: AEDAT
+        description: Date of Last Change
+      - name: ETTYP
+        description: Schedule line category
+      - name: FAKSP
+        description: Billing Block for Item
+      - name: KVGR4
+        description: Customer group 4
+      - name: PABLA
+        description: Unloading point of the ship-to party
+      - name: MEINS
+        description: Base Unit of Measure
+      - name: AUGRU
+        description: Order Reason (Reason for the Business Transaction)
+      - name: KURST
+        description: Exchange Rate Type
+      - name: UVALL
+        description: Incompletion Status (Item)
+      - name: WMENG
+        description: Order Quantity in Sales Units
+      - name: ERDAT
+        description: Date on which the record was created
+      - name: LGORT
+        description: Storage location
+      - name: MVGR4
+        description: Material group 4
+      - name: PVRTNR
+        description: Sales employee
+      - name: VBTYP
+        description: SD Document Category
+      - name: VOLEH
+        description: Volume unit
+      - name: FBUDA
+        description: Date on which services are rendered
+      - name: FLOCTYPE
+        description: Type of Customer-Facing Location
+      - name: PERIV
+        description: Fiscal Year Variant
+      - name: UMZIZ
+        description: Factor for Converting Sales Units to Base Units (Target Qty)
+      - name: VGTYP
+        description: SD Document Category
+      - name: EXECLOC
+        description: Executing Location
+      - name: HWAER
+        description: Local Currency
+      - name: UMVKZ
+        description: Numerator (factor) for conversion of sales quantity into SKU
+      - name: LIFSK
+        description: Delivery Block (Document Header)
+      - name: ETENR
+        description: Schedule Line Number
+      - name: PKUNRG
+        description: Payer
+      - name: ERNAM
+        description: Name of Person who Created the Object
+      - name: KURSK
+        description: Exchange Rate for Price Determination
+      - name: LMENG
+        description: Required quantity for mat.management in stockkeeping units
+      - name: GEWEI
+        description: Weight Unit
+      - name: WAERK_VBAK
+        description: SD document currency
+      - name: BUKRS
+        description: Company Code
+      - name: FKDAT
+        description: Billing Date
+      - name: WADAT
+        description: Planned Goods Movement Date
+      - name: FAKSK
+        description: Billing Block in SD Document
+      - name: SPARA
+        description: Division for order header
+      - name: WERKS
+        description: Plant
+      - name: INCO1
+        description: Incoterms (Part 1)
+      - name: KVGR2
+        description: Customer group 2
+      - name: KVGR5
+        description: Customer group 5
+      - name: MVGR3
+        description: Material group 3
+      - name: SLOCTYPE
+        description: Type of First Inventory-Managing Location
+      - name: VDATU
+        description: Date of update for statistics updating
+      - name: ROUTE
+        description: Route
+      - name: CHARG
+        description: Batch Number
+      - name: ELOCTYPE
+        description: Type of Executing Location
+      - name: PSPDNR
+        description: Forwarding Agent
+      - name: LIFSP
+        description: Schedule Line Blocked for Delivery
+      - name: MVGR5
+        description: Material group 5
+      - name: SPART
+        description: Division
+      - name: STCUR
+        description: Exchange rate for statistics (Exch.rate at time of creation)
+      - name: WLDATBE
+        description: Desired del. date in confirmed schedule lines
+      - name: VGTYP_AK
+        description: Sales Document Category of Reference Doc. in Order Header
+      - name: EAN11
+        description: International Article Number (EAN/UPC)
+      - name: ERZET
+        description: Entry time
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: ZIEME
+        description: Target Quantity UoM
+      - name: MVGR1
+        description: Material group 1
+      - name: MATWA
+        description: Material entered
+      - name: VSTEL
+        description: Shipping Point / Receiving Point
+      - name: MBDAT
+        description: Material Staging/Availability Date
+      - name: VKBUR
+        description: Sales office
+      - name: CMKUA
+        description: Credit data exchange rate for requested delivery date
+      - name: PKUNRE
+        description: Bill-to party
+      - name: ANGDT
+        description: Quotation/Inquiry is Valid From
+      - name: INCO2
+        description: Incoterms (Part 2)
+      - name: KDGRP
+        description: Customer Group
+      - name: PRSDT
+        description: Date for Pricing and Exchange Rate
+      - name: VKORG
+        description: Sales Organization
+      - name: NETPR
+        description: Net Price
+      - name: EDATU
+        description: Schedule line date
+      - name: LDDAT
+        description: Loading Date
+      - name: MATKL
+        description: Material Group
+      - name: UVVLK
+        description: Delivery Incompletion Status (Item)
+      - name: WAERK
+        description: SD document currency
+      - name: KPEIN
+        description: Condition Pricing Unit
+      - name: ABSTA
+        description: Rejection Status (Item)
+      - name: UMZIN
+        description: Factor for Converting Sales Units to Base Units (Target Qty)
+      - name: MCEX_APCAMPAIGN
+        description: Campaign of referred sales order item for BW-Extraction
+      - name: PSTYV
+        description: Sales document item category
+      - name: UMVKN
+        description: Denominator (Divisor) for Conversion of Sales Qty into SKU
+      - name: ABGRU
+        description: Reason for Rejection of Sales Documents
+      - name: KMEIN
+        description: Condition Unit
+      - name: KVGR1
+        description: Customer group 1
+      - name: CMENG
+        description: Corrected quantity in sales unit
+      - name: PS_POSID
+        description: Work Breakdown Structure Element (WBS Element)
+      - name: UVPRS
+        description: Pricing Incompletion Status (Item)
+      - name: ROCANCEL
+        description: 'Indicator: Cancel Data Record'
+    - name: 2lis_11_vasti
+      columns:
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: LFSTA
+      - name: GBSTA
+      - name: FKSTA
+      - name: VBUK_VBTYP
+      - name: LFGSA
+      - name: POSNR
+        description: Item number of the SD document
+      - name: FKSAA
+      - name: ROCANCEL
+        description: 'Indicator: Cancel Data Record'
+      - name: BESTA
+    - name: 2lis_12_vchdr
+      columns:
+      - name: VOLUM
+        description: Volume
+      - name: VBTYP
+        description: SD Document Category
+      - name: LIFSK
+        description: Delivery Block (Document Header)
+      - name: LFART
+        description: Delivery Type
+      - name: KUNAG
+        description: Sold-To Party
+      - name: BUKRS
+        description: Company Code
+      - name: MCBW_ANZPK
+        description: 'Extraction BW: Number of Packages per Delivery'
+      - name: NTGEW
+        description: Net weight
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: WA_DELAY_LF
+        description: 'BW Extraction LE: Actual GI Delay - GI Date for Delivery'
+      - name: ROUTE
+        description: Route
+      - name: WADAT_IST
+        description: Actual Goods Movement Date
+      - name: PVRTNR
+        description: Sales employee
+      - name: KUNNR
+        description: Ship-to party
+      - name: BZIRK
+        description: Sales District
+      - name: INCO1
+        description: Incoterms (Part 1)
+      - name: GEWEI
+        description: Weight Unit
+      - name: PERIV
+        description: Fiscal Year Variant
+      - name: BTGEW
+        description: Total Weight
+      - name: FAKSK
+        description: Billing Block in SD Document
+      - name: PKUNRG
+        description: Payer
+      - name: VKORG
+        description: Sales Organization
+      - name: ANZLI
+        description: No. of deliveries
+      - name: PSPDNR
+        description: Forwarding Agent
+      - name: VSTEL
+        description: Shipping Point / Receiving Point
+      - name: KDGRP
+        description: Customer Group
+      - name: INCO2
+        description: Incoterms (Part 2)
+      - name: ROCANCEL
+        description: 'Indicator: Cancel Data Record'
+      - name: ABLAD
+        description: Unloading Point
+      - name: LIFNR
+        description: Vendor's account number
+      - name: LSTEL
+        description: Loading Point
+      - name: ERDAT
+        description: Date on which the record was created
+      - name: PKUNRE
+        description: Bill-to party
+      - name: VOLEH
+        description: Volume unit
+      - name: LFDAT
+        description: Delivery Date
+      - name: WADAT
+        description: Planned Goods Movement Date
+    - name: 2lis_13_vditm
+      columns:
+      - name: PRODH
+        description: Product hierarchy
+      - name: HWAER
+        description: Local Currency
+      - name: KNUMA_AG
+        description: Sales deal
+      - name: MATKL
+        description: Material Group
+      - name: PKUNRE
+        description: Bill-to party
+      - name: VKORG
+        description: Sales Organization
+      - name: VKGRP
+        description: Sales group
+      - name: FKART
+        description: Billing Type
+      - name: BRTWR
+        description: Gross value of the billing item in document currency
+      - name: KUNAG
+        description: Sold-To Party
+      - name: BONUS
+        description: Volume rebate group
+      - name: KURRF
+        description: Exchange rate for FI postings
+      - name: KVGR4
+        description: Customer group 4
+      - name: KZWI6
+        description: Subtotal 6 from pricing procedure for condition
+      - name: PKUNWE
+        description: Ship-to party
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: VTWEG
+        description: Distribution Channel
+      - name: FBUDA
+        description: Date on which services are rendered
+      - name: FKTYP
+        description: Billing Category
+      - name: MVGR1
+        description: Material group 1
+      - name: MVGR2
+        description: Material group 2
+      - name: PRSDT
+        description: Date for Pricing and Exchange Rate
+      - name: MWSBP
+        description: Tax amount in document currency
+      - name: UMVKZ
+        description: Numerator (factor) for conversion of sales quantity into SKU
+      - name: BRGEW
+        description: Gross weight
+      - name: FAREG
+        description: Rule in billing plan/invoice plan
+      - name: FKDAT
+        description: Billing Date
+      - name: KUNRG
+        description: Payer
+      - name: MATNR
+        description: Material Number
+      - name: AEDAT
+        description: Date of Last Change
+      - name: VDATU
+        description: Date of update for statistics updating
+      - name: KVGR3
+        description: Customer group 3
+      - name: KZWI4
+        description: Subtotal 4 from pricing procedure for condition
+      - name: AKTNR
+        description: Promotion
+      - name: POSAR
+        description: Item Type
+      - name: LMENG
+        description: Required quantity for mat.management in stockkeeping units
+      - name: BWAPPLNM
+        description: Application Component
+      - name: LGORT
+        description: Storage location
+      - name: VSTEL
+        description: Shipping Point / Receiving Point
+      - name: AUPOS
+        description: Sales Document Item
+      - name: ERDAT
+        description: Date on which the record was created
+      - name: KOKRS
+        description: Controlling Area
+      - name: KOSTL
+        description: Cost Center
+      - name: MVGR4
+        description: Material group 4
+      - name: PS_POSID
+        description: Work Breakdown Structure Element (WBS Element)
+      - name: SKFBP
+        description: Amount eligible for cash discount in document currency
+      - name: BONBA
+        description: Rebate basis 1
+      - name: KZWI1
+        description: Subtotal 1 from pricing procedure for condition
+      - name: SPART
+        description: Division
+      - name: NETWR
+        description: Net order value in order currency
+      - name: KZWI2
+        description: Subtotal 2 from pricing procedure for condition
+      - name: MATWA
+        description: Material entered
+      - name: UMVKN
+        description: Denominator (Divisor) for Conversion of Sales Qty into SKU
+      - name: WAVWR
+        description: Cost in document currency
+      - name: MVGR5
+        description: Material group 5
+      - name: KURSK_DAT
+        description: Translation date
+      - name: VGBEL
+        description: Document number of the reference document
+      - name: BWVORG
+        description: SAP BW transaction key
+      - name: BZIRK
+        description: Sales District
+      - name: STADAT
+        description: Statistics date
+      - name: KURSK
+        description: Exchange Rate for Price Determination
+      - name: VBTYP
+        description: SD Document Category
+      - name: FKLMG
+        description: Billing quantity in stockkeeping unit
+      - name: PERIV
+        description: Fiscal Year Variant
+      - name: PVRTNR
+        description: Sales employee
+      - name: CHARG
+        description: Batch Number
+      - name: EAN11
+        description: International Article Number (EAN/UPC)
+      - name: KDGRP
+        description: Customer Group
+      - name: POSNR
+        description: Item number of the SD document
+      - name: VGPOS
+        description: Item number of the reference item
+      - name: VOLEH
+        description: Volume unit
+      - name: FKIMG
+        description: Actual billed quantity
+      - name: SPARA
+        description: Division for order header
+      - name: WERKS
+        description: Plant
+      - name: KVGR5
+        description: Customer group 5
+      - name: ANZFKPOS
+        description: Number of billing items
+      - name: GEWEI
+        description: Weight Unit
+      - name: MVGR3
+        description: Material group 3
+      - name: PROVG
+        description: Commission group
+      - name: KURST
+        description: Exchange Rate Type
+      - name: MCEX_APCAMPAIGN
+        description: Campaign of referred sales order item for BW-Extraction
+      - name: ROCANCEL
+        description: 'Indicator: Cancel Data Record'
+      - name: VOLUM
+        description: Volume
+      - name: NTGEW
+        description: Net weight
+      - name: KZWI3
+        description: Subtotal 3 from pricing procedure for condition
+      - name: PSTYV
+        description: Sales document item category
+      - name: AUBEL
+        description: Sales Document
+      - name: STWAE
+        description: Statistics Currency
+      - name: KZWI5
+        description: Subtotal 5 from pricing procedure for condition
+      - name: VRKME
+        description: Sales unit
+      - name: MEINS
+        description: Base Unit of Measure
+      - name: VKBUR
+        description: Sales office
+      - name: BUKRS
+        description: Company Code
+      - name: KVGR1
+        description: Customer group 1
+      - name: KVGR2
+        description: Customer group 2
+      - name: SMENG
+        description: Scale Quantity in base unit of measure
+      - name: STCUR
+        description: Exchange rate for statistics (Exch.rate at time of creation)
+      - name: WAERK
+        description: SD document currency
+    - name: 0salesoffice_org_attr
+      columns:
+      - name: VKBUR
+        description: Sales office
+      - name: VKORG
+        description: Sales Organization
+      - name: PERNR
+        description: Personnel Number
+      - name: VKGRP
+        description: Sales group
+    - name: 2lis_11_vahdr
+      columns:
+      - name: ANZAU
+        description: Number of Orders
+      - name: STWAE
+        description: Statistics Currency
+      - name: SPARA
+        description: Division for order header
+      - name: KUNNR
+        description: Ship-to party
+      - name: VTWEG
+        description: Distribution Channel
+      - name: KURST
+        description: Exchange Rate Type
+      - name: AUART
+        description: Sales Document Type
+      - name: VDATU
+        description: Date of update for statistics updating
+      - name: KVGR1
+        description: Customer group 1
+      - name: PVRTNR
+        description: Sales employee
+      - name: VKGRP
+        description: Sales group
+      - name: AUGRU
+        description: Order Reason (Reason for the Business Transaction)
+      - name: ROCANCEL
+        description: 'Indicator: Cancel Data Record'
+      - name: ERDAT
+        description: Date on which the record was created
+      - name: HWAER
+        description: Local Currency
+      - name: KVGR5
+        description: Customer group 5
+      - name: WAERK
+        description: SD document currency
+      - name: FAKSK
+        description: Billing Block in SD Document
+      - name: KVGR2
+        description: Customer group 2
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: VKORG
+        description: Sales Organization
+      - name: BUKRS
+        description: Company Code
+      - name: LIFSK
+        description: Delivery Block (Document Header)
+      - name: BNDDT
+        description: Date Until Which Bid/Quotation is Binding (Valid-To Date)
+      - name: VKBUR
+        description: Sales office
+      - name: VGTYP_AK
+        description: Sales Document Category of Reference Doc. in Order Header
+      - name: ANGDT
+        description: Quotation/Inquiry is Valid From
+      - name: KVGR3
+        description: Customer group 3
+      - name: KVGR4
+        description: Customer group 4
+      - name: PERIV
+        description: Fiscal Year Variant
+      - name: VBTYP
+        description: SD Document Category
+    - name: 2lis_12_vcitm
+      columns:
+      - name: GEWEI
+        description: Weight Unit
+      - name: VSTEL
+        description: Shipping Point / Receiving Point
+      - name: KVGR1
+        description: Customer group 1
+      - name: AEDAT
+        description: Date of Last Change
+      - name: ERDAT
+        description: Date on which the record was created
+      - name: KOSTA
+        description: Picking Status/Putaway Status (Item)
+      - name: LGORT
+        description: Storage location
+      - name: BRGEW
+        description: Gross weight
+      - name: KVGR4
+        description: Customer group 4
+      - name: LGTYP
+        description: Storage Type
+      - name: VKORG
+        description: Sales Organization
+      - name: LGPLA
+        description: Storage Bin
+      - name: UMVKN
+        description: Denominator (Divisor) for Conversion of Sales Qty into SKU
+      - name: BZIRK
+        description: Sales District
+      - name: VGBEL
+        description: Document number of the reference document
+      - name: PKUNRE
+        description: Bill-to party
+      - name: STADAT
+        description: Statistics date
+      - name: WADAT_IST
+        description: Actual Goods Movement Date
+      - name: PKUNRG
+        description: Payer
+      - name: LFART
+        description: Delivery Type
+      - name: VKBUR
+        description: Sales office
+      - name: ERNAM
+        description: Name of Person who Created the Object
+      - name: KUNNR
+        description: Ship-to party
+      - name: KZVBR
+        description: Consumption posting
+      - name: LIFSK
+        description: Delivery Block (Document Header)
+      - name: FAKSK
+        description: Billing Block in SD Document
+      - name: VRKME
+        description: Sales unit
+      - name: ABLAD
+        description: Unloading Point
+      - name: PS_POSID
+        description: Work Breakdown Structure Element (WBS Element)
+      - name: VOLEH
+        description: Volume unit
+      - name: MVGR2
+        description: Material group 2
+      - name: POSNR
+        description: Item number of the SD document
+      - name: KUNAG
+        description: Sold-To Party
+      - name: VBTYP
+        description: SD Document Category
+      - name: KDGRP
+        description: Customer Group
+      - name: KOQUA
+        description: Confirmation status of picking/putaway
+      - name: LIFNR
+        description: Vendor's account number
+      - name: ROUTE
+        description: Route
+      - name: UMVKZ
+        description: Numerator (factor) for conversion of sales quantity into SKU
+      - name: VBEAV
+        description: Variable shipping processing time in days
+      - name: VOLUM
+        description: Volume
+      - name: VTWEG
+        description: Distribution Channel
+      - name: WBSTA
+        description: Goods Movement Status
+      - name: NTGEW
+        description: Net weight
+      - name: WERKS
+        description: Plant
+      - name: KOMKZ
+        description: Indicator for picking control
+      - name: LGMNG
+        description: Actual quantity delivered in stockkeeping units
+      - name: PERIV
+        description: Fiscal Year Variant
+      - name: PRODH
+        description: Product hierarchy
+      - name: LGNUM
+        description: Warehouse Number / Warehouse Complex
+      - name: MATWA
+        description: Material entered
+      - name: VDATU
+        description: Date of update for statistics updating
+      - name: VKGRP
+        description: Sales group
+      - name: BWVORG
+        description: SAP BW transaction key
+      - name: MATKL
+        description: Material Group
+      - name: KVGR5
+        description: Customer group 5
+      - name: MEINS
+        description: Base Unit of Measure
+      - name: MVGR5
+        description: Material group 5
+      - name: BWAPPLNM
+        description: Application Component
+      - name: PSPDNR
+        description: Forwarding Agent
+      - name: VGPOS
+        description: Item number of the reference item
+      - name: WADAT
+        description: Planned Goods Movement Date
+      - name: WA_DELAY_LF
+        description: 'BW Extraction LE: Actual GI Delay - GI Date for Delivery'
+      - name: KVGR3
+        description: Customer group 3
+      - name: BUKRS
+        description: Company Code
+      - name: EAN11
+        description: International Article Number (EAN/UPC)
+      - name: FAKSP
+        description: Billing Block for Item
+      - name: KVGR2
+        description: Customer group 2
+      - name: MCEX_APCAMPAIGN
+        description: Campaign of referred sales order item for BW-Extraction
+      - name: INCO1
+        description: Incoterms (Part 1)
+      - name: MATNR
+        description: Material Number
+      - name: MVGR3
+        description: Material group 3
+      - name: MVGR4
+        description: Material group 4
+      - name: INCO2
+        description: Incoterms (Part 2)
+      - name: ERZET
+        description: Entry time
+      - name: POSAR
+        description: Item Type
+      - name: MVGR1
+        description: Material group 1
+      - name: PSTYV
+        description: Sales document item category
+      - name: PVRTNR
+        description: Sales employee
+      - name: AKTNR
+        description: Promotion
+      - name: ANZLIPOS
+        description: Number of delivery items
+      - name: LFDAT
+        description: Delivery Date
+      - name: LSTEL
+        description: Loading Point
+      - name: SPARA
+        description: Division for order header
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: VGTYP
+        description: SD Document Category
+      - name: LFIMG
+        description: Actual quantity delivered (in sales units)
+      - name: GSBER
+        description: Business Area
+      - name: VBEAF
+        description: Fixed shipping processing time in days (= setup time)
+      - name: CHARG
+        description: Batch Number
+      - name: ROCANCEL
+        description: 'Indicator: Cancel Data Record'
+    - name: 2lis_13_vdkon
+      columns:
+      - name: POSAR
+        description: Item Type
+      - name: VTWEG
+        description: Distribution Channel
+      - name: ERDAT
+        description: Date on which the record was created
+      - name: VRKME
+        description: Sales unit
+      - name: ACRN_ID
+      - name: ROCANCEL
+        description: 'Indicator: Cancel Data Record'
+      - name: VKBUR
+        description: Sales office
+      - name: MVGR1
+        description: Material group 1
+      - name: BWAPPLNM
+        description: Application Component
+      - name: KUNRG
+        description: Payer
+      - name: PS_POSID
+        description: Work Breakdown Structure Element (WBS Element)
+      - name: ERNAM
+        description: Name of Person who Created the Object
+      - name: FKIMG
+        description: Actual billed quantity
+      - name: KVGR1
+        description: Customer group 1
+      - name: POSNR
+        description: Item number of the SD document
+      - name: KVARC
+      - name: PVRTNR
+        description: Sales employee
+      - name: MVGR5
+        description: Material group 5
+      - name: AKTNR
+        description: Promotion
+      - name: BWVORG
+        description: SAP BW transaction key
+      - name: FSH_SEASON_YEAR
+      - name: KOAID
+      - name: KNTYP
+      - name: STWAE
+        description: Statistics Currency
+      - name: SPARA
+        description: Division for order header
+      - name: HWAER
+        description: Local Currency
+      - name: PROVG
+        description: Commission group
+      - name: KAPPL
+      - name: PERIV
+        description: Fiscal Year Variant
+      - name: KVGR5
+        description: Customer group 5
+      - name: STADAT
+        description: Statistics date
+      - name: BZIRK
+        description: Sales District
+      - name: FBUDA
+        description: Date on which services are rendered
+      - name: KVGR2
+        description: Customer group 2
+      - name: MATKL
+        description: Material Group
+      - name: LOGSYS
+        description: Logical system
+      - name: PSTYV
+        description: Sales document item category
+      - name: KSCHL
+      - name: KUNAG
+        description: Sold-To Party
+      - name: ZAEHK
+      - name: KVGR4
+        description: Customer group 4
+      - name: FKART
+        description: Billing Type
+      - name: VKGRP
+        description: Sales group
+      - name: AUBEL
+        description: Sales Document
+      - name: FSH_COLLECTION
+      - name: MVGR2
+        description: Material group 2
+      - name: SPART
+        description: Division
+      - name: VBTYP
+        description: SD Document Category
+      - name: KOSTL
+        description: Cost Center
+      - name: WAERK
+        description: SD document currency
+      - name: KOKRS
+        description: Controlling Area
+      - name: KURSK_DAT
+        description: Translation date
+      - name: MATWA
+        description: Material entered
+      - name: KINAK
+      - name: VGPOS
+        description: Item number of the reference item
+      - name: PRSDT
+        description: Date for Pricing and Exchange Rate
+      - name: MVGR3
+        description: Material group 3
+      - name: BONUS
+        description: Volume rebate group
+      - name: FKDAT
+        description: Billing Date
+      - name: FSH_SEASON
+      - name: KURRF
+        description: Exchange rate for FI postings
+      - name: MATNR
+        description: Material Number
+      - name: MVGR4
+        description: Material group 4
+      - name: BUKRS
+        description: Company Code
+      - name: STUNR
+      - name: VKORG
+        description: Sales Organization
+      - name: VGBEL
+        description: Document number of the reference document
+      - name: AEDAT
+        description: Date of Last Change
+      - name: PSPDNR
+        description: Forwarding Agent
+      - name: EAN11
+        description: International Article Number (EAN/UPC)
+      - name: AUPOS
+        description: Sales Document Item
+      - name: FKTYP
+        description: Billing Category
+      - name: FSH_THEME
+      - name: KHERK
+      - name: PKUNRE
+        description: Bill-to party
+      - name: KWERT
+      - name: KVGR3
+        description: Customer group 3
+      - name: PKUNWE
+        description: Ship-to party
+      - name: KURSK
+        description: Exchange Rate for Price Determination
+      - name: PRODH
+        description: Product hierarchy
+      - name: VARCOND
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: KSTAT
+      - name: KDGRP
+        description: Customer Group
+    - name: 2lis_11_vakon
+      columns:
+      - name: KVGR2
+        description: Customer group 2
+      - name: AUART
+        description: Sales Document Type
+      - name: AUGRU
+        description: Order Reason (Reason for the Business Transaction)
+      - name: FBUDA
+        description: Date on which services are rendered
+      - name: KUNNR
+        description: Ship-to party
+      - name: MVGR4
+        description: Material group 4
+      - name: STUNR
+      - name: ZMENG
+        description: Target Quantity in Sales Units
+      - name: VGTYP_AK
+        description: Sales Document Category of Reference Doc. in Order Header
+      - name: KVARC
+      - name: BUKRS
+        description: Company Code
+      - name: PKUNRG
+        description: Payer
+      - name: BZIRK
+        description: Sales District
+      - name: ERDAT
+        description: Date on which the record was created
+      - name: KURST
+        description: Exchange Rate Type
+      - name: KVGR3
+        description: Customer group 3
+      - name: KTGRD
+        description: Account Assignment Group for this customer
+      - name: MVGR3
+        description: Material group 3
+      - name: PRODH
+        description: Product hierarchy
+      - name: MATWA
+        description: Material entered
+      - name: FAKSP
+        description: Billing Block for Item
+      - name: ZIEME
+        description: Target Quantity UoM
+      - name: KNTYP
+      - name: MVGR2
+        description: Material group 2
+      - name: VKORG
+        description: Sales Organization
+      - name: HWAER
+        description: Local Currency
+      - name: KWERT
+      - name: KSCHL
+      - name: MVGR5
+        description: Material group 5
+      - name: VKBUR
+        description: Sales office
+      - name: WAERK
+        description: SD document currency
+      - name: PS_POSID
+        description: Work Breakdown Structure Element (WBS Element)
+      - name: KURSK
+        description: Exchange Rate for Price Determination
+      - name: SPARA
+        description: Division for order header
+      - name: MVGR1
+        description: Material group 1
+      - name: WAERK_VBAK
+        description: SD document currency
+      - name: PKUNRE
+        description: Bill-to party
+      - name: KINAK
+      - name: KURSK_DAT
+        description: Translation date
+      - name: ABSTA
+        description: Rejection Status (Item)
+      - name: WAKTION
+        description: Promotion
+      - name: KOAID
+      - name: KSTAT
+      - name: POSNR
+        description: Item number of the SD document
+      - name: KAPPL
+      - name: KDGRP
+        description: Customer Group
+      - name: ROCANCEL
+        description: 'Indicator: Cancel Data Record'
+      - name: BWAPPLNM
+        description: Application Component
+      - name: KHERK
+      - name: PSTYV
+        description: Sales document item category
+      - name: VBTYP
+        description: SD Document Category
+      - name: VARCOND
+      - name: VTWEG
+        description: Distribution Channel
+      - name: FAKSK
+        description: Billing Block in SD Document
+      - name: UVPRS
+        description: Pricing Incompletion Status (Item)
+      - name: MATKL
+        description: Material Group
+      - name: ABGRU
+        description: Reason for Rejection of Sales Documents
+      - name: EAN11
+        description: International Article Number (EAN/UPC)
+      - name: ERZET
+        description: Entry time
+      - name: KWMENG
+        description: Cumulative order quantity in sales units
+      - name: KVGR5
+        description: Customer group 5
+      - name: AEDAT
+        description: Date of Last Change
+      - name: PERIV
+        description: Fiscal Year Variant
+      - name: PRSDT
+        description: Date for Pricing and Exchange Rate
+      - name: STADAT
+        description: Statistics date
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: SPART
+        description: Division
+      - name: BWVORG
+        description: SAP BW transaction key
+      - name: STCUR
+        description: Exchange rate for statistics (Exch.rate at time of creation)
+      - name: INCO1
+        description: Incoterms (Part 1)
+      - name: VRKME
+        description: Sales unit
+      - name: VKGRP
+        description: Sales group
+      - name: ERNAM
+        description: Name of Person who Created the Object
+      - name: FKDAT
+        description: Billing Date
+      - name: PKUNWE
+        description: Ship-to party
+      - name: MATNR
+        description: Material Number
+      - name: ZAEHK
+      - name: KVGR1
+        description: Customer group 1
+      - name: INCO2
+        description: Incoterms (Part 2)
+      - name: PVRTNR
+        description: Sales employee
+      - name: STWAE
+        description: Statistics Currency
+      - name: KVGR4
+        description: Customer group 4
+    - name: 2lis_13_vdhdr
+      columns:
+      - name: KUNAG
+        description: Sold-To Party
+      - name: BZIRK
+        description: Sales District
+      - name: VKORG
+        description: Sales Organization
+      - name: KURRF
+        description: Exchange rate for FI postings
+      - name: VBTYP
+        description: SD Document Category
+      - name: ERDAT
+        description: Date on which the record was created
+      - name: PVRTNR
+        description: Sales employee
+      - name: STWAE
+        description: Statistics Currency
+      - name: WAERK
+        description: SD document currency
+      - name: KUNRG
+        description: Payer
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: FKTYP
+        description: Billing Category
+      - name: ROCANCEL
+        description: 'Indicator: Cancel Data Record'
+      - name: FKART
+        description: Billing Type
+      - name: ANZFK
+        description: No.of billing docs
+      - name: PERIV
+        description: Fiscal Year Variant
+      - name: KURST
+        description: Exchange Rate Type
+      - name: VTWEG
+        description: Distribution Channel
+      - name: KDGRP
+        description: Customer Group
+      - name: BUKRS
+        description: Company Code
+      - name: HWAER
+        description: Local Currency
+      - name: FKDAT
+        description: Billing Date
+    - name: 0salesorg_text
+      columns:
+      - name: KEY1
+      - name: TXTMD
+      - name: TXTSH
+      - name: DATETO
+        description: Date Validity Ends
+      - name: LANGU
+        description: Language Key
+      - name: DATEFROM
+        description: Date for Beginning of Validity
+      - name: TXTLG
+        description: Asset Description
+    - name: 0matl_cat_text
+      columns:
+      - name: KEY1
+      - name: TXTSH
+      - name: DATETO
+        description: Date Validity Ends
+      - name: DATEFROM
+        description: Date for Beginning of Validity
+      - name: TXTLG
+        description: Asset Description
+      - name: TXTMD
+      - name: LANGU
+        description: Language Key
+    - name: 0sales_off_text
+      columns:
+      - name: TXTLG
+        description: Asset Description
+      - name: DATEFROM
+        description: Date for Beginning of Validity
+      - name: LANGU
+        description: Language Key
+      - name: KEY1
+      - name: TXTMD
+      - name: DATETO
+        description: Date Validity Ends
+      - name: TXTSH
+    - name: ztcurr_attr
+      columns:
+      - name: MANDT
+        description: Client
+      - name: TFACT
+        description: |
+          Ratio for the To Currency Units
+        meta:
+          deprecated: true
+      - name: UKURS
+        description: Exchange Rate
+      - name: KURST
+        description: Exchange Rate Type
+      - name: FFACT
+        description: |
+          Ratio for the From Currency Units
+        meta:
+          deprecated: true
+      - name: FCURR
+        description: Exchange Source Currency
+      - name: GDATU
+      - name: TCURR
+        description: Exchange Target Currency
+    - name: 0material_text
+      columns:
+      - name: TXTMD
+      - name: MATNR
+        description: Material Number
+      - name: SPRAS
+        description: Language Key
+    - name: 2lis_11_vasth
+      columns:
+      - name: FKSAK
+      - name: BESTK
+      - name: FKSTK
+      - name: LFGSK
+      - name: GBSTK
+      - name: LFSTK
+      - name: VBELN
+        description: Sales and Distribution Document Number
+      - name: VBTYP
+        description: SD Document Category
+      - name: ROCANCEL
+        description: 'Indicator: Cancel Data Record'
+        

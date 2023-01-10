@@ -1,0 +1,34 @@
+/* L10 ODS DBT FILE GENERATION in ods folder*/
+
+while read FILE; do echo "SELECT 'SAP.${FILE}' data_source_name,  src.*  FROM {{source('sap_sample','${FILE}')}}  src" > ods_${FILE}.sql; done < gen_ods_lookup.csv;  
+
+
+/* L13 SEMANTIC FILE GENERATION in sem_gen folder- Use this code to generate the view that, when the view is executed, will generate the semantic ddl for Accounts receivable by referencing the sap_mapping table */
+
+
+while read FILE; do echo "with map as (select case when column_name= 'DATA_SOURCE_NAME' then column_name else ', ' || column_name ||' as '||  case when label is null then lower(column_name) else lower(label) end end as label, ordinal_position from information_schema.columns c left outer join L10_STAGING.sem_lookup sm on upper(column_name)=upper(field_name)  where c.table_name = upper('${FILE}') union select 'from {{ref('${FILE}')}} ', 5000 order by ordinal_position) select label as SELECT456 from map" > sem_${FILE}.sql; done < gen_sem_lookup.csv;
+
+/*OFFLOAD files command GENERATION*/
+
+select 'copy into @sap_dbt/EN_'|| substr(table_name, 9, length(table_name)) ||'.sql from (select * from "SAP_DBT"."L13_SEM_GEN".'|| table_name ||') file_format = ''l10_staging.csv_sap_map'' overwrite = true header = true single = true;' as copy_command from information_schema.tables where table_name like 'SEM%' ;
+
+
+get command
+get @sap_dbt/data_0_0_0.csv file:///Users/drichert/Downloads/;
+
+
+--File manipulation to put the DBT references back in the files 
+
+--SELECT456 substituted back to SELECT to get around DBT not liking SELECT, even in quotes. You can copy, paste, and run all these command in the MacOS command line at the same time in the L15 (not L13!!!!!) folder
+
+LC_ALL=C find . -type f -name '*.sql' -exec sed -i '' s/SELECT456/SELECT/ {} +;
+LC_ALL=C find . -type f -name '*.sql' -exec sed -i '' s/sap_dbt\.l10_staging\./{{ref\(\'/ {} +;
+LC_ALL=C find . -type f -name '*.sql' -exec sed -i '' -e 's/[[:space:]]*$//' {} +; 
+LC_ALL=C find . -type f -name '*.sql' -exec sed -i '' -e '$s/$/'"')}}"'/' {} +; 
+for f in *; do mv "$f" "$f.tmp"; mv "$f.tmp" "`echo $f | tr "[:upper:]" "[:lower:]"`"; done
+
+---customer ATTR table field name duplicates
+NAME_2
+ANNUAL_SALES
+CITY
+SEARCH_TERM
