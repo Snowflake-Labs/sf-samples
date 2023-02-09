@@ -11,7 +11,6 @@
 use role      sysadmin;
 use database  dev_webinar_pl_db;
 use schema    main;
-use warehouse adhoc_wh;
 
 execute immediate $$
 
