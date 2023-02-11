@@ -12,6 +12,7 @@
 use role     sysadmin;
 use database dev_webinar_il_db;
 use schema   main;
+use warehouse dev_webinar_wh;
 
 /* Validation Queries
 truncate table line_item;
@@ -24,9 +25,6 @@ select count(*), count( distinct l_orderkey ), min( o_orderdate ), max( o_orderd
 
 select count(*), count( distinct dw_line_item_shk ), count( distinct dw_hash_diff ) from line_item;
 */
-
--- What is the timeframe to be processed
-select min( o_orderdate ), max( o_orderdate ), datediff( day, min(o_orderdate), max(o_orderdate)) from dev_webinar_orders_rl_db.tpch.line_item_stg;
 
 -- Anonymous block
 execute immediate $$

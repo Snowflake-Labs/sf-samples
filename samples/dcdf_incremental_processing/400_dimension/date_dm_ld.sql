@@ -10,6 +10,7 @@
 use role     sysadmin;
 use database dev_webinar_pl_db;
 use schema   main;
+use warehouse dev_webinar_wh;
 
 insert overwrite into date_dm
 select

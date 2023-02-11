@@ -32,6 +32,7 @@
 
 use database DEV_WEBINAR_ORDERS_RL_DB;
 use schema   TPCH;
+use warehouse DEV_WEBINAR_WH;
 
 -- Set variables for this sample data for the time frame to acquire
 set l_start_dt = dateadd( day, -16, to_date( '1998-07-02', 'yyyy-mm-dd' ) );
@@ -110,3 +111,5 @@ single           = false
 include_query_id = true
 max_file_size    = 16000000
 ;
+
+list @~/line_item;

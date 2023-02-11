@@ -9,7 +9,7 @@
 --------------------------------------------------------------------
 use database dev_webinar_common_db;
 use schema util;
-
+use warehouse dev_webinar_wh;
 insert overwrite into dw_delta_date
 with l_delta_date as
 (
@@ -26,3 +26,11 @@ from
 order by
     1
 ;
+
+select * 
+from dev_webinar_common_db.util.dw_delta_date
+order by event_dt;
+
+select start_dt, end_dt 
+FROM table(dev_webinar_common_db.util.dw_delta_date_range_f('week')) 
+order by 1;

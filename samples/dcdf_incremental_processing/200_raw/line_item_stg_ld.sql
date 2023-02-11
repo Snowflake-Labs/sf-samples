@@ -9,6 +9,7 @@
 use role     sysadmin;
 use database dev_webinar_orders_rl_db;
 use schema   tpch;
+use warehouse dev_webinar_wh;
 
 /* Validation Queries
 queries for reviewing loaded data
@@ -74,7 +75,13 @@ select
 from 
     table(information_schema.copy_history(table_name=>'LINE_ITEM_STG', start_time=> dateadd(hours, -1, current_timestamp())))
 where
-    status != 'Loaded'
+    status = 'Loaded'
 order by
     last_load_time desc
 ;
+
+
+select * 
+from dev_webinar_orders_rl_db.tpch.line_item_stg 
+where l_orderkey = 5722076550
+and l_partkey in ( 105237594, 128236374); -- 2 lines

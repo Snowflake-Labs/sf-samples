@@ -9,6 +9,7 @@
 use role     sysadmin;
 use database dev_webinar_order_rl_db;
 use schema   tpch;
+use warehouse dev_webinar_wh;
 
 /* Validation Queries
 queries for reviewing loaded data

@@ -33,31 +33,6 @@ copy grants
 ;
 
 --
--- permanent history table with retention days
---
-create or replace table supplier_hist
-(
-     dw_supplier_shk                binary( 20 )        not null
-    ,dw_hash_diff                   binary( 20 )        not null
-    ,dw_version_ts                  timestamp_ltz       not null
-    --
-    ,s_suppkey                      number              not null
-    ,s_name                         varchar( 25 )       not null
-    ,s_address                      varchar( 40 )       not null
-    ,s_nationkey                    number              not null
-    ,s_phone                        varchar( 15 )       not null
-    ,s_acctbal                      number( 12, 2 )     not null
-    ,s_comment                      varchar( 101 )      not null
-    --
-    ,dw_file_name                   varchar( 250 )      not null
-    ,dw_file_row_no                 number              not null
-    ,dw_load_ts                     timestamp_ltz       not null
-)
-data_retention_time_in_days = 1
-copy grants
-;
-
---
 -- permanent latest table with retention days
 --
 create or replace table supplier

@@ -9,6 +9,7 @@
 use role     sysadmin;
 use database webinar_il_db;
 use schema   main;
+use warehouse dev_webinar_wh;
 
 --------------------------------------------------------------------
 -- date range to maintain

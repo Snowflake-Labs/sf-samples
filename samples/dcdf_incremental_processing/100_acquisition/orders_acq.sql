@@ -13,6 +13,7 @@
 --------------------------------------------------------------------
 use database DEV_WEBINAR_ORDERS_RL_DB;
 use schema   TPCH;
+use warehouse DEV_WEBINAR_WH;
 
 
 /*
@@ -79,8 +80,6 @@ from
         ,current_timestamp()            as last_modified_dt -- generating a last modified timestamp as part of data acquisition.
     from
         l_order lo
-    where
-        seq_no <= 500000
     order by
         lo.o_orderdate
 )
@@ -90,3 +89,5 @@ single           = false
 include_query_id = true
 max_file_size    = 16000000
 ;
+
+list @~/orders;

@@ -11,6 +11,7 @@
 use role     sysadmin;
 use database dev_webinar_pl_db;
 use schema   main;
+use warehouse dev_webinar_wh;
 
 execute immediate $$
 
@@ -43,3 +44,7 @@ end;
 $$
 ;
 
+
+select *
+from dev_webinar_pl_db.main.part_dm p
+where p_partkey in ( 105237594, 128236374);

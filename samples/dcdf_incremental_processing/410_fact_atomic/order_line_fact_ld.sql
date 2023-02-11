@@ -11,6 +11,7 @@
 use role      sysadmin;
 use database  dev_webinar_pl_db;
 use schema    main;
+use warehouse dev_webinar_wh;
 
 execute immediate $$
 
@@ -96,3 +97,10 @@ end;
 $$
 ;
 
+
+select olf.*
+from dev_webinar_pl_db.main.order_line_fact olf
+  join dev_webinar_orders_rl_db.tpch.line_item l
+    on l.dw_line_item_shk = olf.dw_line_item_shk
+where l.l_orderkey = 5722076550 
+and l.l_partkey in ( 105237594, 128236374);

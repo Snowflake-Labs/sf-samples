@@ -13,6 +13,7 @@
 --------------------------------------------------------------------
 use database DEV_WEBINAR_ORDERS_RL_DB;
 use schema   TPCH;
+use warehouse DEV_WEBINAR_WH;
 
 /*
 --------------------------------------------------------------------------------
@@ -76,3 +77,5 @@ single           = false
 include_query_id = true
 max_file_size    = 16000000
 ;
+
+list @~/part;

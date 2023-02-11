@@ -12,6 +12,7 @@
 use role     sysadmin;
 use database dev_webinar_il_db;
 use schema   main;
+use warehouse dev_webinar_wh;
 
 /* Validation Queries
 truncate table line_item;

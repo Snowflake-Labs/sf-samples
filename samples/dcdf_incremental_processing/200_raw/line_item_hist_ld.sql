@@ -11,6 +11,7 @@
 use role     sysadmin;
 use database dev_webinar_orders_rl_db;
 use schema   tpch;
+use warehouse dev_webinar_wh;
 
 /* Validation Queries
 select * from line_item_hist limit 1000;

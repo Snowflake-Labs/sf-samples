@@ -62,7 +62,7 @@ select
 from 
     table(information_schema.copy_history(table_name=>'PARTSUPP', start_time=> dateadd(hours, -1, current_timestamp())))
 where
-    status != 'Loaded'
+    status = 'Loaded'
 order by
     last_load_time desc
 ;
