@@ -167,3 +167,7 @@ end;
 $$
 ;
 
+
+select *
+from dev_webinar_orders_rl_db.tpch.part
+where p_partkey in ( 105237594, 128236374);

@@ -198,3 +198,7 @@ end;
 $$
 ;
 
+
+select * 
+from dev_webinar_orders_rl_db.tpch.orders 
+where o_orderkey = 5722076550;
