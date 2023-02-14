@@ -22,6 +22,7 @@
 !source 200_raw/part_tbl.sql
 !source 200_raw/supplier_tbl.sql
 !source 200_raw/partsupp_tbl.sql
+!source 200_raw/customer_tbl.sql
 
 ---------------------------------------------
 -- Integration tables
@@ -39,8 +40,10 @@
 -- Presentation tables
 !source 400_dimension/date_dm_tbl.sql
 !source 400_dimension/part_dm_tbl.sql
+!source 400_dimension/customer_dm_tbl.sql
 !source 400_dimension/supplier_dm_tbl.sql
 !source 410_fact_atomic/order_line_fact_tbl.sql
+!source 410_fact_atomic/order_line_fact_bonus_tbl.sql
 
 !print SUCCESS!
 !quit

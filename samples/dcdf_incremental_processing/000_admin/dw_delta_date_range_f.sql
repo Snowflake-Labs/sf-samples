@@ -32,7 +32,7 @@ $$
                  else current_date()
              end                as partition_dt
             ,min( event_dt ) as start_dt
-            ,max( event_dt ) as end_dt
+            ,dateadd( day, 1, max( event_dt ) ) as end_dt
         from
             dw_delta_date
         group by
