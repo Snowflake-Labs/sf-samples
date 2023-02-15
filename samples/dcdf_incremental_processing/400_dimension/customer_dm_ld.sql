@@ -29,7 +29,7 @@ begin
       ,p.c_mktsegment
       ,p.c_comment as comment
       ,p.dw_load_ts
-      ,p.dw_update_ts
+      ,p.dw_load_ts as dw_update_ts
    from
        dev_webinar_orders_rl_db.tpch.customer_hist p
    ;
