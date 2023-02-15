@@ -38,6 +38,8 @@ use warehouse DEV_WEBINAR_WH;
 set l_start_dt = dateadd( day, -16, to_date( '1998-07-02', 'yyyy-mm-dd' ) );
 set l_end_dt   = dateadd( day,   1, to_date( '1998-07-02', 'yyyy-mm-dd' ) );
 
+select $l_start_dt, $l_end_dt;
+
 
 -- run this 2 or 3 times to produce overlapping files with new and modified records.
 copy into

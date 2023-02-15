@@ -135,3 +135,9 @@ end;
 $$
 ;
 
+select m.*
+from dev_webinar_il_db.main.line_item_margin m
+    join dev_webinar_orders_rl_db.tpch.line_item l
+where l.l_orderkey = 5722076550 
+and l.l_partkey in ( 105237594, 128236374)
+and m.dw_line_item_shk = l.dw_line_item_shk;

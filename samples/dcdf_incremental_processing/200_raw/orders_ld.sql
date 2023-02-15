@@ -26,9 +26,6 @@ select count(*), count( distinct o_orderkey ), min( o_orderdate ), max( o_orderd
 select count(*), count( distinct dw_order_shk ), count( distinct dw_hash_diff ) from orders;
 */
 
--- What is the timeframe to be processed
-select min( o_orderdate ), max( o_orderdate ), datediff( day, min(o_orderdate), max(o_orderdate)) from orders_stg;
-
 -- Use Anonymous block SQL Scripting
 execute immediate $$
 

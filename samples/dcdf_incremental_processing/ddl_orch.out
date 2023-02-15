@@ -1,0 +1,1425 @@
+---------------------------------------------
+-- snowsql session
+--
+---------------------------------------------
+-- 000_admin
+!print 000_admin
+000_admin
+
+!print set context
+set context
+!source 000_admin/dev_context_ddl.sql
+------------------------------------------------------------------------------
+-- context
+--
+!print set environment context
+set environment context
+
+!define l_common_db=DEV_WEBINAR_COMMON_DB
+!define l_common_schema=UTIL
+
+!define l_raw_db=DEV_WEBINAR_ORDERS_RL_DB
+!define l_raw_schema=tpch
+
+!define l_il_db=DEV_WEBINAR_IL_DB
+!define l_il_schema=main
+
+!define l_pl_db=DEV_WEBINAR_PL_DB
+!define l_pl_schema=main
+create database if not exists DEV_WEBINAR_COMMON_DB;
++------------------------------------------------------+
+| status                                               |
+|------------------------------------------------------|
+| Database DEV_WEBINAR_COMMON_DB successfully created. |
++------------------------------------------------------+
+create schema if not exists DEV_WEBINAR_COMMON_DB.UTIL;
++-----------------------------------+
+| status                            |
+|-----------------------------------|
+| Schema UTIL successfully created. |
++-----------------------------------+
+create database if not exists DEV_WEBINAR_ORDERS_RL_DB;
++---------------------------------------------------------+
+| status                                                  |
+|---------------------------------------------------------|
+| Database DEV_WEBINAR_ORDERS_RL_DB successfully created. |
++---------------------------------------------------------+
+create schema if not exists DEV_WEBINAR_ORDERS_RL_DB.tpch;
++-----------------------------------+
+| status                            |
+|-----------------------------------|
+| Schema TPCH successfully created. |
++-----------------------------------+
+create database if not exists DEV_WEBINAR_IL_DB;
++--------------------------------------------------+
+| status                                           |
+|--------------------------------------------------|
+| Database DEV_WEBINAR_IL_DB successfully created. |
++--------------------------------------------------+
+create schema if not exists DEV_WEBINAR_IL_DB.main;
++-----------------------------------+
+| status                            |
+|-----------------------------------|
+| Schema MAIN successfully created. |
++-----------------------------------+
+create database if not exists DEV_WEBINAR_PL_DB;
++--------------------------------------------------+
+| status                                           |
+|--------------------------------------------------|
+| Database DEV_WEBINAR_PL_DB successfully created. |
++--------------------------------------------------+
+create schema if not exists DEV_WEBINAR_PL_DB.main;
++-----------------------------------+
+| status                            |
+|-----------------------------------|
+| Schema MAIN successfully created. |
++-----------------------------------+
+create warehouse if not exists DEV_WEBINAR_WH warehouse_size=small;
++-----------------------------------------------------+
+| status                                              |
+|-----------------------------------------------------|
+| DEV_WEBINAR_WH already exists, statement succeeded. |
++-----------------------------------------------------+
+
+!print SUCCESS!
+SUCCESS!
+
+!print execute ddl
+execute ddl
+---------------------------------------------
+-- Raw tables
+!source 200_raw/line_item_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: raw logical level tables
+--     Line item tables
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_ORDERS_RL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   tpch;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+--
+-- transient staging table with no retention days
+--
+create or replace transient table line_item_stg
+(
+     l_orderkey                     number              not null
+    ,o_orderdate                    date                not null
+    ,l_partkey                      number              not null
+    ,l_suppkey                      number              not null
+    ,l_linenumber                   number              not null
+    ,l_quantity                     number( 12, 2 )     not null
+    ,l_extendedprice                number( 12, 2 )     not null
+    ,l_discount                     number( 12, 2 )     not null
+    ,l_tax                          number( 12, 2 )     not null
+    ,l_returnflag                   varchar( 1 )        not null
+    ,l_linestatus                   varchar( 1 )        not null
+    ,l_shipdate                     date                not null
+    ,l_commitdate                   date                not null
+    ,l_receiptdate                  date                not null
+    ,l_shipinstruct                 varchar( 25 )       not null
+    ,l_shipmode                     varchar( 10 )       not null
+    ,l_comment                      varchar( 44 )       not null
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+)
+data_retention_time_in_days = 0
+copy grants
+;
++-------------------------------------------+
+| status                                    |
+|-------------------------------------------|
+| Table LINE_ITEM_STG successfully created. |
++-------------------------------------------+
+--
+-- permanent history table with retention days
+--
+create or replace table line_item_hist
+(
+     dw_line_item_shk               binary( 20 )        not null
+    ,dw_hash_diff                   binary( 20 )        not null
+    ,dw_version_ts                  timestamp_ltz       not null
+    --
+    ,l_orderkey                     number              not null
+    ,o_orderdate                    date                not null
+    ,l_partkey                      number              not null
+    ,l_suppkey                      number              not null
+    ,l_linenumber                   number              not null
+    ,l_quantity                     number( 12, 2 )     not null
+    ,l_extendedprice                number( 12, 2 )     not null
+    ,l_discount                     number( 12, 2 )     not null
+    ,l_tax                          number( 12, 2 )     not null
+    ,l_returnflag                   varchar( 1 )        not null
+    ,l_linestatus                   varchar( 1 )        not null
+    ,l_shipdate                     date                not null
+    ,l_commitdate                   date                not null
+    ,l_receiptdate                  date                not null
+    ,l_shipinstruct                 varchar( 25 )       not null
+    ,l_shipmode                     varchar( 10 )       not null
+    ,l_comment                      varchar( 44 )       not null
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++--------------------------------------------+
+| status                                     |
+|--------------------------------------------|
+| Table LINE_ITEM_HIST successfully created. |
++--------------------------------------------+
+--
+-- permanent latest table with retention days
+--
+create or replace table line_item
+(
+     dw_line_item_shk               binary( 20 )        not null
+    ,dw_hash_diff                   binary( 20 )        not null
+    ,dw_version_ts                  timestamp_ltz       not null
+    --
+    ,l_orderkey                     number              not null
+    ,o_orderdate                    date                not null
+    ,l_partkey                      number              not null
+    ,l_suppkey                      number              not null
+    ,l_linenumber                   number              not null
+    ,l_quantity                     number( 12, 2 )     not null
+    ,l_extendedprice                number( 12, 2 )     not null
+    ,l_discount                     number( 12, 2 )     not null
+    ,l_tax                          number( 12, 2 )     not null
+    ,l_returnflag                   varchar( 1 )        not null
+    ,l_linestatus                   varchar( 1 )        not null
+    ,l_shipdate                     date                not null
+    ,l_commitdate                   date                not null
+    ,l_receiptdate                  date                not null
+    ,l_shipinstruct                 varchar( 25 )       not null
+    ,l_shipmode                     varchar( 10 )       not null
+    ,l_comment                      varchar( 44 )       not null
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+    ,dw_update_ts                   timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++---------------------------------------+
+| status                                |
+|---------------------------------------|
+| Table LINE_ITEM successfully created. |
++---------------------------------------+
+!source 200_raw/orders_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: raw logical level tables for orders
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_ORDERS_RL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   tpch;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+--
+-- transient staging table with no retention days
+--
+create or replace transient table orders_stg
+(
+     o_orderkey                     number              not null
+    ,o_custkey                      number              not null
+    ,o_orderstatus                  varchar( 1 )        not null
+    ,o_totalprice                   number( 12, 2 )     not null
+    ,o_orderdate                    date                not null
+    ,o_orderpriority                varchar( 15 )       not null
+    ,o_clerk                        varchar( 15 )       not null
+    ,o_shippriority                 number              not null
+    ,o_comment                      varchar( 79 )       not null
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+)
+data_retention_time_in_days = 0
+copy grants
+;
++----------------------------------------+
+| status                                 |
+|----------------------------------------|
+| Table ORDERS_STG successfully created. |
++----------------------------------------+
+--
+-- permanent history table with retention days
+--
+create or replace table orders_hist
+(
+     dw_order_shk                   binary( 20 )        not null
+    ,dw_hash_diff                   binary( 20 )        not null
+    ,dw_version_ts                  timestamp_ltz       not null
+    --
+    ,o_orderkey                     number              not null
+    ,o_custkey                      number              not null
+    ,o_orderstatus                  varchar( 1 )        not null
+    ,o_totalprice                   number( 12, 2 )     not null
+    ,o_orderdate                    date                not null
+    ,o_orderpriority                varchar( 15 )       not null
+    ,o_clerk                        varchar( 15 )       not null
+    ,o_shippriority                 number              not null
+    ,o_comment                      varchar( 79 )       not null
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++-----------------------------------------+
+| status                                  |
+|-----------------------------------------|
+| Table ORDERS_HIST successfully created. |
++-----------------------------------------+
+--
+-- permanent latest table with retention days
+--
+create or replace table orders
+(
+     dw_order_shk                   binary( 20 )        not null
+    ,dw_hash_diff                   binary( 20 )        not null
+    ,dw_version_ts                  timestamp_ltz       not null
+    --
+    ,o_orderkey                     number              not null
+    ,o_custkey                      number              not null
+    ,o_orderstatus                  varchar( 1 )        not null
+    ,o_totalprice                   number( 12, 2 )     not null
+    ,o_orderdate                    date                not null
+    ,o_orderpriority                varchar( 15 )       not null
+    ,o_clerk                        varchar( 15 )       not null
+    ,o_shippriority                 number              not null
+    ,o_comment                      varchar( 79 )       not null
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+    ,dw_update_ts                   timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++------------------------------------+
+| status                             |
+|------------------------------------|
+| Table ORDERS successfully created. |
++------------------------------------+
+!source 200_raw/part_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: raw logical level tables
+--      for Part level data
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_ORDERS_RL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   tpch;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+--
+-- transient staging table with no retention days
+--
+create or replace transient table part_stg
+(
+     p_partkey                      number              not null
+    ,p_name                         varchar( 55 )       not null
+    ,p_mfgr                         varchar( 25 )       not null
+    ,p_brand                        varchar( 10 )       not null
+    ,p_type                         varchar( 25 )       not null
+    ,p_size                         number              not null
+    ,p_container                    varchar( 10 )       not null
+    ,p_retailprice                  number( 12, 2 )     not null
+    ,p_comment                      varchar( 23 )       not null
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+)
+data_retention_time_in_days = 0
+copy grants
+;
++--------------------------------------+
+| status                               |
+|--------------------------------------|
+| Table PART_STG successfully created. |
++--------------------------------------+
+--
+-- permanent latest table with retention days
+--
+create or replace table part
+(
+     dw_part_shk               binary( 20 )        not null
+    ,dw_hash_diff                   binary( 20 )        not null
+    ,dw_version_ts                  timestamp_ltz       not null
+    --
+    ,p_partkey                      number              not null
+    ,p_name                         varchar( 55 )       not null
+    ,p_mfgr                         varchar( 25 )       not null
+    ,p_brand                        varchar( 10 )       not null
+    ,p_type                         varchar( 25 )       not null
+    ,p_size                         number              not null
+    ,p_container                    varchar( 10 )       not null
+    ,p_retailprice                  number( 12, 2 )     not null
+    ,p_comment                      varchar( 23 )       not null
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+    ,dw_update_ts                   timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Table PART successfully created. |
++----------------------------------+
+!source 200_raw/supplier_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: raw logical level table
+--      for the supplier data
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_ORDERS_RL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   tpch;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+--
+-- transient staging table with no retention days
+--
+create or replace transient table supplier_stg
+(
+     s_suppkey                      number              not null
+    ,s_name                         varchar( 25 )       not null
+    ,s_address                      varchar( 40 )       not null
+    ,s_nationkey                    number              not null
+    ,s_phone                        varchar( 15 )       not null
+    ,s_acctbal                      number( 12, 2 )     not null
+    ,s_comment                      varchar( 101 )      not null
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+)
+data_retention_time_in_days = 0
+copy grants
+;
++------------------------------------------+
+| status                                   |
+|------------------------------------------|
+| Table SUPPLIER_STG successfully created. |
++------------------------------------------+
+--
+-- permanent latest table with retention days
+--
+create or replace table supplier
+(
+     dw_supplier_shk               binary( 20 )        not null
+    ,dw_hash_diff                   binary( 20 )        not null
+    ,dw_version_ts                  timestamp_ltz       not null
+    --
+    ,s_suppkey                      number              not null
+    ,s_name                         varchar( 25 )       not null
+    ,s_address                      varchar( 40 )       not null
+    ,s_nationkey                    number              not null
+    ,s_phone                        varchar( 15 )       not null
+    ,s_acctbal                      number( 12, 2 )     not null
+    ,s_comment                      varchar( 101 )      not null
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+    ,dw_update_ts                   timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++--------------------------------------+
+| status                               |
+|--------------------------------------|
+| Table SUPPLIER successfully created. |
++--------------------------------------+
+!source 200_raw/partsupp_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: raw logical level tables
+--      part supplier data tables
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_ORDERS_RL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   tpch;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+--
+-- transient staging table with no retention days
+--
+create or replace transient table partsupp_stg
+(
+     ps_partkey                     number              not null
+    ,ps_suppkey                     number              not null
+    ,ps_availqty                    number              not null
+    ,ps_supplycost                  number( 12, 2 )     not null
+    ,ps_comment                     varchar( 199 )      not null
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+)
+data_retention_time_in_days = 0
+copy grants
+;
++------------------------------------------+
+| status                                   |
+|------------------------------------------|
+| Table PARTSUPP_STG successfully created. |
++------------------------------------------+
+--
+-- permanent history table with retention days
+--
+create or replace table partsupp_hist
+(
+     dw_partsupp_shk               binary( 20 )        not null
+    ,dw_hash_diff                   binary( 20 )        not null
+    ,dw_version_ts                  timestamp_ltz       not null
+    --
+    ,ps_partkey                     number              not null
+    ,ps_suppkey                     number              not null
+    ,ps_availqty                    number              not null
+    ,ps_supplycost                  number( 12, 2 )     not null
+    ,ps_comment                     varchar( 199 )      not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++-------------------------------------------+
+| status                                    |
+|-------------------------------------------|
+| Table PARTSUPP_HIST successfully created. |
++-------------------------------------------+
+--
+-- permanent latest table with retention days
+--
+create or replace table partsupp
+(
+     dw_partsupp_shk               binary( 20 )        not null
+    ,dw_hash_diff                   binary( 20 )        not null
+    ,dw_version_ts                  timestamp_ltz       not null
+    --
+    ,ps_partkey                     number              not null
+    ,ps_suppkey                     number              not null
+    ,ps_availqty                    number              not null
+    ,ps_supplycost                  number( 12, 2 )     not null
+    ,ps_comment                     varchar( 199 )      not null
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+    ,dw_update_ts                   timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++--------------------------------------+
+| status                               |
+|--------------------------------------|
+| Table PARTSUPP successfully created. |
++--------------------------------------+
+!source 200_raw/customer_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: raw logical level tables
+--      for Customer data
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_ORDERS_RL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   tpch;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+--
+-- transient staging table with no retention days
+--
+create or replace transient table customer_stg
+(
+     c_custkey                      number              not null
+    ,change_date                    timestamp_ltz       not null
+    ,c_name                         varchar( 25 )       not null
+    ,c_address                      varchar( 40 )       not null
+    ,c_nationkey                    number              not null
+    ,c_phone                        varchar( 15 )       not null
+    ,c_acctbal                      number              not null
+    ,c_mktsegment                   varchar( 10 )       not null
+    ,c_comment                      varchar( 117 )      not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+)
+data_retention_time_in_days = 0
+copy grants
+;
++------------------------------------------+
+| status                                   |
+|------------------------------------------|
+| Table CUSTOMER_STG successfully created. |
++------------------------------------------+
+--
+-- permanent history table with retention days
+--
+create or replace table customer_hist
+(
+     dw_customer_shk                binary( 20 )        not null
+    ,dw_hash_diff                   binary( 20 )        not null
+    ,dw_version_ts                  timestamp_ltz       not null
+    --
+    ,change_date                    timestamp_ltz       not null
+    ,c_custkey                      number              not null
+    ,c_name                         varchar( 25 )       not null
+    ,c_address                      varchar( 40 )       not null
+    ,c_nationkey                    number              not null
+    ,c_phone                        varchar( 15 )       not null
+    ,c_acctbal                      number              not null
+    ,c_mktsegment                   varchar( 10 )       not null
+    ,c_comment                      varchar( 117 )      not null
+    --
+    ,dw_file_name                   varchar( 250 )      not null
+    ,dw_file_row_no                 number              not null
+    ,dw_load_ts                     timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++-------------------------------------------+
+| status                                    |
+|-------------------------------------------|
+| Table CUSTOMER_HIST successfully created. |
++-------------------------------------------+
+---------------------------------------------
+-- Integration tables
+!source 300_integration/date_cal_lkp_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: data integration/derivation
+--       to persist the calendar date derivations for a cal_dt
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_IL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   main;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+create table if not exists date_cal_lkp
+(
+     cal_dt                  date                 not null  primary key
+    ,cal_ly_dt               date                 not null
+    ,cal_date_label          varchar( 250 )       not null
+    ,cal_weekend_fl          varchar( 250 )       not null
+    ,cal_weekday_fl          varchar( 250 )       not null
+    --
+    -- year
+    --
+    ,cal_year_no             number               not null
+    ,cal_year_dt             date                 not null
+    ,cal_year_quarter_no     number               not null
+    ,cal_year_quarter_dt     date                 not null     -- current year's quarter date
+    ,cal_year_month_no       number               not null
+    ,cal_year_month_dt       date                 not null     -- current year's month date
+    ,cal_year_day_no         number               not null
+    --
+    -- quarter
+    --
+    ,cal_quarter_dt          date                 not null
+    ,cal_quarter_label       varchar( 250 )       not null
+    ,cal_quarter_month_no    number               not null
+    ,cal_quarter_week_no     number               not null
+    ,cal_quarter_day_no      number               not null
+    --
+    -- month
+    --
+    ,cal_month_dt            date                 not null
+    ,cal_month_label         varchar( 250 )       not null
+    ,cal_month_week_no       number               not null
+    ,cal_month_day_no        number               not null
+    --
+    -- week
+    --
+    ,cal_week_day_no         number               not null
+    --
+    -- itd
+    --
+    ,cal_itd_quarter_no      number               not null
+    ,cal_itd_month_no        number               not null
+    ,cal_itd_day_no          number               not null
+    --
+    -- ptd
+    --
+    ,cal_ptd_bt              number               not null
+    ,cal_ptd_label           varchar( 250 )       not null
+    --
+    -- Future
+    --
+    ,cal_future_date_bt      number               not null
+    --
+    -- season
+    --
+    ,holiday_name            varchar( 250 )       not null     -- based on specific date on calendar labor day, halloween, thanksgiving, christmas, etc.
+    ,dw_load_ts              timestamp_ltz        not null
+    ,dw_update_ts            timestamp_ltz        not null
+)
+data_retention_time_in_days = 1
+;
++------------------------------------------+
+| status                                   |
+|------------------------------------------|
+| Table DATE_CAL_LKP successfully created. |
++------------------------------------------+
+!source 300_integration/date_iso_lkp_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: data integration/derivation
+--     persist ISO calendar date derivations for cal_dt
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_IL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   main;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+create table if not exists date_iso_lkp
+(
+     cal_dt                  date                 not null  primary key
+    --
+    -- year
+    --
+    ,iso_year_no             number               not null
+    ,iso_year_dt             date                 not null
+    ,iso_year_quarter_no     number               not null
+    ,iso_year_quarter_dt     date                 not null     -- current year's quarter date
+    ,iso_year_month_no       number               not null
+    ,iso_year_month_dt       date                 not null     -- current year's month date
+    ,iso_year_week_no        number               not null
+    ,iso_year_week_dt        date                null     -- current year's week date
+    ,iso_year_day_no         number               not null
+    --
+    -- quarter
+    --
+    ,iso_quarter_dt          date                 not null
+    ,iso_quarter_label       varchar( 250 )       not null
+    ,iso_quarter_month_no    number               not null
+    ,iso_quarter_week_no     number               not null
+    ,iso_quarter_day_no      number               not null
+    --
+    -- month
+    --
+    ,iso_month_dt            date                 not null       -- date to represent actual fiscal month (dd/01/yy) since it can cross calendar months.
+    ,iso_month_label         varchar( 250 )       not null
+    ,iso_month_week_no       number               not null
+    ,iso_month_day_no        number               not null
+    --
+    -- week
+    --
+    ,iso_week_dt             date                 not null
+    ,iso_week_label          varchar( 250 )       not null
+    ,iso_week_day_no         number               not null
+    --
+    -- itd
+    --
+    ,iso_itd_quarter_no      number               not null
+    ,iso_itd_month_no        number               not null
+    ,iso_itd_week_no         number               not null
+    ,iso_itd_day_no          number               not null
+    --
+    -- ptd
+    --
+    ,iso_ptd_bt              number               not null
+    ,iso_ptd_label           varchar( 250 )       not null
+    --
+    ,dw_load_ts              timestamp_ltz        not null
+    ,dw_update_ts            timestamp_ltz        not null
+)
+data_retention_time_in_days = 1
+;
++------------------------------------------+
+| status                                   |
+|------------------------------------------|
+| Table DATE_ISO_LKP successfully created. |
++------------------------------------------+
+!source 310_derivation/line_item_margin_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: data integration/derivation
+--     persist intermediate data for calculating the line item margin
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_IL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   main;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+--
+-- permanent latest table with retention days
+--
+create or replace table line_item_margin
+(
+     dw_line_item_shk               binary( 20 )        not null
+    --
+    ,o_orderdate                    date                not null
+    ,margin_amt                     number( 12, 2 )     not null
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_load_ts                     timestamp_ltz       not null
+    ,dw_update_ts                   timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++----------------------------------------------+
+| status                                       |
+|----------------------------------------------|
+| Table LINE_ITEM_MARGIN successfully created. |
++----------------------------------------------+
+!source 310_derivation/part_first_order_dt_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: data integration/derivation
+--     persist intermediate results for deriving first order date for a part
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_IL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   main;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+--
+-- permanent latest table with retention days
+--
+create or replace table part_first_order_dt
+(
+     dw_part_shk                    binary( 20 )        not null
+    --
+    ,first_orderdate                date                not null
+    --
+    ,dw_load_ts                     timestamp_ltz       not null
+    ,dw_update_ts                   timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++-------------------------------------------------+
+| status                                          |
+|-------------------------------------------------|
+| Table PART_FIRST_ORDER_DT successfully created. |
++-------------------------------------------------+
+---------------------------------------------
+-- Integration functions
+!source 000_admin/dw_delta_date_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: create table to manage incremental processing
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_COMMON_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use SCHEMA UTIL;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+create or replace transient table dw_delta_date
+(
+     event_dt       timestamp_ltz not null
+    ,dw_load_ts     timestamp_ltz not null
+)
+data_retention_time_in_days = 0
+;
++-------------------------------------------+
+| status                                    |
+|-------------------------------------------|
+| Table DW_DELTA_DATE successfully created. |
++-------------------------------------------+
+
+!source 000_admin/dw_delta_date_range_f.sql
+--------------------------------------------------------------------
+--  Purpose: create psa tables
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ---------------------------------create or replace function if not-
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_COMMON_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   UTIL;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+;
+create or replace function dw_delta_date_range_f
+(
+    p_period_type_cd   varchar
+)
+returns table( start_dt timestamp_ltz, end_dt timestamp_ltz )
+as
+$$
+    select
+         start_dt
+        ,end_dt
+    from
+        (
+        select
+             case lower( p_period_type_cd )
+                 when 'all'     then current_date()
+                 when 'day'     then date_trunc( day, event_dt )
+                 when 'week'    then date_trunc( week, event_dt )
+                 when 'month'   then date_trunc( month, event_dt )
+                 when 'quarter' then date_trunc( quarter, event_dt )
+                 when 'year'    then date_trunc( year, event_dt )
+                 else current_date()
+             end                as partition_dt
+            ,min( event_dt ) as start_dt
+            ,dateadd( day, 1, max( event_dt ) ) as end_dt
+        from
+            dw_delta_date
+        group by
+            1
+        )
+    order by
+        1
+$$
+;
++------------------------------------------------------+
+| status                                               |
+|------------------------------------------------------|
+| Function DW_DELTA_DATE_RANGE_F successfully created. |
++------------------------------------------------------+
+---------------------------------------------
+-- Presentation tables
+!source 400_dimension/date_dm_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: data presentation
+--      date dimension table
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_PL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   main;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+create table if not exists date_dm
+(
+     cal_dt                  date                 not null  primary key
+    ,cal_ly_dt               date                 not null
+    ,cal_date_label          varchar( 250 )       not null
+    ,cal_weekend_fl          varchar( 250 )       not null
+    ,cal_weekday_fl          varchar( 250 )       not null
+    --
+    -- year
+    --
+    ,iso_year_no             number               not null
+    ,iso_year_dt             date                 not null
+    ,iso_year_quarter_no     number               not null
+    ,iso_year_quarter_dt     date                 not null     -- current year's quarter date
+    ,iso_year_month_no       number               not null
+    ,iso_year_month_dt       date                 not null     -- current year's month date
+    ,iso_year_week_no        number               not null
+    ,iso_year_week_dt        date                null     -- current year's week date
+    ,iso_year_day_no         number               not null
+    --
+    ,cal_year_no             number               not null
+    ,cal_year_dt             date                 not null
+    ,cal_year_quarter_no     number               not null
+    ,cal_year_quarter_dt     date                 not null     -- current year's quarter date
+    ,cal_year_month_no       number               not null
+    ,cal_year_month_dt       date                 not null     -- current year's month date
+    ,cal_year_day_no         number               not null
+    --
+    -- quarter
+    --
+    ,iso_quarter_dt          date                 not null
+    ,iso_quarter_label       varchar( 250 )       not null
+    ,iso_quarter_month_no    number               not null
+    ,iso_quarter_week_no     number               not null
+    ,iso_quarter_day_no      number               not null
+    --
+    ,cal_quarter_dt          date                 not null
+    ,cal_quarter_label       varchar( 250 )       not null
+    ,cal_quarter_month_no    number               not null
+    ,cal_quarter_week_no     number               not null
+    ,cal_quarter_day_no      number               not null
+    --
+    -- month
+    --
+    ,iso_month_dt            date                 not null       -- date to represent actual fiscal month (dd/01/yy) since it can cross calendar months.
+    ,iso_month_label         varchar( 250 )       not null
+    ,iso_month_week_no       number               not null
+    ,iso_month_day_no        number               not null
+    --
+    ,cal_month_dt            date                 not null
+    ,cal_month_label         varchar( 250 )       not null
+    ,cal_month_week_no       number               not null
+    ,cal_month_day_no        number               not null
+    --
+    -- week
+    --
+    ,iso_week_dt             date                 not null
+    ,iso_week_label          varchar( 250 )       not null
+    ,iso_week_day_no         number               not null
+    --
+    ,cal_week_day_no         number               not null
+    --
+    -- itd
+    --
+    ,iso_itd_quarter_no      number               not null
+    ,iso_itd_month_no        number               not null
+    ,iso_itd_week_no         number               not null
+    ,iso_itd_day_no          number               not null
+    --
+    ,cal_itd_quarter_no      number               not null
+    ,cal_itd_month_no        number               not null
+    ,cal_itd_day_no          number               not null
+    --
+    -- ptd
+    --
+    ,iso_ptd_bt              number               not null
+    ,iso_ptd_label           varchar( 250 )       not null
+    ,cal_ptd_bt              number               not null
+    ,cal_ptd_label           varchar( 250 )       not null
+    --
+    -- Future
+    --
+    ,cal_future_date_bt      number               not null
+    --
+    -- season
+    --
+    ,holiday_name            varchar( 250 )       not null     -- based on specific date on calendar labor day, halloween, thanksgiving, christmas, etc.
+    ,dw_load_ts              timestamp_ltz        not null
+    ,dw_update_ts            timestamp_ltz        not null
+)
+data_retention_time_in_days = 1
+;
++-------------------------------------+
+| status                              |
+|-------------------------------------|
+| Table DATE_DM successfully created. |
++-------------------------------------+
+!source 400_dimension/part_dm_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: data presentation
+--      part dimension table.
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_PL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   main;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+--
+-- permanent latest table with retention days
+--
+create or replace table part_dm
+(
+     dw_part_shk                    binary( 20 )        not null
+    --
+    ,p_partkey                      number              not null
+    ,part_name                      varchar( 55 )       not null
+    ,mfgr                           varchar( 25 )       not null
+    ,brand                          varchar( 10 )       not null
+    ,type                           varchar( 25 )       not null
+    ,size                           number              not null
+    ,container                      varchar( 10 )       not null
+    ,retail_price                   number( 12, 2 )     not null
+    ,comment                        varchar( 23 )       not null
+    ,first_orderdate                date                
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_load_ts                     timestamp_ltz       not null
+    ,dw_update_ts                   timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++-------------------------------------+
+| status                              |
+|-------------------------------------|
+| Table PART_DM successfully created. |
++-------------------------------------+
+!source 400_dimension/customer_dm_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: data presentation
+--      customer dimension table.
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_PL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   main;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+--
+-- permanent latest table with retention days
+--
+create or replace table customer_dm
+(
+     dw_customer_shk                binary( 20 )        not null
+    --
+    ,c_custkey                      number              not null
+    ,c_name                         varchar( 25 )       not null
+    ,c_address                      varchar( 40 )       not null
+    ,c_nationkey                    number              not null
+    ,c_phone                        varchar( 15 )       not null
+    ,c_acctbal                      number              not null
+    ,c_mktsegment                   varchar( 10 )       not null
+    ,c_comment                      varchar( 117 )      not null
+    --
+    ,dw_load_ts                     timestamp_ltz       not null
+    ,dw_update_ts                   timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++-----------------------------------------+
+| status                                  |
+|-----------------------------------------|
+| Table CUSTOMER_DM successfully created. |
++-----------------------------------------+
+!source 400_dimension/supplier_dm_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: data presentation
+--     create supplier_dm table
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_PL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   main;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+--
+-- permanent latest table with retention days
+--
+create or replace table supplier_dm
+(
+     dw_supplier_shk                binary( 20 )        not null
+    --
+    ,s_suppkey                      number              not null
+    ,s_name                         varchar( 25 )       not null
+    ,s_address                      varchar( 40 )       not null
+    ,s_nationkey                    number              not null
+    ,s_phone                        varchar( 15 )       not null
+    ,s_acctbal                      number( 12, 2 )     not null
+    ,s_comment                      varchar( 101 )      not null
+    ,last_modified_dt               timestamp_ltz       not null
+    --
+    ,dw_load_ts                     timestamp_ltz       not null
+    ,dw_update_ts                   timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++-----------------------------------------+
+| status                                  |
+|-----------------------------------------|
+| Table SUPPLIER_DM successfully created. |
++-----------------------------------------+
+!source 410_fact_atomic/order_line_fact_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: data presentation
+--      atomic level order line table
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_PL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   main;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+--
+-- permanent history table with retention days
+--
+create or replace table order_line_fact
+(
+     dw_line_item_shk               binary( 20 )        not null
+    ,orderdate                      date                not null
+    ,dw_order_shk                   binary( 20 )        not null
+    ,dw_part_shk                    binary( 20 )        not null
+    ,dw_supplier_shk                binary( 20 )        
+    --
+    ,quantity                       number( 12, 2 )     not null
+    ,extendedprice                  number( 12, 2 )     not null
+    ,discount                       number( 12, 2 )     not null
+    ,tax                            number( 12, 2 )     not null
+    ,returnflag                     varchar( 1 )        not null
+    ,linestatus                     varchar( 1 )        not null
+    ,shipdate                       date        
+    ,commitdate                     date       
+    ,receiptdate                    date      
+    ,margin_amt                     number( 12, 2 )     not null
+    --
+    ,dw_load_ts                     timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++---------------------------------------------+
+| status                                      |
+|---------------------------------------------|
+| Table ORDER_LINE_FACT successfully created. |
++---------------------------------------------+
+
+!source 410_fact_atomic/order_line_fact_bonus_tbl.sql
+--------------------------------------------------------------------
+--  Purpose: data presentation
+--      atomic level order line table
+--
+--  Revision History:
+--  Date     Engineer      Description
+--  -------- ------------- ----------------------------------
+--  dd/mm/yy
+--------------------------------------------------------------------
+use database DEV_WEBINAR_PL_DB;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+use schema   main;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+--
+-- permanent history table with retention days
+--
+create or replace table order_line_fact_bonus
+(
+     dw_line_item_shk               binary( 20 )        not null
+    ,orderdate                      date                not null
+    ,dw_order_shk                   binary( 20 )        not null
+    ,dw_part_shk                    binary( 20 )        not null
+    ,dw_supplier_shk                binary( 20 )        
+    ,dw_customer_shk                binary( 20 )        not null
+    --
+    ,quantity                       number( 12, 2 )     not null
+    ,extendedprice                  number( 12, 2 )     not null
+    ,discount                       number( 12, 2 )     not null
+    ,tax                            number( 12, 2 )     not null
+    ,returnflag                     varchar( 1 )        not null
+    ,linestatus                     varchar( 1 )        not null
+    ,shipdate                       date        
+    ,commitdate                     date       
+    ,receiptdate                    date      
+    ,margin_amt                     number( 12, 2 )     not null
+    --
+    ,dw_load_ts                     timestamp_ltz       not null
+)
+data_retention_time_in_days = 1
+copy grants
+;
++---------------------------------------------------+
+| status                                            |
+|---------------------------------------------------|
+| Table ORDER_LINE_FACT_BONUS successfully created. |
++---------------------------------------------------+
+
+
+!print SUCCESS!
+SUCCESS!
+!quit
