@@ -1,0 +1,87 @@
+
+# Name your project! Project names should contain only lowercase characters
+# and underscores. A good package name should reflect your organization's
+# name or the intended use of these models
+name: 'sap_dbt_lab'
+version: '1.0.0'
+config-version: 2
+
+# This setting configures which "profile" dbt uses for this project.
+profile: 'sap_dbt_lab'
+
+vars:
+  source_database: 'SAP_DEMO'
+  source_schema: 'SAP_RAW'
+
+# These configurations specify where dbt should look for different types of files.
+# The `source-paths` config, for example, states that models in this project can be
+# found in the "models/" directory. You probably won't need to change these!
+model-paths: ["models"]
+analysis-paths: ["analysis"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"  # directory which will store compiled SQL files
+clean-targets:         # directories to be removed by `dbt clean`
+    - "target"
+    - "dbt_modules"
+    - "logs"
+
+sources:
+  sap_dbt_lab:
+    l00_source:
+      sap_sample:
+        +enabled: false
+        0customer_attr:
+          +enabled: true
+        0fi_ar_4:
+          +enabled: true
+        ztcurr_attr:
+          +enabled: true
+
+models:
+  sap_dbt_lab:
+    l10_staging:
+      +schema: l10_staging
+      +materialized: view
+      +enabled: false
+      ods_0fi_ar_4:
+        +enabled: true
+      ods_ztcurr_attr:
+        +enabled: true
+      ods_0customer_attr:
+        +enabled: true
+    l11_fx:
+      +enabled: false
+    l13_sem_gen:
+      +schema: l13_sem_gen
+      +materialized: view 
+      +enabled: false   
+    l15_semantic:
+      +schema: l15_semantic
+      +materialized: view
+      +enabled: false
+      en_0fi_ar_4:
+        +enabled: true
+      en_ztcurr_attr:
+        +enabled: true
+      en_0customer_attr:
+        +enabled: true
+      currency:
+        +enabled: true
+      currency_0fi_ar_4:
+        +enabled: true
+    l20_transform:
+      +schema: l20_transform
+      +materialized: view
+      +enabled: false
+      accounts_receivable:
+        +enabled: true
+    l30_mart:
+      +schema: l30_mart
+      +materialized: table
+      +enabled: false
+      accounts_receivable_mart:
+        +enabled: true

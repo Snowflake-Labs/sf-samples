@@ -1,0 +1,12 @@
+{
+  "name": "aws-python-flask-tag",
+  "version": "1.0.0",
+  "description": "Example of an ad tag built on Serverless, Python, Flask, and Snowflake",
+  "author": "",
+  "devDependencies": {
+    "serverless": "^3.23.0",
+    "serverless-offline": "^8.7.0",
+    "serverless-python-requirements": "^5.4.0",
+    "serverless-wsgi": "^1.7.6"
+  }
+}

@@ -1,0 +1,142 @@
+SELECT
+{{ sap_translate_cols(ref('ods_0customer_attr'), except=[
+    'UMSA1',
+    'UMSAT',
+    'MCOD1',
+    'NAME2',
+    'MCOD2',
+    'MCOD3',
+    'fullname'
+]) }}
+-- --DATA_SOURCE_NAME
+--  MANDT as client
+-- , KUNNR as customer
+-- , ADRNR as address
+-- , ANRED as title
+-- --, AUFSD as central_order_block
+-- --, BAHNS as train_station
+-- , BBBNR as int_location_no_1
+-- , BBSNR as int_location_no_2
+-- --, BEGRU as authorization_group
+-- , BRSCH as industry
+-- , BUBKZ as check_digit
+-- --, DATLT as data_line
+-- , ERDAT as created_on
+-- , ERNAM as created_by
+-- , EXABL as unloading_points
+-- --, FISKN as fiscal_address
+-- --, KNAZK as working_times
+-- --, KNRZA as alternative_payer
+-- --, KONZS as group_key
+-- , KTOKD as account_group
+-- --, KUKLA as customer_classific
+-- , LAND1 as country
+-- , LIFNR as vendor
+-- --, LIFSD as central_delivery_block
+-- --, LOCCO as location_code
+-- , NAME1 as name
+-- --, NAME2 as name_2
+-- --, NAME3 as name_3
+-- --, NAME4 as name_4
+-- , NIELS as nielsen_indicator
+-- , ORT01 as city
+-- , ORT02 as district
+-- , PFACH as po_box
+-- , PSTL2 as po_box_postal_code
+-- , PSTLZ as postal_code
+-- , REGIO as region
+-- --, COUNC as county_code
+-- --, CITYC as city_code
+-- --, RPMKR as regional_market
+-- , SORTL as search_term
+-- --, SPERR as central_posting_block
+-- , SPRAS as language_key
+-- --, STCD1 as tax_number_1
+-- --, STCD2 as tax_number_2
+-- --, STKZA as sales_equalizatn_tax
+-- --, STKZU as liable_for_vat
+-- , STRAS as street
+-- --, TELBX as telebox_number
+-- , TELF1 as telephone_1
+-- --, TELF2 as telephone_2
+-- --, TELFX as fax_number
+-- --, TELTX as teletex_number
+-- --, TELX1 as telex_number
+-- , LZONE as transportation_zone
+-- --, XCPDK as one_time_account
+-- --, XZEMP as alt_payer_in_doc
+-- --, VBUND as trading_partner
+-- , STCEG as vat_registration_no
+-- --, DEAR1 as competitors
+-- --, DEAR2 as sales_partners
+-- --, DEAR3 as prospect
+-- --, DEAR4 as customer_type_4
+-- --, DEAR5 as default_sold_to_pty
+-- , DEAR6 as consumer
+-- , GFORM as legal_status
+-- --, BRAN1 as industry_code_1
+-- --, BRAN2 as industry_code_2
+-- --, BRAN3 as industry_code_3
+-- --, BRAN4 as industry_code_4
+-- --, BRAN5 as industry_code_5
+-- --, EKONT as initial_contact
+-- --, UMSAT as annual_sales
+-- , UMJAH as sales_year
+-- , UWAER as currency_of_sales
+-- , JMZAH as employee
+-- , JMJAH as year_no_given_for
+-- --, KATR1 as attribute_1
+-- --, KATR2 as attribute_2
+-- --, KATR3 as attribute_3
+-- --, KATR4 as attribute_4
+-- --, KATR5 as attribute_5
+-- --, KATR6 as attribute_6
+-- --, KATR7 as attribute_7
+-- --, KATR8 as attribute_8
+-- --, KATR9 as attribute_9
+-- --, KATR10 as attribute_10
+-- , STKZN as natural_person
+-- --, UMSA1 as annual_sales
+-- , TXJCD as tax_jurisdiction
+-- --, MCOD1 as search_term
+-- --, MCOD2 as name_2
+-- --, MCOD3 as city
+-- --, PERIV as fiscal_year_variant
+-- --, ABRVW as usage
+-- --, INSPBYDEBI as by_customer
+-- --, INSPATDEBI as after_delivery
+-- --, KTOCD as reference_acct_group
+-- --, PFORT as p_o_box_city
+-- , WERKS as plant
+-- --, DTAMS as dme_indicator
+-- --, DTAWS as instruction_key
+-- , DUEFL as data_transfer_status
+-- , HZUOR as hierarchy_assignment
+-- --, SPERZ as payment_block
+-- --, ETIKG as lab_customer_group
+-- , CIVVE as non_milit_use
+-- , MILVE as military_use
+-- --, KDKG1 as condition_group_1
+-- --, KDKG2 as condition_group_2
+-- --, KDKG3 as condition_group_3
+-- --, KDKG4 as condition_group_4
+-- --, KDKG5 as condition_group_5
+-- --, XKNZA as accts_for_alt_payer
+-- --, FITYP as tax_type
+-- --, STCDT as tax_number_type
+-- --, STCD3 as tax_number_3
+-- --, STCD4 as tax_number_4
+-- --, XICMS as icms_exempt
+-- --, XXIPI as ipi_exempt
+-- --, XSUBT as subtrib_group
+-- --, CFOPC as cust_cfop_category
+-- --, TXLW1 as icms_law
+-- --, TXLW2 as ipi_law
+-- --, CCC01 as biochemical_warfare
+-- --, CCC02 as nuclear_nonprolif
+-- --, CCC03 as national_security
+-- --, CCC04 as missile_technology
+-- --, CASSD as central_sales_block
+-- --, KNURL as url
+-- --, fullname as fullname
+from {{ref('ods_0customer_attr')}}
