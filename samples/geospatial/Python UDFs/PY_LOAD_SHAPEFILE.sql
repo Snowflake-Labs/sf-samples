@@ -3,7 +3,7 @@ put file:///Users/<LOCAL_PATH>/<FILENAME>.zip @geostage AUTO_COMPRESS = FALSE OV
 
 -- 2. Create a function to read Shapefiles from the stage and return it as a table
 CREATE OR REPLACE FUNCTION PY_LOAD_SHAPEFILE(PATH_TO_FILE string)
-returns table (wkb binary, properties object)
+returns table (wkt binary, properties object)
 language python
 runtime_version = 3.8
 imports=('@geostage/archive.zip')
@@ -20,7 +20,7 @@ class ShapeFileReader:
     def process(self, PATH_TO_FILE: str):
       shapefile = fiona.open(f"zip://{import_dir}/archive.zip/{PATH_TO_FILE}")
       for record in shapefile:
-        yield ((shape(record['geometry']).wkb, dict(record['properties'])))
+        yield ((shape(record['geometry']).wkt, dict(record['properties'])))
 $$;
 
 -- 3. Crate a table from the staged file
