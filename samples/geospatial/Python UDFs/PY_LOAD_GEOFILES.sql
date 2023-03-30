@@ -46,10 +46,10 @@ $$;
 create or replace table GEOLAB.GEOGRAPHY.TABLE_NAME as
 SELECT properties:Field_1::string as field_1,
 properties:Field_2::string as Field_2,
-to_geography(wkb, True) as geometry FROM table(PY_LOAD_GEOFILE(build_scoped_file_url(@stage_name, 'archive_name.zip'), 'shapefile_name.shp'));
+to_geography(wkb, True) as geometry FROM table(PY_LOAD_GEOFILE(build_scoped_file_url(@stage_name, 'archive_name.zip'), 'file_name.shp'));
 
 -- === Example execution (MapInfo TAB File) ===
 create or replace table GEOLAB.GEOGRAPHY.TABLE_NAME as
 SELECT properties:Field_1::string as field_1,
 properties:Field_2::string as Field_2,
-to_geography(wkb, True) as geometry FROM table(PY_LOAD_GEOFILE(build_scoped_file_url(@stage_name, 'archive_name.zip'), 'shapefile_name.tab'));
+to_geography(wkb, True) as geometry FROM table(PY_LOAD_GEOFILE(build_scoped_file_url(@stage_name, 'archive_name.zip'), 'file_name.tab'));
