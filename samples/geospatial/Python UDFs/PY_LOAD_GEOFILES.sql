@@ -33,8 +33,10 @@ AS $$
 from shapely.geometry import shape
 from snowflake.snowpark.files import SnowflakeFile
 from fiona.io import ZipMemoryFile
-class GeoFileReader:        
+class GeoFileReader:
     def process(self, PATH_TO_FILE: str, filename: str):
+    	fiona.drvsupport.supported_drivers['libkml'] = 'rw' # enable KML support which is disabled by default
+    	fiona.drvsupport.supported_drivers['LIBKML'] = 'rw' # enable KML support which is disabled 
     	with SnowflakeFile.open(PATH_TO_FILE, 'rb') as f:
     		with ZipMemoryFile(f) as zip:
     			with zip.open(filename) as collection:
@@ -53,3 +55,10 @@ create or replace table GEOLAB.GEOGRAPHY.TABLE_NAME as
 SELECT properties:Field_1::string as field_1,
 properties:Field_2::string as Field_2,
 to_geography(wkb, True) as geometry FROM table(PY_LOAD_GEOFILE(build_scoped_file_url(@stage_name, 'archive_name.zip'), 'file_name.tab'));
+
+-- === Example execution (Google Earth KML File) ===
+select
+to_geography(wkb, True) as geometry,
+properties:Name::string as Name,
+properties:altitudeMode::string as altitudeMode
+from table(PY_LOAD_GEOFILE(build_scoped_file_url(@tmobile, 'archive_name.zip'), 'file_name.kml'));
