@@ -2,7 +2,7 @@
 
 The following repo provides code examples of getting started with making use of RDKit on Snowflake using Snowpark for Python. 
 
-The blog post that accompanies this repo is `TO BE FILLED IN`. 
+The blog post that accompanies this repo is `https://medium.com/@cur6382/cheminformatics-in-snowflake-using-rdkit-snowpark-to-analyze-molecular-data-9136afb2b10f`. 
 
 To get started: 
 1. Fill in the `creds.json` file with the credentials to your Snowflake account. 
