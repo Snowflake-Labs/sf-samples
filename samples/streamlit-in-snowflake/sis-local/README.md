@@ -15,7 +15,7 @@ and provide a much smoother experience doing local development and porting to Si
 Just like Snowpark, **it requires python 3.8.**
 
 ```shell
-pip install "streamlit_in_snowflake @ git+https://github.com/blackary/sis-tricks.git#subdirectory=sis-local"
+pip install "streamlit_in_snowflake @ git+https://github.com/Snowflake-Labs/sf-samples.git#subdirectory=samples/streamlit-in-snowflake/sis-local"
 ```
 
 In general, we recommend managing your environment with Conda,
@@ -33,11 +33,9 @@ from snowflake.snowpark.exceptions import SnowparkSessionException
 
 
 def running_in_sis() -> bool:
-    try:
-        sess = get_active_session()
-        return True
-    except SnowparkSessionException:
-        return False
+    import snowflake.connector.connection
+    import inspect
+    return 1 == len([x for x in inspect.getmembers(snowflake.connector.connection) if x[0] == 'StoredProcConnection'])
 
 
 if running_in_sis():

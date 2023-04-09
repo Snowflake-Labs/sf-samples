@@ -3,11 +3,9 @@ from snowflake.snowpark.exceptions import SnowparkSessionException
 
 
 def running_in_sis() -> bool:
-    try:
-        sess = get_active_session()
-        return True
-    except SnowparkSessionException:
-        return False
+    import snowflake.connector.connection
+    import inspect
+    return 1 == len([x for x in inspect.getmembers(snowflake.connector.connection) if x[0] == 'StoredProcConnection'])
 
 
 if running_in_sis():
