@@ -171,7 +171,7 @@ GROUP BY fd.date_valid_std, fd.city_name, fd.country_desc
 ORDER BY fd.date_valid_std ASC;
 
 
--- Section 5: Step 3 - Creating the SQL for our View
+-- Section 5: Step 3 - Deploying our Analytics View
 CREATE OR REPLACE VIEW frostbyte_tasty_bytes.analytics.daily_city_metrics_v
 COMMENT = 'Daily Weather Source Metrics and Orders Data for our Cities'
     AS
