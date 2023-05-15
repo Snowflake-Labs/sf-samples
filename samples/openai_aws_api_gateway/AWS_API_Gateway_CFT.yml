@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Template for deploying an OpenAI proxy API gateway"
+
+Parameters:
+  apiGatewayStageName:
+    Type: "String"
+    AllowedPattern: "^[a-z0-9]+$"
+    Default: "main"
+    Description: "API deployment stage"
+
+  apiGatewayName:
+    Type: "String"
+    AllowedPattern: "^[a-zA-Z0-9]+[-a-zA-Z0-9-]+[-a-zA-Z0-9]+$"
+    Default: "openAIGateway"
+    Description: "API Gateway instance name"
+
+  apiGatewayIAMRoleName:
+    Type: "String"
+    AllowedPattern: "^[a-zA-Z0-9]+[-a-zA-Z0-9-]+[-a-zA-Z0-9]+$"
+    Default: "openAIAPIGatewayRole"
+    Description: "Role used with Snowflake API Integration"
+
+  openAIAPIKey:
+    Type: String
+    Description: "<Your_OPENAI_API_KEY>"
+    MinLength: 1
+
+Resources:
+  apiGateway:
+    Type: "AWS::ApiGateway::RestApi"
+    DependsOn : apiIAMRole
+    Properties:
+      Name: !Ref "apiGatewayName"
+      Description: "OpenAI resources Gateway"
+      Policy: !Sub  
+          - '{ "Version": "2012-10-17", "Statement": [ {  "Effect": "Allow", "Principal": { "AWS": "arn:aws:sts::${AWS::AccountId}:assumed-role/${apiGatewayIAMRoleName}/snowflake" }, "Action": "execute-api:Invoke", "Resource": "${resourceArn}" } ] }'
+          - resourceArn: !Join [ "", [ "execute-api:/", "*" ] ]
+      EndpointConfiguration:
+        Types:
+          - "REGIONAL"
+
+  apiResourceVersion1:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref apiGateway
+      ParentId: !GetAtt 
+        - apiGateway
+        - RootResourceId
+      PathPart: "v1"
+
+  apiResourceCompletions:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref apiGateway
+      ParentId: !Ref apiResourceVersion1
+      PathPart: "completions"
+      
+  apiGatewayOpenAIMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      AuthorizationType: "AWS_IAM"
+      HttpMethod: "POST"
+      Integration:
+        IntegrationHttpMethod: "POST"
+        Type: "HTTP_PROXY"
+        Uri: "https://api.openai.com/v1/completions"
+        RequestParameters:
+          integration.request.header.Content-Type: "'application/json'"
+          integration.request.header.Authorization: !Sub "'Bearer ${openAIAPIKey}'"
+        PassthroughBehavior: WHEN_NO_MATCH
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: '2..'
+          - StatusCode: 400
+            SelectionPattern: '4..'
+          - StatusCode: 500
+            SelectionPattern: '5..'
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 400
+        - StatusCode: 500
+      ResourceId: !Ref "apiResourceCompletions"
+      RestApiId: !Ref "apiGateway"
+
+  apiGatewayDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    DependsOn:
+      - "apiGatewayOpenAIMethod"
+    Properties:
+      RestApiId: !Ref "apiGateway"
+      StageName: !Ref "apiGatewayStageName"
+
+  apiIAMRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName : !Ref "apiGatewayIAMRoleName"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - "sts:AssumeRole"
+            Effect: "Allow"
+            Principal:
+              AWS:
+                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+
+Outputs:
+  resourceInvocationUrl:
+    Value: !Sub "https://${apiGateway}.execute-api.${AWS::Region}.amazonaws.com/${apiGatewayStageName}/openai/v1/completions"
+
+  awsRoleArn:
+    Value: !GetAtt "apiIAMRole.Arn"
+    
