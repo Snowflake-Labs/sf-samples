@@ -1,0 +1,56 @@
+-------------------------------------------------
+-- NAME:	 IMPL-IS-00-INIT-VANTAGE.txt
+-------------------------------------------------
+-- DESCRIPTION:
+--		Initialization script to setup environment variables
+--
+-- OPTIONS:
+--		Set context using USE commands
+--		Set DATABASE in order to setup table references
+--		Setup ACCOUNT_NAME for filtering
+--		Setup other environment variables for filtering
+--
+-- REVISION HISTORY
+-- DATE		INIT	DESCRIPTION
+----------  ----    -----------
+-- 18JAN22	WNA		created/updated for repository
+-------------------------------------------------
+	
+--------------------------------------------
+-- INITIALIZATION SCRIPT
+--------------------------------------------
+
+------------------------
+-- SET CONTEXT
+------------------------
+use warehouse WNA_WH;
+use role WNA_ROLE;
+use database SNOWFLAKE;
+use schema INFORMATION_SCHEMA;
+
+------------------------
+-- SET ENVIRONMENT VARIABLES
+------------------------
+
+SET DATABASE = 'SNOWFLAKE';
+
+SET DATABASES = $DATABASE || '.INFORMATION_SCHEMA.DATABASES';
+SET SCHEMATA = $DATABASE || '.INFORMATION_SCHEMA.SCHEMATA';
+SET STAGES = $DATABASE || '.INFORMATION_SCHEMA.STAGES';
+SET TABLES = $DATABASE || '.INFORMATION_SCHEMA.TABLES';
+SET COLUMNS = $DATABASE || '.INFORMATION_SCHEMA.COLUMNS';
+SET VIEWS = $DATABASE || '.INFORMATION_SCHEMA.VIEWS';
+SET TABLE_STORAGE_METRICS = $DATABASE || '.INFORMATION_SCHEMA.TABLE_STORAGE_METRICS';
+SET FUNCTIONS = $DATABASE || '.INFORMATION_SCHEMA.FUNCTIONS';
+SET FILE_FORMATS = $DATABASE || '.INFORMATION_SCHEMA.FILE_FORMATS';
+SET MASKING_POLICIES = $DATABASE || '.INFORMATION_SCHEMA.MASKING_POLICIES';
+SET POLICY_REFERENCES = $DATABASE || '.INFORMATION_SCHEMA.POLICY_REFERENCES';
+SET TASK_HISTORY = $DATABASE || '.INFORMATION_SCHEMA.TASK_HISTORY';
+SET ROLES = $DATABASE || '.INFORMATION_SCHEMA.ROLES';
+SET USERS = $DATABASE || '.INFORMATION_SCHEMA.USERS';
+SET PIPES = $DATABASE || '.INFORMATION_SCHEMA.PIPES';
+SET GRANTS_TO_ROLES = $DATABASE || '.INFORMATION_SCHEMA.GRANTS_TO_ROLES';
+SET GRANTS_TO_USERS = $DATABASE || '.INFORMATION_SCHEMA.GRANTS_TO_USERS';
+
+SET TS_START = '2021-08-01 00:00:00'::TIMESTAMP_LTZ;
+SET TS_END = '2021-08-31 00:00:00'::TIMESTAMP_LTZ;
