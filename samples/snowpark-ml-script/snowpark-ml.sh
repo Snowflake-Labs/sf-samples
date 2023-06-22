@@ -100,7 +100,7 @@ else
     echo "## Creating conda env ${CONDA_ENV}"
     if [[ $(uname -m) == 'arm64' ]]; then
         echo "## Mac M1 detected. Following special conda treatment as per https://docs.snowflake.com/en/developer-guide/snowpark/python/setup"
-        CONDA_SUBDIR=osx-64 conda create -n {CONDA_ENV} python=${PY_VERSION} numpy pandas --override-channels -c https://repo.anaconda.com/pkgs/snowflake
+        CONDA_SUBDIR=osx-64 conda create -n "${CONDA_ENV}" python=${PY_VERSION} numpy pandas --override-channels -c https://repo.anaconda.com/pkgs/snowflake
         conda activate "${CONDA_ENV}"
         conda config --env --set subdir osx-64
     else
