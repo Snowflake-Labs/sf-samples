@@ -8,7 +8,7 @@
 set -o pipefail
 set -eu
 
-PROD=$0
+PROG=$0
 
 if ! command -v conda &> /dev/null
 then
@@ -16,7 +16,7 @@ then
     exit 1
 fi
 
-CONDA_ENV="default"
+CONDA_ENV="${CONDA_DEFAULT_ENV}"
 TAR_FILE="default"
 CHANNEL_HOME="${HOME}/mychannel"
 PY_VERSION="3.8"
@@ -27,10 +27,10 @@ DEFAULT_FILENAME="snowflake-ml-python-1.0.1-py_0.tar.bz2"
 function help() {
     exitcode=$1 && shift
     echo "Usage: ${PROG} [-f <conda tar.bz2 file>] [-d <output dir>] [-e <conda env name>] [-p 3.8|3.9|3.10] [-h]"
-    echo "  -f CONDA_TARBALL: By default, downloads latest the internet."
-    echo "  -d OUTPUT_DIR: Default is ${CHANNEL_HOME}"
-    echo "  -p PY_VERSION: Default is 3.8. Options are 3.9, 3.10."
-    echo "  -e CONDA_ENV_NAME: Default is conda's default env, usually `base`. If it is an existing env, it will reuse."
+    echo "  -f CONDA_TARBALL: Optional, by default, downloads latest from the internet."
+    echo "  -d OUTPUT_DIR: Optional, default is ${CHANNEL_HOME}"
+    echo "  -p PY_VERSION: Optional, default is 3.8. Options are 3.9, 3.10."
+    echo "  -e CONDA_ENV_NAME: Optional, default is ${CONDA_DEFAULT_ENV}. If an existing env provided, it will reuse. It will create otherwise."
     exit ${exitcode}
 }
 
@@ -93,28 +93,23 @@ conda index ${CHANNEL_HOME}
 
 eval "$(conda shell.bash hook)"
 
-if [[ "${CONDA_ENV}" == "default" ]]; then
-    echo "## No conda env specified. Using default. Assuming setup correctly."
-    conda activate
+if conda env list | grep "${CONDA_ENV}" >/dev/null 2>&1; then
+    echo "## Conda env ${CONDA_ENV} exists. Assuming setup correctly."
+    conda activate "${CONDA_ENV}"
 else
-    if conda env list | grep "${CONDA_ENV}" >/dev/null 2>&1; then
-        echo "## Conda env ${CONDA_ENV} exists. Assuming setup correctly."
+    echo "## Creating conda env ${CONDA_ENV}"
+    if [[ $(uname -m) == 'arm64' ]]; then
+        echo "## Mac M1 detected. Following special conda treatment as per https://docs.snowflake.com/en/developer-guide/snowpark/python/setup"
+        CONDA_SUBDIR=osx-64 conda create -n {CONDA_ENV} python=${PY_VERSION} numpy pandas --override-channels -c https://repo.anaconda.com/pkgs/snowflake
         conda activate "${CONDA_ENV}"
+        conda config --env --set subdir osx-64
     else
-        echo "## Creating conda env ${CONDA_ENV}"
-        if [[ $(uname -m) == 'arm64' ]]; then
-            echo "## Mac M1 detected. Following special conda treatment as per https://docs.snowflake.com/en/developer-guide/snowpark/python/setup"
-            CONDA_SUBDIR=osx-64 conda create -n {CONDA_ENV} python=${PY_VERSION} numpy pandas --override-channels -c https://repo.anaconda.com/pkgs/snowflake
-            conda activate "${CONDA_ENV}"
-            conda config --env --set subdir osx-64
-        else
-            conda create --name "${CONDA_ENV}" --override-channels -c https://repo.anaconda.com/pkgs/snowflake python=${PY_VERSION} numpy pandas
-            conda activate "${CONDA_ENV}"
-        fi
+        conda create --name "${CONDA_ENV}" --override-channels -c https://repo.anaconda.com/pkgs/snowflake python=${PY_VERSION} numpy pandas
+        conda activate "${CONDA_ENV}"
     fi
 fi
 
 echo "## Installing snowpark ML"
-conda install -c "file://${CHANNEL_HOME}" -c "https://repo.anaconda.com/pkgs/snowflake/" --override-channel snowflake-ml-python
+conda install -c "file://${CHANNEL_HOME}" -c "https://repo.anaconda.com/pkgs/snowflake/" --override-channels snowflake-ml-python
 
-echo "## ALL DONE. Please activate the env by executing `conda activate ${CONDA_ENV}`"
+echo "## ALL DONE. Please activate the env by executing \`conda activate ${CONDA_ENV}\`"
