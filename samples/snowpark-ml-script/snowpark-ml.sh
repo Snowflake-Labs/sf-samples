@@ -30,7 +30,7 @@ function help() {
     echo "  -f CONDA_TARBALL: By default, downloads latest the internet."
     echo "  -d OUTPUT_DIR: Default is ${CHANNEL_HOME}"
     echo "  -p PY_VERSION: Default is 3.8. Options are 3.9, 3.10."
-    echo "  -e CONDA_ENV_NAME: Default is conda's default env, usually `base`"
+    echo "  -e CONDA_ENV_NAME: Default is conda's default env, usually `base`. If it is an existing env, it will reuse."
     exit ${exitcode}
 }
 
