@@ -3,7 +3,7 @@
 # Setup a conda environemnt & installs snowpark ML.
 #
 # Usage
-# snowpark-ml.sh [-f <conda tar.bz2 file>] [-d <output dir>] [-e <conda env name>] [-p <python version>] [-h] 
+# snowpark-ml.sh [-f <conda tar.bz2 file>] [-d <output dir>] [-e <conda env name>] [-p 3.8|3.9|3.10] [-h] 
 
 set -o pipefail
 set -eux
@@ -16,12 +16,6 @@ then
     exit 1
 fi
 
-function help() {
-    exitcode=$1 && shift
-    echo "Usage: ${PROG} [-f <conda tar.bz2 file>] [-d <output dir>] [-e <conda env name>] [-p <python version>] [-h]"
-    exit ${exitcode}
-}
-
 CONDA_ENV="default"
 TAR_FILE="default"
 CHANNEL_HOME="${HOME}/mychannel"
@@ -29,6 +23,16 @@ PY_VERSION="3.8"
 # Needs to be updated every release. Can be moved to snowml repo once that is open sourced.
 DEFAULT_DOWNLOAD_URL="https://drive.google.com/uc?export=download&id=10h3U3fDzXw7C2QYCzhpoNUxry7hzMVf9"
 DEFAULT_FILENAME="snowflake-ml-python-1.0.1-py_0.tar.bz2"
+
+function help() {
+    exitcode=$1 && shift
+    echo "Usage: ${PROG} [-f <conda tar.bz2 file>] [-d <output dir>] [-e <conda env name>] [-p 3.8|3.9|3.10] [-h]"
+    echo "  -f CONDA_TARBALL: By default, downloads latest the internet."
+    echo "  -d OUTPUT_DIR: Default is ${CHANNEL_HOME}"
+    echo "  -p PY_VERSION: Default is 3.8. Options are 3.9, 3.10."
+    echo "  -e CONDA_ENV_NAME: Default is conda's default env, usually `base`"
+    exit ${exitcode}
+}
 
 while (($#)); do
     case $1 in
