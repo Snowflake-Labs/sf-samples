@@ -6,7 +6,7 @@
 # snowpark-ml.sh [-f <conda tar.bz2 file>] [-d <output dir>] [-e <conda env name>] [-p 3.8|3.9|3.10] [-h] 
 
 set -o pipefail
-set -eux
+set -eu
 
 PROD=$0
 
