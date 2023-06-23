@@ -95,21 +95,22 @@ eval "$(conda shell.bash hook)"
 
 if conda env list | grep "${CONDA_ENV}" >/dev/null 2>&1; then
     echo "## Conda env ${CONDA_ENV} exists. Assuming setup correctly."
-    conda activate "${CONDA_ENV}"
+    #conda activate "${CONDA_ENV}"
 else
     echo "## Creating conda env ${CONDA_ENV}"
     if [[ $(uname -m) == 'arm64' ]]; then
         echo "## Mac M1 detected. Following special conda treatment as per https://docs.snowflake.com/en/developer-guide/snowpark/python/setup"
+        export CONDA_SUBDIR="osx-64"
         CONDA_SUBDIR=osx-64 conda create -n "${CONDA_ENV}" python=${PY_VERSION} numpy pandas --override-channels -c https://repo.anaconda.com/pkgs/snowflake
-        conda activate "${CONDA_ENV}"
-        conda config --env --set subdir osx-64
+        #conda activate "${CONDA_ENV}"
+        conda run -n "${CONDA_ENV}" conda config --env --set subdir osx-64
     else
         conda create --name "${CONDA_ENV}" --override-channels -c https://repo.anaconda.com/pkgs/snowflake python=${PY_VERSION} numpy pandas
-        conda activate "${CONDA_ENV}"
+        #conda activate "${CONDA_ENV}"
     fi
 fi
 
 echo "## Installing snowpark ML"
-conda install -c "file://${CHANNEL_HOME}" -c "https://repo.anaconda.com/pkgs/snowflake/" --override-channels snowflake-ml-python
+conda install -n "${CONDA_ENV}" -c "file://${CHANNEL_HOME}" -c "https://repo.anaconda.com/pkgs/snowflake/" --override-channels snowflake-ml-python
 
 echo "## ALL DONE. Please activate the env by executing \`conda activate ${CONDA_ENV}\`"
