@@ -24,18 +24,21 @@ def lambda_handler(event, context):
     for row in rows:
         row_number = row[0]
         prompt = row[1]
-        
-        openai_response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}]
+
+        openai_response = openai.Completion.create(
+            model="text-davinci-003",
+            prompt=prompt,
+            temperature=0.3,
+            max_tokens=60,
+            top_p=1.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.0
         )
     
         # Compose the output based on the input. This simple example
         # merely echoes the input by collecting the values into an array that
         # will be treated as a single VARIANT value.
-        # query = openai_response['choices'][0]['text']
-        
-        query = openai_response.choices[0].message.content
+        query = openai_response['choices'][0]['text']
         query = query.split()
         query = " ".join(query)
 
@@ -46,10 +49,16 @@ def lambda_handler(event, context):
         array_of_rows_to_return.append(row_to_return)
 
     json_compatible_string_to_return = json.dumps({"data" : array_of_rows_to_return})
+    
+    # try:
+    # except Exception as err:
+    #     # 400 implies some type of error.
+    #     status_code = 400
+    #     # Tell caller what this function could not handle.
+    #     json_compatible_string_to_return = event_body
 
     # Return the return value and HTTP status code.
     return {
         'statusCode': status_code,
         'body': json_compatible_string_to_return
     }
-
