@@ -42,7 +42,7 @@ class GeoFileReader:
     			with zip.open(filename) as collection:
     				for record in collection:
 						if (not (record['geometry'] is None)):
-    						yield ((shape(record['geometry']).wkb, dict(record['properties'])))
+							yield ((shape(record['geometry']).wkb, dict(record['properties'])))
 $$;
 
 -- === Example execution (ESRI ShapeFile) ===
