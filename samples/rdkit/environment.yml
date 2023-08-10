@@ -1,0 +1,13 @@
+name: rdkit_snowpark
+channels:
+  - https://repo.anaconda.com/pkgs/snowflake
+dependencies:
+  - python=3.8
+  - snowflake-snowpark-python
+  - ipykernel
+  - pyarrow
+  - numpy==1.23.5
+  - pandas==1.4.3
+  - cachetools==4.2.2
+  - notebook
+  - rdkit==2022.09.4
