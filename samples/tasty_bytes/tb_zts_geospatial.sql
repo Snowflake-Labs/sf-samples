@@ -237,7 +237,7 @@ ORDER BY kilometer_from_top_selling_center DESC;
 
 UNSET center_point;
 
-USE ROLE sysdmin;
+USE ROLE sysadmin;
 
 CREATE OR REPLACE VIEW frostbyte_tasty_bytes.analytics.orders_v
 COMMENT = 'Tasty Bytes Order Detail View'
