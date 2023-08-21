@@ -1,0 +1,14 @@
+./snowflake_snowpark_python-0.6.0-py3-none-any.whl
+pandas==1.4.2
+geopandas==0.10.2
+shapely==1.8.2
+folium==0.12.1.post1
+branca==0.5.0
+geojson==2.5.0
+streamlit==1.10.0
+streamlit_folium==0.6.13
+cffi==1.15.0
+keplergl
+streamlit_keplergl
+streamlit-option-menu
+leafmap

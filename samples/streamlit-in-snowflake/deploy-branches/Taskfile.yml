@@ -1,0 +1,52 @@
+version: '3'
+vars:
+  HOME_PAGE: "streamlit_app.py"
+  APP_NAME: "MY_APP"
+  MAIN_BRANCH: "main"
+  USERNAME:
+    sh: whoami
+  GIT_BRANCH:
+    sh: git rev-parse --abbrev-ref HEAD | tr '-' '_'
+  PREVIEW_APP_NAME:
+    sh: "NAME=PREVIEW_{{.APP_NAME}}_{{.GIT_BRANCH}}_{{.USERNAME}} && echo ${NAME^^}"
+
+tasks:
+  list:
+    desc: List streamlit apps
+    cmds:
+      - snow streamlit list
+
+  create:
+    desc: Create my app app
+    cmds:
+      - snow streamlit create --file {{.HOME_PAGE}} {{.APP_NAME}}
+      - task: update
+
+  update:
+    desc: Deploy/update my app
+    cmds:
+      - snow streamlit deploy --file {{.HOME_PAGE}} {{.APP_NAME}}
+    preconditions:
+      - sh: "[ {{.GIT_BRANCH}} = '{{.MAIN_BRANCH}}' ]"
+        msg: "You are not on the main branch. Please switch to the main branch before deploying, and please get your changes approved via PR first."
+
+  drop:
+    desc: Drop the main version of the app (and the associated stage)
+    cmds:
+      - snow streamlit drop {{.APP_NAME}}
+
+  create_preview:
+    desc: Create a new version of my app from the git branch I have checked out
+    cmds:
+      - snow streamlit create --file ./{{.HOME_PAGE}} {{.PREVIEW_APP_NAME}}
+      - task: update_preview
+
+  update_preview:
+    desc: Deploy/update my app
+    cmds:
+      - snow streamlit deploy --file {{.HOME_PAGE}} {{.PREVIEW_APP_NAME}}
+
+  drop_preview:
+    desc: Drop the preview version of the app (and the associated stage)
+    cmds:
+      - snow streamlit drop {{.PREVIEW_APP_NAME}}

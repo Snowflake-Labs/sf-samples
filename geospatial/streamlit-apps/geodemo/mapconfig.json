@@ -1,0 +1,175 @@
+{
+  "version": "v1",
+  "config": {
+    "visState": {
+      "filters": [],
+      "layers": [
+        {
+          "id": "5a7dhj7",
+          "type": "hexagonId",
+          "config": {
+            "dataId": "data",
+            "label": "Precipitation",
+            "color": [
+              18,
+              92,
+              119
+            ],
+            "columns": {
+              "hex_id": "GEOID"
+            },
+            "isVisible": True,
+            "visConfig": {
+              "opacity": 0.61,
+              "colorRange": {
+                "name": "Uber Viz Diverging 1.5",
+                "type": "diverging",
+                "category": "Uber",
+                "colors": [
+                  "#C22E00",
+                  "#DD7755",
+                  "#F8C0AA",
+                  "#BAE1E2",
+                  "#5DBABF",
+                  "#00939C"
+                ],
+                "reversed": True
+              },
+              "coverage": 1,
+              "enable3d": True,
+              "sizeRange": [
+                0,
+                500
+              ],
+              "coverageRange": [
+                0,
+                1
+              ],
+              "elevationScale": 5
+            },
+            "hidden": False,
+            "textLabel": [
+              {
+                "field": None,
+                "color": [
+                  255,
+                  255,
+                  255
+                ],
+                "size": 18,
+                "offset": [
+                  0,
+                  0
+                ],
+                "anchor": "start",
+                "alignment": "center"
+              }
+            ]
+          },
+          "visualChannels": {
+            "colorField": {
+              "name": "YEAR_PREC",
+              "type": "real"
+            },
+            "colorScale": "quantile",
+            "sizeField": {
+              "name": "SUMMER_MAX",
+              "type": "real"
+            },
+            "sizeScale": "linear",
+            "coverageField": {
+              "name": "POPULATION",
+              "type": "integer"
+            },
+            "coverageScale": "sqrt"
+          }
+        }
+      ],
+      "interactionConfig": {
+        "tooltip": {
+          "fieldsToShow": {
+            "data": [
+              {
+                "name": "GEOID",
+                "format": None
+              },
+              {
+                "name": "POPULATION",
+                "format": None
+              },
+              {
+                "name": "SUMMER_MAX",
+                "format": None
+              },
+              {
+                "name": "YEAR_PREC",
+                "format": None
+              }
+            ]
+          },
+          "compareMode": False,
+          "compareType": "absolute",
+          "enabled": True
+        },
+        "brush": {
+          "size": 0.5,
+          "enabled": False
+        },
+        "geocoder": {
+          "enabled": False
+        },
+        "coordinate": {
+          "enabled": False
+        }
+      },
+      "layerBlending": "normal",
+      "splitMaps": [],
+      "animationConfig": {
+        "currentTime": None,
+        "speed": 1
+      }
+    },
+    "mapState": {
+      "bearing": 24,
+      "dragRotate": True,
+      "latitude": 39.27067191865806,
+      "longitude": -4.166166567649243,
+      "pitch": 50,
+      "zoom": 5.629891634127244,
+      "isSplit": False
+    },
+    "mapStyle": {
+      "styleType": "trlwj1",
+      "topLayerGroups": {},
+      "visibleLayerGroups": {
+        "label": True,
+        "road": True,
+        "building": True,
+        "water": True
+      },
+      "threeDBuildingColor": [
+        194.6103322548211,
+        191.81688250953655,
+        185.2988331038727
+      ],
+      "mapStyles": {
+        "0gi6dsd": {
+          "accessToken": "pk.eyJ1Ijoib2JpZWxvdiIsImEiOiJjazl3cjc3NXQwYnN0M2txc3I5Y291YW1kIn0.ErqM1VJnDmj8gWD16ux5Kg",
+          "custom": True,
+          "icon": "https://api.mapbox.com/styles/v1/obielov/ckph8pjdd0evi17pd4knph7n6/static/-122.3391,37.7922,9,0,0/400x300?access_token=pk.eyJ1Ijoib2JpZWxvdiIsImEiOiJjazl3cjc3NXQwYnN0M2txc3I5Y291YW1kIn0.ErqM1VJnDmj8gWD16ux5Kg&logo=false&attribution=false",
+          "id": "0gi6dsd",
+          "label": "Streets",
+          "url": "mapbox://styles/obielov/ckph8pjdd0evi17pd4knph7n6"
+        },
+        "trlwj1": {
+          "accessToken": "pk.eyJ1Ijoib2JpZWxvdiIsImEiOiJjazl3cjc3NXQwYnN0M2txc3I5Y291YW1kIn0.ErqM1VJnDmj8gWD16ux5Kg",
+          "custom": True,
+          "icon": "https://api.mapbox.com/styles/v1/obielov/cl52ctg3o003r17p6zjknncqh/static/-122.3391,37.7922,9,0,0/400x300?access_token=pk.eyJ1Ijoib2JpZWxvdiIsImEiOiJjazl3cjc3NXQwYnN0M2txc3I5Y291YW1kIn0.ErqM1VJnDmj8gWD16ux5Kg&logo=false&attribution=false",
+          "id": "trlwj1",
+          "label": "Monochrome",
+          "url": "mapbox://styles/obielov/cl52ctg3o003r17p6zjknncqh"
+        }
+      }
+    }
+  }
+}
