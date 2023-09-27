@@ -14,7 +14,7 @@
 -------
 
 ----------------------------------------
--- This UDF takes as input an array of geometric shapes, 
+-- This UDF takes as input an array of geospatial shapes, 
 -- performs a union operation on them and returns the result 
 -- as a binary object representing the union of the shapes 
 -- in well-known binary (WKB) format.
@@ -37,7 +37,7 @@ def udf(g1):
 ';
 
 -----------------------------------------
--- This UDF takes a geometric object as input 
+-- This UDF takes a geospatial object as input 
 -- and returns a table of its interior rings (if any).
 -----------------------------------------
 CREATE OR REPLACE FUNCTION GEOLAB.PUBLIC.ST_GETINTERIORS(G OBJECT)
@@ -141,8 +141,8 @@ $$;
 
 -----------------------------------------
 -- This UDF takes a GEOGRAPHY object (geo) and an integer (n)
--- as input and returns the n-th geometry from the geo object 
--- if it is a composite geometry type. 
+-- as input and returns the n-th shape from the geo object 
+-- if it is a composite geo type. 
 -----------------------------------------
 CREATE OR REPLACE FUNCTION GEOLAB.PUBLIC.PY_GEOGRAPHYN(geo geography, n integer)
 returns geography
@@ -179,7 +179,7 @@ CREATE OR REPLACE FUNCTION GEOLAB.PUBLIC.st_geographytype(geo GEOGRAPHY)
 -----------------------------------------
 -- This UDF takes a GEOGRAPHY object and returns the number 
 -- of individual shapes within it, if it is a composite 
--- geometry type (such as MultiPoint, MultiLineString, MultiPolygon, or GeometryCollection). 
+-- geo type (such as MultiPoint, MultiLineString, MultiPolygon, or GeometryCollection). 
 -----------------------------------------
 CREATE OR REPLACE FUNCTION GEOLAB.PUBLIC.PY_NUMGEOGRAPHYS(geo geography)
 returns integer
