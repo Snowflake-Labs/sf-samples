@@ -22,7 +22,7 @@
 CREATE OR REPLACE FUNCTION GEOLAB.PUBLIC.PY_UNION_AGG(G1 ARRAY)
 RETURNS BINARY
 LANGUAGE PYTHON
-RUNTIME_VERSION = '3.8'
+RUNTIME_VERSION = '3.9'
 PACKAGES = ('geopandas','shapely')
 HANDLER = 'udf'
 AS '
@@ -73,7 +73,7 @@ processRow: function split_geom(row, rowWriter, context){
 CREATE OR REPLACE FUNCTION GEOLAB.PUBLIC.PY_GET_EXTERIOR(G1 GEOGRAPHY)
 RETURNS BINARY(8388608)
 LANGUAGE PYTHON 
-RUNTIME_VERSION = '3.8'
+RUNTIME_VERSION = '3.9'
 PACKAGES = ('geopandas','shapely')
 HANDLER = 'udf'
 AS $$
@@ -105,7 +105,7 @@ $$;
 CREATE OR REPLACE FUNCTION GEOLAB.PUBLIC.PY_FIX_EXTERIOR(G1 GEOGRAPHY, DIST float, TOL float)
 RETURNS BINARY(8388608)
 LANGUAGE PYTHON 
-RUNTIME_VERSION = '3.8'
+RUNTIME_VERSION = '3.9'
 PACKAGES = ('geopandas','shapely')
 HANDLER = 'udf'
 AS $$
@@ -147,7 +147,7 @@ $$;
 CREATE OR REPLACE FUNCTION GEOLAB.PUBLIC.PY_GEOGRAPHYN(geo geography, n integer)
 returns geography
 language python
-runtime_version = 3.8
+runtime_version = '3.9'
 packages = ('shapely')
 handler = 'udf'
 AS $$
@@ -184,7 +184,7 @@ CREATE OR REPLACE FUNCTION GEOLAB.PUBLIC.st_geographytype(geo GEOGRAPHY)
 CREATE OR REPLACE FUNCTION GEOLAB.PUBLIC.PY_NUMGEOGRAPHYS(geo geography)
 returns integer
 language python
-runtime_version = 3.8
+runtime_version = '3.9'
 packages = ('shapely')
 handler = 'udf'
 AS $$
