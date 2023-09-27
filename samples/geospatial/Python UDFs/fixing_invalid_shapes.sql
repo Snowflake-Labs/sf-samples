@@ -243,7 +243,7 @@ ORDER BY random();
 -- the smallest amount of change possible. To do this, it sets a buffer around the shape 
 -- and then simplifies it. The buffer starts at 0.000001 (11 cm/4 inches) and doubles until 
 -- all shapes are fixed or the buffer value exceeds 0.1 (11 km/6.8 miles). When we tested 
--- this script on our data with millions of complex shapes, the largest buffer used for an 
+-- this script on our data with hudreds of complex invalid shapes, the largest buffer used for an 
 -- exterior shape was 0.0001 (11 m/36 ft), with most exteriors requiring no simplification 
 -- or the minimum of 0.000001. For the interior shapes, the maximum was 0.00001, again 
 -- with most of the shapes requiring no correction or the minimum.
