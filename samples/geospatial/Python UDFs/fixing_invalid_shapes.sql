@@ -4,6 +4,9 @@
 -- which contains two columns:
 -- id - Unique identifier
 -- geog - GEOGRAPHY column with invalid shapes
+
+-- Before using the code you need to update the name of DB/schema 
+-- and the names of the source table and fields
 -----------------------------------------
 
 -------
