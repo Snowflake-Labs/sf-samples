@@ -44,6 +44,12 @@ conda activate sis-deploy`
 
 Upload data to a table in Snowflake. Docs [here](https://docs.snowflake.com/en/user-guide/data-load-web-ui)
 
+# Test locally
+
+```sh
+streamlit run app.py
+```
+
 # Deployment
 
 ```sh
