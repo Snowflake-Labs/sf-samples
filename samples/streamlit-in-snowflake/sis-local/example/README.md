@@ -5,7 +5,7 @@
 3. Run the following
 
 ```shell
-pip install "streamlit_in_snowflake @ git+https://github.com/blackary/sis-tricks.git#subdirectory=sis-local"
+pip install "streamlit_in_snowflake @ git+https://github.com/Snowflake-Labs/sf-samples.git#subdirectory=samples/streamlit-in-snowflake/sis-local"
 python -m streamlit run sis_app.py
 ```
 
@@ -28,6 +28,6 @@ conda init --all # See conda docs on what this does / how to use it
 conda env create -f environment.yml
 conda activate sis-example
 # Install streamlit_in_snowflake and run the example app as above
-pip install -r "streamlit_in_snowflake @ git+https://github.com/blackary/sis-tricks.git#subdirectory=sis-local"
+pip install "streamlit_in_snowflake @ git+https://github.com/Snowflake-Labs/sf-samples.git#subdirectory=samples/streamlit-in-snowflake/sis-local"
 python -m streamlit run sis_app.py
 ```

@@ -3,11 +3,11 @@ from snowflake.snowpark.exceptions import SnowparkSessionException
 
 
 def running_in_sis() -> bool:
-    try:
-        sess = get_active_session()
-        return True
-    except SnowparkSessionException:
-        return False
+    import snowflake.connector.connection
+    import inspect
+    # snowflake.connector.connection.SnowflakeConnection does not exist inside a Stored Proc or Streamlit.
+    # It is only part of the external package. So this returns true only in SiS.
+    return 0 == len([x for x in inspect.getmembers(snowflake.connector.connection) if x[0] == 'SnowflakeConnection'])
 
 
 if running_in_sis():
