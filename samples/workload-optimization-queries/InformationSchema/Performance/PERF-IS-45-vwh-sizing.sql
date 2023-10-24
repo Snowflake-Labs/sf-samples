@@ -95,7 +95,7 @@ SET XLARGE_QUERY_ID = '';
 SELECT	query_id,
 		query_text, 
 		warehouse_size,
-		(TOTAL_ELAPSED_TIME / 10000) Time_in_seconds, 
+		(TOTAL_ELAPSED_TIME / 1000) Time_in_seconds, 
 		partitions_total, 
 		partitions_scanned,
 		bytes_spilled_to_local_storage, 
