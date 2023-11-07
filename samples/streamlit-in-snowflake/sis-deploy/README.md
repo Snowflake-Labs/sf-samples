@@ -1,6 +1,6 @@
 # Dependencies
 
-pip install git+https://github.com/Snowflake-Labs/snowcli.git@v1.2.0-rc5
+pip install snowflake-cli-labs==1.2.1
 
 # Secrets
 
