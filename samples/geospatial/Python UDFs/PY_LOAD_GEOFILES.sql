@@ -35,14 +35,14 @@ from snowflake.snowpark.files import SnowflakeFile
 from fiona.io import ZipMemoryFile
 class GeoFileReader:
     def process(self, PATH_TO_FILE: str, filename: str):
-    	fiona.drvsupport.supported_drivers['libkml'] = 'rw' # enable KML support which is disabled by default
-    	fiona.drvsupport.supported_drivers['LIBKML'] = 'rw' # enable KML support which is disabled 
-    	with SnowflakeFile.open(PATH_TO_FILE, 'rb') as f:
-    		with ZipMemoryFile(f) as zip:
-    			with zip.open(filename) as collection:
-    				for record in collection:
-						if (not (record['geometry'] is None)):
-							yield ((shape(record['geometry']).wkb, dict(record['properties'])))
+        fiona.drvsupport.supported_drivers['libkml'] = 'rw'
+        fiona.drvsupport.supported_drivers['LIBKML'] = 'rw'
+        with SnowflakeFile.open(PATH_TO_FILE, 'rb') as f:
+            with ZipMemoryFile(f) as zip:
+                with zip.open(filename) as collection:
+                    for record in collection:
+                        if (not (record['geometry'] is None)):
+                            yield ((shape(record['geometry']).wkb, dict(record['properties'])))
 $$;
 
 -- === Example execution (ESRI ShapeFile) ===
