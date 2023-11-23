@@ -18,6 +18,7 @@ SUMMARY OF CHANGES
 Date(yyyy-mm-dd)    Author              Comments
 ------------------- ------------------- ------------------------------------------------------------
 2023-03-17          Jacob Kranzler      Initial Release
+2023-10-26          Jacob Kranzler      Adding Enterprise or Business Critical Requirement Note
 ***************************************************************************************************/
 
 /*----------------------------------------------------------------------------------
@@ -28,6 +29,9 @@ Quickstart Section 3 - Exploring Available Roles
 
  To begin, let's first dive into the Snowflake System Defined Roles provided by
  default in all accounts and learn a bit more on their privileges.
+
+  NOTE: An Enterprise or Business Critical Snowflake Account will be required to
+  run this Worksheet in full.
 ----------------------------------------------------------------------------------*/
 
 -- Section 3: Step 1 - Setting our Context
