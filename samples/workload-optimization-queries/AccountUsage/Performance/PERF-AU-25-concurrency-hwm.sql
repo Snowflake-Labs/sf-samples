@@ -27,12 +27,12 @@ WITH temp_jobs as
 select 
 	date_trunc('month',START_TIME)::DATE AS YEAR_MONTH ,
     QUERY_ID AS QUERY_ID,
-	dateadd(seconds, (QUEUED_PROVISIONING_TIME / 10000), START_TIME)::timestamp_ltz as usage_at,
+	dateadd(seconds, (QUEUED_PROVISIONING_TIME / 1000), START_TIME)::timestamp_ltz as usage_at,
 	+1 as type,
 	Warehouse_name ,
 	row_number() 
 		over(partition by MONTH(START_TIME),Warehouse_name
-		order by dateadd(seconds, (QUEUED_PROVISIONING_TIME / 10000), START_TIME)::timestamp_ltz) 
+		order by dateadd(seconds, (QUEUED_PROVISIONING_TIME / 1000), START_TIME)::timestamp_ltz) 
 		as start_ordinal
 FROM
     TABLE($QUERY_HISTORY) 
