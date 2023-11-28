@@ -34,7 +34,7 @@ $$;
 
 
 
-SELECT sST_TILEENVELOPE(7, 6, 9);
+SELECT ST_TILEENVELOPE(7, 6, 9);
 
 -- Invered function,  to convert longitude and latitude to their corresponding x and y tile coordinates, respectively, for the given zoom level.
 
