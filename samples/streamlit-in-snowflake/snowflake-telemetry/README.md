@@ -42,4 +42,4 @@ Telemetry for Streamlit in Snowflake has the following limitations currently. We
 - `db.user` does not capture the app viewer. Current workaround: Set `st.experimental_user.user_name` in your events manually.
 - Events take a few minutes to propagate to event table starting when the app session is closed.
 - You can record only 128 events per app session.
-- `TRACE_LEVEL` and `LOG_LEVEL` parameters cannot be set at Streamlit object level, only schema or session.
+- `TRACE_LEVEL` and `LOG_LEVEL` parameters cannot be set at Streamlit object level - only account, database or schema.
