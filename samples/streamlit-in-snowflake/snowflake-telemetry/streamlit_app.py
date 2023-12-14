@@ -13,7 +13,12 @@ hifives_val = st.slider("High fives", 0, 20, 10)
 
 if st.button("Record event"):
     # Call telemetry.add_event() with an event name and any object attributes
-    telemetry.add_event("Recording Streamlit event", {"hifives_val":hifives_val})
+    telemetry.add_event("Recording Streamlit event",
+                        {
+                            "hifives_val": hifives_val,
+                            "viewer": st.experimental_user.user_name,
+                        }
+                       )
     st.success("Recorded the event!")
 
 with st.expander("View previously logged events"):
