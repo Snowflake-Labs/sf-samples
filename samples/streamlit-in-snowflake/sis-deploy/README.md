@@ -41,7 +41,7 @@ warehouse = "<WAREHOUSE>"
 pip install snowflake-cli-labs==1.2.1
 brew install miniconda
 conda env update
-conda activate sis-deploy`
+conda activate sis-deploy
 ```
 
 # Generate data
