@@ -1,10 +1,15 @@
-# Dependencies
+# Test and Deploy apps with the Snowcli
 
-pip install snowflake-cli-labs==1.2.1
+Often when developing SiS apps, you might want to graduate from the Snowsight UI and begin to develop locally with your preferred development environment (like VSCode), or collaborate with your team on GitHub or another git based environment. This repo provides an example of how to:
+- Set up your Streamlit and Snowflake credentials
+- Install the right dependencies
+- Test and deploy your SiS apps from the command line
+
+If you have issues with this example, feel free to open an issue, talk to your SE, or email me at tyler.richards@snowflake.com. You can find full documentation for the snowcli [here](https://github.com/Snowflake-Labs/snowcli) and specific documentation for the snowcli and SiS [here](https://docs.snowflake.com/LIMITEDACCESS/snowcli/streamlit-apps/overview).
 
 # Secrets
 
-.streamlit/secrets.toml
+Create your Streamlit secrets file (.streamlit/secrets.toml) and fill it out with the information below.
 
 ```toml
 [connections.snowflake]
@@ -17,7 +22,7 @@ schema = "<SCHEMA>"
 warehouse = "<WAREHOUSE>"
 ```
 
-~/.snowflake/config.toml
+Edit your global Snowflake config file (~/.snowflake/config.toml) with the information below.
 
 ```toml
 [connections.dev]
@@ -30,19 +35,20 @@ schema = "<SCHEMA>"
 warehouse = "<WAREHOUSE>"
 ```
 
-# Set up local conda environment
+# Set up local environment
 
 ```sh
-brew install miniconda`
-conda env update`
-conda activate sis-deploy`
+pip install snowflake-cli-labs==1.2.1
+brew install miniconda
+conda env update
+conda activate sis-deploy
 ```
 
 # Generate data
 
 `python generate_data.py`
 
-Upload data to a table in Snowflake. Docs [here](https://docs.snowflake.com/en/user-guide/data-load-web-ui)
+You need to upload this data to a table in Snowflake, feel free to upload in the Snowsight UI [here](https://docs.snowflake.com/en/user-guide/data-load-web-ui).
 
 # Test locally
 
