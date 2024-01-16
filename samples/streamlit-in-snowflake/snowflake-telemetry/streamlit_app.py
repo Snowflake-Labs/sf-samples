@@ -13,12 +13,7 @@ hifives_val = st.slider("High fives", 0, 20, 10)
 
 if st.button("Record event"):
     # Call telemetry.add_event() with an event name and any object attributes
-    telemetry.add_event("Recording Streamlit event",
-                        {
-                            "hifives_val": hifives_val,
-                            "viewer": st.experimental_user.user_name,
-                        }
-                       )
+    telemetry.add_event("Recording Streamlit event", {"hifives_val": hifives_val})
     st.success("Recorded the event!")
 
 with st.expander("View previously logged events"):
@@ -29,7 +24,7 @@ with st.expander("View previously logged events"):
                 select TIMESTAMP,
                 RESOURCE_ATTRIBUTES['snow.database.name'] as DATABASE,
                 RESOURCE_ATTRIBUTES['snow.schema.name'] as SCHEMA,
-                RESOURCE_ATTRIBUTES['db.user'] as USER, -- Pending st.experimental_user integration
+                RESOURCE_ATTRIBUTES['db.user'] as USER,
                 RECORD['name'] as RECORD,
                 TO_JSON(RECORD_ATTRIBUTES) as ATTRIBUTES
                 from {event_table}

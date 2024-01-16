@@ -38,8 +38,9 @@ The sample app in this repo also has a basic example for querying and rendering 
 
 Telemetry for Streamlit in Snowflake has the following limitations currently. We are working to improve these.
 
-- App name is not captured automatically in `RESOURCE_ATTRIBUTES`. `snow.executable.type` shows `"PROCEDURE"` instead of `"STREAMLIT"`.
-- `db.user` does not capture the app viewer. Current workaround: Set `st.experimental_user.user_name` in your events manually.
+- App name is not captured automatically in `RESOURCE_ATTRIBUTES`.
+- `snow.executable.type` shows `"PROCEDURE"` instead of `"STREAMLIT"`.
+- Display title of the app is not captured automatically.
 - Events take a few minutes to propagate to event table starting when the app session is closed.
 - You can record only 128 events per app session.
 - `TRACE_LEVEL` and `LOG_LEVEL` parameters cannot be set at Streamlit object level - only account, database or schema.
