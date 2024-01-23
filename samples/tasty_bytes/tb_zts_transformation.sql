@@ -81,8 +81,26 @@ UPDATE frostbyte_tasty_bytes.raw_pos.truck_dev
 SET make = 'Ford' 
 WHERE make = 'Ford_';
 
+-- Section 5: Step 2 - Validate updated data
+SELECT
+    t.truck_id,
+    t.year,
+    t.make,
+    t.model
+FROM frostbyte_tasty_bytes.raw_pos.truck_dev t
+ORDER BY t.truck_id;
 
--- Section 5: Step 2 - Building an Age Calculation
+-- Section 5: Step 3 - Check the updated data in the source table. You can see that the data has not changed
+SELECT
+    t.truck_id,
+    t.year,
+    t.make,
+    t.model
+FROM frostbyte_tasty_bytes.raw_pos.truck t
+ORDER BY t.truck_id;
+
+
+-- Section 5: Step 4 - Building an Age Calculation
 SELECT
     t.truck_id,
     t.year,
