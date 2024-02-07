@@ -2,7 +2,7 @@
 Script:             Share Watch 1.0 Install 
 Create Date:        2023-01-04
 Author:             Amit Gupta, Fady Heiba 
-Description:        Script installs objects and stored procedures for share watch app. Execute this file as is 
+Description:        Pre-requsite script installs objects and stored procedures for share watch app. Execute this file as is 
                     Requires accountadmin role
 *************************************************************************************************************
 SUMMARY OF CHANGES
