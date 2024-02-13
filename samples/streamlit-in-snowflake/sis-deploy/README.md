@@ -77,12 +77,7 @@ warehouse = "<WAREHOUSE>"
 # Set up local environment
 
 Because streamlit-in-snowflake uses conda to install and packages, it's best to install
-conda locally and use that
-
-Add `streamlit==1.26.0` (the latest streamlit version available on Snowflake as-of
-2024-02-13), `python==3.8.13` (the default python version on Snowflake currently) and
- `snowflake-snowpark-python` to the environment.yml file.
-It should look something like this:
+conda locally and use that. These are defined in environment.yml
 
 ```yml
 name: sf_env
