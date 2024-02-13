@@ -109,5 +109,7 @@ geospatial/streamlit-apps/.streamlit/.DS_Store
 .DS_Store
 *.toml
 
+*.pyc
+
 .envrc
 .direnv

@@ -4,7 +4,6 @@ import hashlib
 import re
 import time
 from contextlib import contextmanager
-from datetime import date
 from functools import reduce
 from typing import Mapping, cast
 
@@ -242,76 +241,6 @@ def format_sql_from_df(df: DataFrame, use_header: bool = True) -> str:
     return header + format_sql(str(df._plan.queries[0].sql))
 
 
-@st.cache_data
-def get_download_link(_session: Session, df: pd.DataFrame, filename: str) -> str:
-    """
-    Get download link for a dataframe.
-
-    Before this works, you need to create a stage using this command:
-    ```
-    CREATE OR REPLACE STAGE {temp_stage}
-    ENCRYPTION = (TYPE = 'SNOWFLAKE_SSE')
-    FILE_FORMAT = (TYPE = CSV, COMPRESSION = NONE)
-    ```
-    """
-    temp_stage = "TEMP_STAGE_DOWNLOAD"
-
-    db = _session.get_current_database()
-    schema = _session.get_current_schema()
-    full_temp_stage = f"@{db}.{schema}.{temp_stage}"
-    snowpark_df = _session.create_dataframe(df)
-
-    snowpark_df.write.copy_into_location(
-        f"{full_temp_stage}/{filename}",
-        header=True,
-        overwrite=True,
-        single=True,
-    )
-
-    res = _session.sql(
-        f"select get_presigned_url({full_temp_stage}, '{filename}', 3600) as url"
-    ).collect()
-    url = res[0]["URL"]
-
-    return f"[Download data 📥]({url})"
-
-
-def sis_download_button(
-    data: pd.DataFrame, filename: str | None = None, key: str | None = None
-) -> None:
-    """
-    Adds a button to download a dataframe as a CSV file.
-    This is a workaround for st.download_button while it is not supported in SiS.
-    It uses Snowpark's get_presigned_url function to generate a link!
-
-    Args:
-        data (pd.DataFrame): Data to be downloaded
-        filename (str, optional): Filename. Defaults to None.
-        key (str, optional): Key of the streamlit button. Defaults to None.
-    """
-
-    data_hash = hashlib.sha256(pd.util.hash_pandas_object(data).values).hexdigest()
-
-    if filename is None:
-        filename = f"{data_hash}_{date.today()}.csv"
-
-    if key is None:
-        key = f"{data_hash}_{filename}"
-
-    if st.button("Get link to download CSV", key=key):
-        if data.empty:
-            st.error("No data")
-        else:
-            st.info(
-                """
-            Right click on the link below and select 'open in new tab' to download the
-            data.
-            """
-            )
-            session = SnowparkConnection().connect()
-            st.write(get_download_link(session, data, filename))
-
-
 @contextmanager
 def tile_ctx(
     df: sp.DataFrame | pd.DataFrame,
@@ -380,9 +309,12 @@ def tile_ctx(
                 pd.util.hash_pandas_object(data).values
             ).hexdigest()
 
-            sis_download_button(
-                data=data,
-                key=f"{description}_{data_hash}",
+            st.download_button(
+                "Download data as csv",
+                data.to_csv(index=False),
+                "data.csv",
+                mime="text/csv",
+                key=data_hash,
             )
 
     # When dataframe is a Snowpark dataframe, the SQL query is not explicitly passed
@@ -407,7 +339,7 @@ def tile_ctx(
 def tile(
     df: sp.DataFrame | pd.DataFrame,
     description: str,
-    chart: alt.Chart | Figure | alt.LayerChart | None = None,
+    chart: alt.Chart | alt.LayerChart | None = None,
     sql: str | None = None,
     skip_chart: bool = False,
 ) -> None:
