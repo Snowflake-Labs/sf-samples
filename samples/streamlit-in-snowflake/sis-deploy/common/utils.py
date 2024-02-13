@@ -339,7 +339,7 @@ def tile_ctx(
 def tile(
     df: sp.DataFrame | pd.DataFrame,
     description: str,
-    chart: alt.Chart | alt.LayerChart | None = None,
+    chart: alt.Chart | alt.LayerChart | Figure | None = None,
     sql: str | None = None,
     skip_chart: bool = False,
 ) -> None:
