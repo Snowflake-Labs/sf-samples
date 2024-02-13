@@ -84,8 +84,8 @@ name: sf_env
 channels:
   - snowflake
 dependencies:
-  - python==3.8.13 # The latest python available in snowflake as of 2024-02-12
-  - streamlit==1.26.0 # The latest streamlit available in snowflake as of 2024-02-12
+  - python=3.8.13 # The latest python available in snowflake as of 2024-02-12
+  - streamlit=1.26.0 # The latest streamlit available in snowflake as of 2024-02-12
   - snowflake-snowpark-python
   - plotly
 ```
