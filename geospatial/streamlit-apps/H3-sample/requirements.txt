@@ -1,0 +1,5 @@
+snowflake-snowpark-python
+pandas
+branca
+streamlit
+pydeck
