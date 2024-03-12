@@ -1,0 +1,21 @@
+manifest_version: 1
+
+version:
+  name: v1
+  label: "version 1"
+  comment: "Initial version of Chairlift application"
+
+artifacts:
+  setup_script: scripts/setup.sql
+  readme: README.md
+  default_streamlit: code_schema.forecast_streamlit_app  
+
+references:
+  - shift_sales:
+      label: "Shift Sales"
+      description: "Table that contains franchise sales data."
+      privileges:
+        - SELECT
+      object_type: TABLE
+      multi_valued: false
+      register_callback: config.register_sales_data_callback
