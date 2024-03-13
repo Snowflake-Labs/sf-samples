@@ -33,6 +33,7 @@ AS $$
 from shapely.geometry import shape
 from snowflake.snowpark.files import SnowflakeFile
 from fiona.io import ZipMemoryFile
+import fiona
 class GeoFileReader:
     def process(self, PATH_TO_FILE: str, filename: str):
         fiona.drvsupport.supported_drivers['libkml'] = 'rw'
