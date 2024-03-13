@@ -13,11 +13,11 @@
 --    required the timeout to be increased to over 10 minutes.
 
 -- === Parameters ===
---  - ZIP_FILE_NAME - The scoped URL to the zipped file on the Snowflake share and is
+--  - PATH_TO_FILE - The scoped URL to the zipped file on the Snowflake share and is
 --    generated using the build_scoped_file_url function. This function requires two
 --    parameters:
---    - Snowflake share of where the file is located
---    - Name of the file, including path
+--    - @stage_name - Snowflake stage of where the file is located
+--    - ZIP_FILE_NAME - Name of the file, including path
 
 -- === UDTF Code ===
 CREATE OR REPLACE FUNCTION SHAPE_MULTI_FILE(PATH_TO_FILE string)
