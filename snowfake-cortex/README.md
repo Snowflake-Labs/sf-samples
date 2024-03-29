@@ -1,0 +1,1 @@
+# Code snippets and scripts related to Snowflake Cortex

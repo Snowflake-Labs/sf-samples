@@ -1,0 +1,1 @@
+### Code snippets and scripts related to [Run 3 useful LLM inference jobs in minutes with Snowflake Cortex](https://medium.com/snowflake/run-3-useful-llm-inference-jobs-in-minutes-with-snowflake-cortex-743a6096fff8) blog.
