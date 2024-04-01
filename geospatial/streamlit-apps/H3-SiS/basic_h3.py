@@ -1,6 +1,6 @@
 # This code of the Streamlit app visualizes data from the following dataset:
 # https://app.snowflake.com/marketplace/listing/GZSVZ8ON6J/dataconsulting-pl-opencellid-open-database-of-cell-towers?search=opencellid
-# The prerequisite for this app is to install that free dataset from the Marketplace to the 'opencellid' database: 
+# The prerequisite for this app is to install that free dataset from the Marketplace to the 'opencellid' database
 
 import streamlit as st
 import pydeck as pdk
