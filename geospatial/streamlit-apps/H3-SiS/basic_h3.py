@@ -1,3 +1,6 @@
+# The prerequisite for this app is to install this free dataset from the Marketplace to the 'opencellid' database: 
+# https://app.snowflake.com/marketplace/listing/GZSVZ8ON6J/dataconsulting-pl-opencellid-open-database-of-cell-towers?search=opencellid
+
 import streamlit as st
 import pydeck as pdk
 from snowflake.snowpark.context import get_active_session
