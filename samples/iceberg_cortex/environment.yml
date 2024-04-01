@@ -1,0 +1,10 @@
+name: iceberg-demo
+channels:
+  - conda-forge
+dependencies:
+  - findspark=2.0.1
+  - jupyter=1.0.0
+  - pyspark=3.5.0
+  - openjdk=11.0.13
+  - python=3.11.6
+  - snowflake-snowpark-python

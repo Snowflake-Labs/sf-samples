@@ -237,12 +237,7 @@ GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA frostbyte_tasty_bytes.analytics TO RO
 GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_dev;
 
 -- Apply Masking Policy Grants
-GRANT CREATE TAG ON SCHEMA frostbyte_tasty_bytes.raw_customer TO ROLE tasty_admin;
-GRANT CREATE TAG ON SCHEMA frostbyte_tasty_bytes.raw_customer TO ROLE tasty_data_engineer;
-
 USE ROLE accountadmin;
-GRANT APPLY TAG ON ACCOUNT TO ROLE tasty_admin;
-GRANT APPLY TAG ON ACCOUNT TO ROLE tasty_data_engineer;
 GRANT APPLY MASKING POLICY ON ACCOUNT TO ROLE tasty_admin;
 GRANT APPLY MASKING POLICY ON ACCOUNT TO ROLE tasty_data_engineer;
   

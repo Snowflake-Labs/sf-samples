@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang=“en”>
+
+<head>
+  <title>Welcome to echo service!</title>
+</head>
+
+<body>
+  <h1>Welcome to echo service!</h1>
+  <form action="{{ url_for("ui") }}" method="post">
+    <label for="input">Input:<label><br>
+    <input type="text" id="input" name="input"><br>
+  </form>
+  <h2>Input:</h2>
+    {{ echo_input }}
+  <h2>Output:</h2>
+    {{ echo_reponse }}
+</body>
+
+</html>
+
