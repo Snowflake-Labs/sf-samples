@@ -19,8 +19,7 @@
 --    parameters:
 --    - Snowflake share of where the file is located
 --    - Name of the file, including path
---  - GEOFILE_NAME - The name of the GEO file inside the package zip that needs to
---    loaded
+--  - GEOFILE_NAME - The name of the GEO file inside the package zip that needs to be loaded
 
 -- === UDTF Code ===
 CREATE OR REPLACE FUNCTION PY_LOAD_GEOFILE(PATH_TO_FILE string, filename string)
@@ -33,6 +32,7 @@ AS $$
 from shapely.geometry import shape
 from snowflake.snowpark.files import SnowflakeFile
 from fiona.io import ZipMemoryFile
+import fiona
 class GeoFileReader:
     def process(self, PATH_TO_FILE: str, filename: str):
         fiona.drvsupport.supported_drivers['libkml'] = 'rw'
@@ -49,20 +49,20 @@ $$;
 create or replace table GEOLAB.GEOGRAPHY.TABLE_NAME as
 SELECT properties:Field_1::string as field_1,
 properties:Field_2::string as Field_2,
-to_geography(wkb, True) as geometry FROM table(PY_LOAD_GEOFILE(build_scoped_file_url(@stage_name, 'archive_name.zip'), 'file_name.shp'));
+to_geography(wkb, True) as geometry FROM table(PY_LOAD_GEOFILE(build_scoped_file_url(@stage_name, 'ZIP_FILE_NAME.zip'), 'GEOFILE_NAME.shp'));
 
 -- === Example execution (MapInfo TAB File) ===
 create or replace table GEOLAB.GEOGRAPHY.TABLE_NAME as
 SELECT properties:Field_1::string as field_1,
 properties:Field_2::string as Field_2,
-to_geography(wkb, True) as geometry FROM table(PY_LOAD_GEOFILE(build_scoped_file_url(@stage_name, 'archive_name.zip'), 'file_name.tab'));
+to_geography(wkb, True) as geometry FROM table(PY_LOAD_GEOFILE(build_scoped_file_url(@stage_name, 'ZIP_FILE_NAME.zip'), 'GEOFILE_NAME.tab'));
 
 -- === Example execution (Google Earth KML File) ===
 select
 to_geography(wkb, True) as geometry,
 properties:Name::string as Name,
 properties:altitudeMode::string as altitudeMode
-from table(PY_LOAD_GEOFILE(build_scoped_file_url(@tmobile, 'archive_name.zip'), 'file_name.kml'));
+from table(PY_LOAD_GEOFILE(build_scoped_file_url(@tmobile, 'ZIP_FILE_NAME.zip'), 'GEOFILE_NAME.kml'));
 
 -- === Example execution (OGC GeoPackage) ===
 -- Note: A specific layer in the .gpkg file is opened by specifying layer name in UDTF `with zip.open(filename,layer=layername) as collection:`
@@ -70,4 +70,4 @@ SELECT
     properties:Field_1::string as field_1,
     properties:Field_2::string as Field_2,
     to_geography(wkb, True) as geometry 
-FROM table(PY_LOAD_GEOFILE(build_scoped_file_url(@stage_name, 'archive_name.zip'), 'file_name.gpkg'));
+FROM table(PY_LOAD_GEOFILE(build_scoped_file_url(@stage_name, 'ZIP_FILE_NAME.zip'), 'GEOFILE_NAME.gpkg'));
