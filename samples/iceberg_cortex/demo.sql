@@ -56,7 +56,7 @@ FROM (
     SELECT
         id,
         snowflake.cortex.sentiment(review) AS stream_sentiment
-    FROM demo.public.product_reviews
+    FROM demo.public.product_reviews_stream
 ) s
 WHERE pr.id = s.id;
 
