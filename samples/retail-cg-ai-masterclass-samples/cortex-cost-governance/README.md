@@ -8,7 +8,7 @@ Installation steps:
 
 1. Create a new Streamlit in Snowflake app
 2. In the packages dropdown, search for and add the latest version of `snowflake-ml-python`
-3. Copy/paste the contents of the SiS app [cortex_query_explorer_sis.py](./samples/retail-cg-ai-masterclass-samples/cortex-cost-governance/cortex_query_explorer_sis.py) into the code window
+3. Copy/paste the contents of the SiS app `cortex_query_explorer_sis.py` into the code window
 
 Make sure to tweak the prompt in the code to provide targeted context to Cortex!
 
