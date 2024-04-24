@@ -1,0 +1,8 @@
+manifest_version: 1
+artifacts:
+  setup_script: scripts/setup.sql
+  readme: readme.md
+  extension_code: true
+configuration:
+  trace_level: OFF
+  log_level: INFO

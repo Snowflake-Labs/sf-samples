@@ -1,0 +1,16 @@
+
+- PyArrow : https://pypi.org/project/pyarrow/ & https://arrow.apache.org/ : Apache License, Version 2.0
+- Pandas : https://pypi.org/project/pandas/ : BSD License (BSD-3-Clause)
+- Numpy : https://pypi.org/project/numpy/ : BSD License (BSD)
+- Ipykernel : https://pypi.org/project/ipykernel/ : BSD License
+- ipywidgets : https://pypi.org/project/ipywidgets/ : BSD License (BSD 3-Clause License)
+- seaborn : https://pypi.org/project/seaborn/ : BSD License
+- bokeh : https://pypi.org/project/bokeh/ : BSD License
+- pip : https://pypi.org/project/pip/ : MIT License (MIT)
+- jupyterlab : https://pypi.org/project/jupyterlab/ : BSD License
+- streamlit : https://pypi.org/project/streamlit/ : Apache License 2.0
+- snowflake-snowpark-python3 : https://pypi.org/project/snowflake-snowpark-python3/ : Apache License, Version 2.0
+- pandas-profiling : https://pypi.org/project/pandas-profiling/ : MIT License (MIT)
+
+
+#- extra-streamlit-components : https://pypi.org/project/extra-streamlit-components/ : MIT License (MIT)
