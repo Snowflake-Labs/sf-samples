@@ -1,0 +1,9 @@
+{
+    "database": "ENERGY_PRICE_FORECASTING"
+    ,"schema": "DEMO"
+    ,"warehouse": "COMPUTE_WH"
+    ,"role":"ACCOUNTADMIN"
+    ,"nativeapp_name":"Energy_Price_Forecasting_App"
+
+}
+

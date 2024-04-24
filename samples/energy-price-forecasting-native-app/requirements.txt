@@ -1,0 +1,8 @@
+snowflake-snowpark-python
+pandas
+numpy
+streamlit
+plotly
+seaborn
+tqdm
+scikit-learn
