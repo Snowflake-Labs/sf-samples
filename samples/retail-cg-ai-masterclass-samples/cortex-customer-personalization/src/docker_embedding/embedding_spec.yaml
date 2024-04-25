@@ -1,0 +1,32 @@
+spec:
+  container:
+  - name: fashion
+    image: /fashion/public/fashion_repository/fashion:image_embeddings
+    env:
+      IMAGE_PATH: "/workspace/images/data_preprocessed"
+      ANNOTATION_PATH: "/workspace/images"
+      SAVE_PATH: "/workspace/models"
+    volumeMounts:
+      - name: images
+        mountPath: /workspace/images
+      - name: models
+        mountPath: /workspace/models
+      - name: dshm
+        mountPath: /dev/shm
+  endpoint:
+  - name: lab
+    port: 8888
+    public: true
+  volume:
+  - name: images
+    source: "@image_stg"
+    uid: 1000
+    gid: 1000
+  - name: models
+    source: "@MODELS"
+    uid: 1001
+    gid: 1001
+  - name: dshm
+    source: memory
+    size: 2Gi
+    
