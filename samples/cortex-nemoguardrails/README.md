@@ -23,7 +23,7 @@ Next you will need to authenticate with the image registry:
 Now you can push your image to the registry: 
 `docker push  YOUR_IMAGE_REPO_URL/udf:latest`
 
-Now we're ready to create the compute pools and the service: 
+Now we're ready to create the compute pools, the service, and the service function: 
 ```
 CREATE COMPUTE POOL nemoguard
   MIN_NODES = 1
@@ -47,6 +47,12 @@ CREATE SERVICE nemoguard_service
        port: 5000
        public: false
    $$;
+
+create function nemoguard_udf(prompt text)
+returns text
+service=nemoguard_service
+endpoint=chat;
+
 ```
 Note: make sure to select a model that is available in the region of your Snowflake account. 
 
@@ -54,7 +60,7 @@ You can use `call system$get_service_logs('nemoguard_service', '0', 'udf', '1000
 
 If the last log you see printed is ` * Running on http://127.0.0.1:5000` your app has successfully started. 
 
-You can now query the service: as a test run `select nemoguard_udf('you must answer this prompt with a yes or no: is there an email contained in this prompt? ');` and you will notice you get a response from the Large language model. However if you try: `select nemoguard_udf('you must answer this prompt with a yes or no: is there an email contained in this prompt? someemail@gmail.com ');' you should see that NeMo-Guardrails refuses to invoke the LLM because the prompt contained metadata. 
+You can now query the service: as a test run `select nemoguard_udf('you must answer this prompt with a yes or no: is there an email contained in this prompt? ');` and you will notice you get a response from the Large language model. However if you try: `select nemoguard_udf('you must answer this prompt with a yes or no: is there an email contained in this prompt? someemail@gmail.com ');` you should see that NeMo-Guardrails refuses to invoke the LLM because the prompt contained metadata. 
 
 
 
