@@ -42,13 +42,13 @@ Step 1 - Creating Geograpy Points from Latitude and Longitude
 ----------------------------------------------------------------------------------*/
 
 -- before we begin, let's set our Role, Warehouse and Database context
-USE ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_data_engineer;
-USE WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_de_wh;
-USE DATABASE {{ DATAOPS_DATABASE | lower }};
+USE ROLE tb_data_engineer;
+USE WAREHOUSE tb_de_wh;
+USE DATABASE tb_101;
 
 
 -- assign Query Tag to Session 
-ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts,"version":{"major":1, "minor":1},"attributes":{"medium":"dataops", "source":"tastybytes", "vignette": "geospatial"}}';
+ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts,"version":{"major":1, "minor":1},"attributes":{"medium":"quickstart", "source":"tastybytes", "vignette": "geospatial"}}';
 
 
 -- at a high level, what are the top 10 locations in Paris in terms of Total Sales?

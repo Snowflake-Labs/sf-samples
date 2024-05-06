@@ -78,11 +78,11 @@ Step 1 - System Defined Roles and Privileges
 
 -- let's start by assuming the Accountadmin role and our Snowflake Development Warehouse (synonymous with compute)
 USE ROLE accountadmin;
-USE WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_dev_wh;
+USE WAREHOUSE tb_dev_wh;
 
 
 -- assign Query Tag to Session 
-ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts,"version":{"major":1, "minor":1},"attributes":{"medium":"dataops", "source":"tastybytes", "vignette": "governance_with_horizon"}}';
+ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts,"version":{"major":1, "minor":1},"attributes":{"medium":"quickstart", "source":"tastybytes", "vignette": "governance_with_horizon"}}';
 
 
 -- to follow best practices we will begin to investigate and deploy RBAC (Role-Based Access Control)
@@ -153,7 +153,7 @@ Step 2 - Role Creation, GRANTS and SQL Variables
 -- let's use the Useradmin Role to create a Test Role
 USE ROLE useradmin;
 
-CREATE OR REPLACE ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role
+CREATE OR REPLACE ROLE tb_test_role
     COMMENT = 'Test role for Tasty Bytes';
 
 
@@ -162,11 +162,11 @@ USE ROLE securityadmin;
 
 
 -- first we will grant ALL privileges on the Development Warehouse to our Sysadmin
-GRANT ALL ON WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_dev_wh TO ROLE sysadmin;
+GRANT ALL ON WAREHOUSE tb_dev_wh TO ROLE sysadmin;
 
 
 -- next we will grant only OPERATE and USAGE privileges to our Test Role
-GRANT OPERATE, USAGE ON WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_dev_wh TO ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role;
+GRANT OPERATE, USAGE ON WAREHOUSE tb_dev_wh TO ROLE tb_test_role;
 
     /**
      Snowflake Warehouse Privilege Grants
@@ -182,9 +182,9 @@ GRANT OPERATE, USAGE ON WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_
     **/
 
 -- now we will grant USAGE on our Database and all Schemas within it
-GRANT USAGE ON DATABASE {{ DATAOPS_DATABASE | lower }} TO ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role;
+GRANT USAGE ON DATABASE tb_101 TO ROLE tb_test_role;
 
-GRANT USAGE ON ALL SCHEMAS IN DATABASE {{ DATAOPS_DATABASE | lower }} TO ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role;
+GRANT USAGE ON ALL SCHEMAS IN DATABASE tb_101 TO ROLE tb_test_role;
 
     /**
      Snowflake Database and Schema Grants
@@ -197,11 +197,11 @@ GRANT USAGE ON ALL SCHEMAS IN DATABASE {{ DATAOPS_DATABASE | lower }} TO ROLE {{
     **/
 
 -- we are going to test Data Governance features as our Test Role, so let's ensure it can run SELECT statements against our Data Model
-GRANT SELECT ON ALL TABLES IN SCHEMA {{ DATAOPS_DATABASE | lower }}.raw_customer TO ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role;
+GRANT SELECT ON ALL TABLES IN SCHEMA tb_101.raw_customer TO ROLE tb_test_role;
 
-GRANT SELECT ON ALL TABLES IN SCHEMA {{ DATAOPS_DATABASE | lower }}.raw_pos TO ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role;
+GRANT SELECT ON ALL TABLES IN SCHEMA tb_101.raw_pos TO ROLE tb_test_role;
 
-GRANT SELECT ON ALL VIEWS IN SCHEMA {{ DATAOPS_DATABASE | lower }}.analytics TO ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role;
+GRANT SELECT ON ALL VIEWS IN SCHEMA tb_101.analytics TO ROLE tb_test_role;
 
     /**
      Snowflake View and Table Privilege Grants
@@ -217,7 +217,7 @@ SET my_user_var  = CURRENT_USER();
 
 
 -- now we can GRANT our Role to the User we are currently logged in as
-GRANT ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role TO USER identifier($my_user_var);
+GRANT ROLE tb_test_role TO USER identifier($my_user_var);
 
 
 /*----------------------------------------------------------------------------------
@@ -229,9 +229,9 @@ Step 3 - Column-Level Security and Tagging = Tag-Based Masking
 ----------------------------------------------------------------------------------*/
 
 -- we can now USE the Test Role and Development Warehouse
-USE ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role;
-USE WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_dev_wh;
-USE DATABASE {{ DATAOPS_DATABASE | lower }};
+USE ROLE tb_test_role;
+USE WAREHOUSE tb_dev_wh;
+USE DATABASE tb_101;
 
 
 -- to begin we will look at the Customer Loyalty table in the Raw layer
@@ -305,7 +305,7 @@ SELECT
     column_name,
     tag_value
 FROM TABLE(information_schema.tag_references_all_columns
-    ('{{ DATAOPS_DATABASE | lower }}.raw_customer.customer_loyalty','table'));
+    ('tb_101.raw_customer.customer_loyalty','table'));
 
     /**
      With our Tags in place we can now create our Masking Policies that will mask data for all but privileged Roles.
@@ -361,8 +361,8 @@ ALTER TAG tags.tasty_pii SET
 
 
 -- with Tag Based Masking in-place, let's give our work a test using our Test Role and Development Warehouse
-USE ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role;
-USE WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_dev_wh;
+USE ROLE tb_test_role;
+USE WAREHOUSE tb_dev_wh;
 
 SELECT
     cl.customer_id,
@@ -432,7 +432,7 @@ CREATE OR REPLACE TABLE governance.row_policy_map
 -- with the table in place, we will now INSERT the relevant Role to City Permissions mapping to ensure
 -- our Test only can see Tokyo customers
 INSERT INTO governance.row_policy_map
-    VALUES ('{{ DATAOPS_CATALOG_SOLUTION_PREFIX | upper }}_TEST_ROLE','Tokyo'); 
+    VALUES ('TB_TEST_ROLE','Tokyo'); 
 
 
 -- now that we have our mapping table in place, let's create our Row Access Policy
@@ -464,7 +464,7 @@ ALTER TABLE raw_customer.customer_loyalty
 
 
 -- with the policy successfully applied, let's test it using the Test Role
-USE ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role;
+USE ROLE tb_test_role;
 
 SELECT
     cl.customer_id,
@@ -493,7 +493,7 @@ GROUP BY cl.customer_id, cl.first_name, cl.last_name, cl.city, cl.marital_status
 
 
  -- as we did for our masking, let's double check our Row Level Security is flowing into downstream Analytic Views
-USE ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role;
+USE ROLE tb_test_role;
 
 SELECT
     clm.city,
@@ -544,7 +544,7 @@ ALTER TABLE raw_pos.order_header
 
 
 -- now let's test our work by assuming our Test Role and executing a few queries
-USE ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role;
+USE ROLE tb_test_role;
 
 
 -- can we run a simple SELECT *?
@@ -652,7 +652,7 @@ ALTER TABLE raw_customer.customer_loyalty
 
 
 -- let's assume our Test Role and begin testing
-USE ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role;
+USE ROLE tb_test_role;
 
 
 -- what does a SELECT * against the table yield?
@@ -829,7 +829,7 @@ SELECT
     COUNT(DISTINCT query_id) AS number_of_queries
 FROM snowflake.account_usage.access_history,
 LATERAL FLATTEN (input => direct_objects_accessed)
-WHERE object_name ILIKE '{{ DATAOPS_DATABASE | lower }}.raw_%'
+WHERE object_name ILIKE 'tb_101.raw_%'
 GROUP BY object_name
 ORDER BY number_of_queries DESC;
 
@@ -845,7 +845,7 @@ SELECT
     MAX(query_start_time) AS last_query_start_time
 FROM snowflake.account_usage.access_history,
 LATERAL FLATTEN (input => direct_objects_accessed)
-WHERE object_name ILIKE '{{ DATAOPS_DATABASE | lower }}.raw_%'
+WHERE object_name ILIKE 'tb_101.raw_%'
 GROUP BY object_name, query_type
 ORDER BY object_name, number_of_queries DESC;
 
@@ -858,7 +858,7 @@ FROM snowflake.account_usage.access_history,
 LATERAL FLATTEN (input => base_objects_accessed) base,
 LATERAL FLATTEN (input => direct_objects_accessed) direct,
 WHERE 1=1
-    AND object_name ILIKE '{{ DATAOPS_DATABASE | lower }}.raw_%'
+    AND object_name ILIKE 'tb_101.raw_%'
     AND object_name <> direct.value:"objectName"::STRING -- base object is not direct object
 GROUP BY object_name
 ORDER BY number_of_queries DESC;
@@ -941,7 +941,7 @@ SELECT
     schedule_status  
 FROM TABLE(information_schema.data_metric_function_references
 (
-    ref_entity_name => '{{ DATAOPS_DATABASE | lower }}.raw_customer.customer_loyalty',
+    ref_entity_name => 'tb_101.raw_customer.customer_loyalty',
     ref_entity_domain => 'table')
 );
 
@@ -960,7 +960,7 @@ SELECT
     metric_name,
     value
 FROM snowflake.local.data_quality_monitoring_results
-WHERE table_database = '{{ DATAOPS_DATABASE }}'
+WHERE table_database = 'TB_101'
 ORDER BY change_commit_time DESC;
 
 
@@ -1011,7 +1011,7 @@ Step 11 - Discovery with Snowflake Horizon - Universal Search
 USE ROLE accountadmin;
 
 -- drop Test Role
-DROP ROLE IF EXISTS {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_role;
+DROP ROLE IF EXISTS tb_test_role;
 
 -- unset our Masking Policies
 ALTER TAG tags.tasty_pii UNSET 

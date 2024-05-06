@@ -49,23 +49,23 @@ Step 1 - Virtual Warehouses and Settings
 ----------------------------------------------------------------------------------*/
 
 -- before we begin, let's set our Role, Warehouse and Database context
-USE ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_admin;
-USE WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_de_wh;
-USE DATABASE {{ DATAOPS_DATABASE | lower }};
+USE ROLE tb_admin;
+USE WAREHOUSE tb_de_wh;
+USE DATABASE tb_101;
 
 
 -- assign Query Tag to Session 
-ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts,"version":{"major":1, "minor":1},"attributes":{"medium":"dataops", "source":"tastybytes", "vignette": "cost_management"}}';
+ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts,"version":{"major":1, "minor":1},"attributes":{"medium":"quickstart", "source":"tastybytes", "vignette": "cost_management"}}';
 
 
 -- now let's look at all of the Warehouses available in our account by running a SHOW command
   --> NOTE: to execute a query use the top-right ▶️ button or COMMAND/CONTROL + ENTER
-SHOW WAREHOUSES LIKE '%{{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}%';
+SHOW WAREHOUSES LIKE '%tb%';
 
 
 -- having seen the configurable settings for a Snowflake Warehouse , let's create our own
 -- Test Warehouse and reference the section below to understand each parameter is handling
-CREATE OR REPLACE WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_wh WITH
+CREATE OR REPLACE WAREHOUSE tb_test_wh WITH
 COMMENT = 'test warehouse for tasty bytes'
     WAREHOUSE_TYPE = 'standard'
     WAREHOUSE_SIZE = 'xsmall'
@@ -114,8 +114,8 @@ Step 2 - Resuming, Suspending and Scaling a Warehouse
 ----------------------------------------------------------------------------------*/
 
 -- let's first set our Admin Role and Test Warehouse context
-USE ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_admin;
-USE WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_wh;
+USE ROLE tb_admin;
+USE WAREHOUSE tb_test_wh;
 
 
 -- what menu items do we serve at our Plant Palace branded trucks?
@@ -130,11 +130,11 @@ WHERE truck_brand_name = 'Plant Palace';
 
 
 -- to showcase Snowflakes elastic scalability let's scale our Warehouse up and run a few larger, aggregation queries
-ALTER WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_wh SET warehouse_size = 'XLarge';
+ALTER WAREHOUSE tb_test_wh SET warehouse_size = 'XLarge';
 
 
 -- using a Show Warehouses command, we can confirm the current size of our Test Warehouse
-SHOW WAREHOUSES LIKE '{{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_wh';
+SHOW WAREHOUSES LIKE 'tb_test_wh';
 
 
 -- what are the total orders and total sales volumes for our truck brands? 
@@ -161,12 +161,12 @@ ORDER BY order_count DESC;
 
 
 -- let's now scale our Test Warehouse back down
-ALTER WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_wh SET warehouse_size = 'XSmall';
+ALTER WAREHOUSE tb_test_wh SET warehouse_size = 'XSmall';
 
 
 -- and now manually Suspend it
     --> NOTE: if you recieve "Invalid state. Warehouse cannot be suspended." the auto_suspend we configured earlier has already occured
-ALTER WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_wh SUSPEND;
+ALTER WAREHOUSE tb_test_wh SUSPEND;
 
 
 /*----------------------------------------------------------------------------------
@@ -179,17 +179,17 @@ Step 3 - Controlling Cost with Session Timeout Parameters
 ----------------------------------------------------------------------------------*/
 
 -- to begin, let's look at the Statement Parameters for our Test Warehouse
-SHOW PARAMETERS LIKE 'STATEMENT%' IN WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_wh;
+SHOW PARAMETERS LIKE 'STATEMENT%' IN WAREHOUSE tb_test_wh;
 
 
 -- let's start by adjusting the 2 Statement Parameters related to Query Timeouts
 --> 1) adjust Statement Timeout on the Test Warehouse to 30 minutes
-ALTER WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_wh
+ALTER WAREHOUSE tb_test_wh
     SET statement_timeout_in_seconds = 1800; -- 1800 seconds = 30 minutes
 
 
 --> 2) adjust Statement Queued Timeout on the Test Warehouse to 10 minutes
-ALTER WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_wh
+ALTER WAREHOUSE tb_test_wh
     SET statement_queued_timeout_in_seconds = 600; -- 600 seconds = 10 minutes
 
     /**
@@ -244,7 +244,7 @@ Step 5 - Monitoring Cost with Resource Monitors
     **/
 
 -- create our Resource Monitor
-CREATE OR REPLACE RESOURCE MONITOR {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_rm
+CREATE OR REPLACE RESOURCE MONITOR tb_test_rm
 WITH
     CREDIT_QUOTA = 100 -- set the quota to 100 credits
     FREQUENCY = monthly -- reset the monitor monthly
@@ -256,8 +256,8 @@ WITH
 
 
 -- with the Resource Monitor created, apply it to our Test Warehouse
-ALTER WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_wh 
-    SET RESOURCE_MONITOR = {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_rm;
+ALTER WAREHOUSE tb_test_wh 
+    SET RESOURCE_MONITOR = tb_test_rm;
 
 
 /*----------------------------------------------------------------------------------
@@ -332,7 +332,7 @@ CREATE OR REPLACE TAG cost_center;
 
 
 -- now we use the Tag to attach the Development Team Cost Center to the Test Warehouse
-ALTER WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_wh SET TAG cost_center = 'DEVELOPMENT_TEAM';
+ALTER WAREHOUSE tb_test_wh SET TAG cost_center = 'DEVELOPMENT_TEAM';
 
 
 -- using our information_schema, let's confirm our tag is in place
@@ -341,7 +341,7 @@ SELECT
     tag_value,
     level,
     object_name
-FROM TABLE(information_schema.tag_references('{{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_wh', 'warehouse'));
+FROM TABLE(information_schema.tag_references('tb_test_wh', 'warehouse'));
 
 
 /*----------------------------------------------------------------------------------
@@ -406,13 +406,13 @@ To access and drill down into overall cost within Snowsight:
 USE ROLE accountadmin;
 
 -- drop Test Warehouse
-DROP WAREHOUSE IF EXISTS {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_wh;
+DROP WAREHOUSE IF EXISTS tb_test_wh;
 
 -- drop Cost Center Tag
 DROP TAG IF EXISTS cost_center;
 
 -- drop Resource Monitor
-DROP RESOURCE MONITOR IF EXISTS {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_test_rm;
+DROP RESOURCE MONITOR IF EXISTS tb_test_rm;
 
 -- drop Notification Integration
 DROP NOTIFICATION INTEGRATION IF EXISTS budgets_notification_integration;

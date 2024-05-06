@@ -26,31 +26,23 @@ USE ROLE sysadmin;
  • database, schema and warehouse creation
 --*/
 
--- create frostbyte_tasty_bytes database
-CREATE OR REPLACE DATABASE frostbyte_tasty_bytes;
+-- create tb_101 database
+CREATE OR REPLACE DATABASE tb_101;
 
 -- create raw_pos schema
-CREATE OR REPLACE SCHEMA frostbyte_tasty_bytes.raw_pos;
+CREATE OR REPLACE SCHEMA tb_101.raw_pos;
 
 -- create raw_customer schema
-CREATE OR REPLACE SCHEMA frostbyte_tasty_bytes.raw_customer;
+CREATE OR REPLACE SCHEMA tb_101.raw_customer;
 
 -- create harmonized schema
-CREATE OR REPLACE SCHEMA frostbyte_tasty_bytes.harmonized;
+CREATE OR REPLACE SCHEMA tb_101.harmonized;
 
 -- create analytics schema
-CREATE OR REPLACE SCHEMA frostbyte_tasty_bytes.analytics;
+CREATE OR REPLACE SCHEMA tb_101.analytics;
 
 -- create warehouses
-CREATE OR REPLACE WAREHOUSE demo_build_wh
-    WAREHOUSE_SIZE = 'xxxlarge'
-    WAREHOUSE_TYPE = 'standard'
-    AUTO_SUSPEND = 60
-    AUTO_RESUME = TRUE
-    INITIALLY_SUSPENDED = TRUE
-COMMENT = 'demo build warehouse for frostbyte assets';
-    
-CREATE OR REPLACE WAREHOUSE tasty_de_wh
+CREATE OR REPLACE WAREHOUSE tb_de_wh
     WAREHOUSE_SIZE = 'xsmall'
     WAREHOUSE_TYPE = 'standard'
     AUTO_SUSPEND = 60
@@ -58,23 +50,7 @@ CREATE OR REPLACE WAREHOUSE tasty_de_wh
     INITIALLY_SUSPENDED = TRUE
 COMMENT = 'data engineering warehouse for tasty bytes';
 
-CREATE OR REPLACE WAREHOUSE tasty_ds_wh
-    WAREHOUSE_SIZE = 'xsmall'
-    WAREHOUSE_TYPE = 'standard'
-    AUTO_SUSPEND = 60
-    AUTO_RESUME = TRUE
-    INITIALLY_SUSPENDED = TRUE
-COMMENT = 'data science warehouse for tasty bytes';
-
-CREATE OR REPLACE WAREHOUSE tasty_bi_wh
-    WAREHOUSE_SIZE = 'xsmall'
-    WAREHOUSE_TYPE = 'standard'
-    AUTO_SUSPEND = 60
-    AUTO_RESUME = TRUE
-    INITIALLY_SUSPENDED = TRUE
-COMMENT = 'business intelligence warehouse for tasty bytes';
-
-CREATE OR REPLACE WAREHOUSE tasty_dev_wh
+CREATE OR REPLACE WAREHOUSE tb_dev_wh
     WAREHOUSE_SIZE = 'xsmall'
     WAREHOUSE_TYPE = 'standard'
     AUTO_SUSPEND = 60
@@ -82,164 +58,97 @@ CREATE OR REPLACE WAREHOUSE tasty_dev_wh
     INITIALLY_SUSPENDED = TRUE
 COMMENT = 'developer warehouse for tasty bytes';
 
-CREATE OR REPLACE WAREHOUSE tasty_data_app_wh
-    WAREHOUSE_SIZE = 'xsmall'
-    WAREHOUSE_TYPE = 'standard'
-    AUTO_SUSPEND = 60
-    AUTO_RESUME = TRUE
-    INITIALLY_SUSPENDED = TRUE
-COMMENT = 'data app warehouse for tasty bytes';
-
 -- create roles
 USE ROLE securityadmin;
 
 -- functional roles
-CREATE ROLE IF NOT EXISTS tasty_admin
+CREATE ROLE IF NOT EXISTS tb_admin
     COMMENT = 'admin for tasty bytes';
     
-CREATE ROLE IF NOT EXISTS tasty_data_engineer
+CREATE ROLE IF NOT EXISTS tb_data_engineer
     COMMENT = 'data engineer for tasty bytes';
-      
-CREATE ROLE IF NOT EXISTS tasty_data_scientist
-    COMMENT = 'data scientist for tasty bytes';
     
-CREATE ROLE IF NOT EXISTS tasty_bi
-    COMMENT = 'business intelligence for tasty bytes';
-    
-CREATE ROLE IF NOT EXISTS tasty_data_app
-    COMMENT = 'data application developer for tasty bytes';
-    
-CREATE ROLE IF NOT EXISTS tasty_dev
+CREATE ROLE IF NOT EXISTS tb_dev
     COMMENT = 'developer for tasty bytes';
     
 -- role hierarchy
-GRANT ROLE tasty_admin TO ROLE sysadmin;
-GRANT ROLE tasty_data_engineer TO ROLE tasty_admin;
-GRANT ROLE tasty_data_scientist TO ROLE tasty_admin;
-GRANT ROLE tasty_bi TO ROLE tasty_admin;
-GRANT ROLE tasty_data_app TO ROLE tasty_admin;
-GRANT ROLE tasty_dev TO ROLE tasty_data_engineer;
+GRANT ROLE tb_admin TO ROLE sysadmin;
+GRANT ROLE tb_data_engineer TO ROLE tb_admin;
+GRANT ROLE tb_dev TO ROLE tb_data_engineer;
 
 -- privilege grants
 USE ROLE accountadmin;
 
-GRANT IMPORTED PRIVILEGES ON DATABASE snowflake TO ROLE tasty_data_engineer;
+GRANT IMPORTED PRIVILEGES ON DATABASE snowflake TO ROLE tb_data_engineer;
 
-GRANT CREATE WAREHOUSE ON ACCOUNT TO ROLE tasty_admin;
+GRANT CREATE WAREHOUSE ON ACCOUNT TO ROLE tb_admin;
 
 USE ROLE securityadmin;
 
-GRANT USAGE ON DATABASE frostbyte_tasty_bytes TO ROLE tasty_admin;
-GRANT USAGE ON DATABASE frostbyte_tasty_bytes TO ROLE tasty_data_engineer;
-GRANT USAGE ON DATABASE frostbyte_tasty_bytes TO ROLE tasty_data_scientist;
-GRANT USAGE ON DATABASE frostbyte_tasty_bytes TO ROLE tasty_bi;
-GRANT USAGE ON DATABASE frostbyte_tasty_bytes TO ROLE tasty_data_app;
-GRANT USAGE ON DATABASE frostbyte_tasty_bytes TO ROLE tasty_dev;
+GRANT USAGE ON DATABASE tb_101 TO ROLE tb_admin;
+GRANT USAGE ON DATABASE tb_101 TO ROLE tb_data_engineer;
+GRANT USAGE ON DATABASE tb_101 TO ROLE tb_dev;
 
-GRANT USAGE ON ALL SCHEMAS IN DATABASE frostbyte_tasty_bytes TO ROLE tasty_admin;
-GRANT USAGE ON ALL SCHEMAS IN DATABASE frostbyte_tasty_bytes TO ROLE tasty_data_engineer;
-GRANT USAGE ON ALL SCHEMAS IN DATABASE frostbyte_tasty_bytes TO ROLE tasty_data_scientist;
-GRANT USAGE ON ALL SCHEMAS IN DATABASE frostbyte_tasty_bytes TO ROLE tasty_bi;
-GRANT USAGE ON ALL SCHEMAS IN DATABASE frostbyte_tasty_bytes TO ROLE tasty_data_app;
-GRANT USAGE ON ALL SCHEMAS IN DATABASE frostbyte_tasty_bytes TO ROLE tasty_dev;
+GRANT USAGE ON ALL SCHEMAS IN DATABASE tb_101 TO ROLE tb_admin;
+GRANT USAGE ON ALL SCHEMAS IN DATABASE tb_101 TO ROLE tb_data_engineer;
+GRANT USAGE ON ALL SCHEMAS IN DATABASE tb_101 TO ROLE tb_dev;
 
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.raw_pos TO ROLE tasty_admin;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.raw_pos TO ROLE tasty_data_engineer;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.raw_pos TO ROLE tasty_data_scientist;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.raw_pos TO ROLE tasty_bi;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.raw_pos TO ROLE tasty_data_app;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.raw_pos TO ROLE tasty_dev;
+GRANT ALL ON SCHEMA tb_101.raw_pos TO ROLE tb_admin;
+GRANT ALL ON SCHEMA tb_101.raw_pos TO ROLE tb_data_app;
+GRANT ALL ON SCHEMA tb_101.raw_pos TO ROLE tb_dev;
 
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_admin;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_data_engineer;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_data_scientist;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_bi;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_data_app;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_dev;
+GRANT ALL ON SCHEMA tb_101.harmonized TO ROLE tb_admin;
+GRANT ALL ON SCHEMA tb_101.harmonized TO ROLE tb_data_engineer;
+GRANT ALL ON SCHEMA tb_101.harmonized TO ROLE tb_dev;
 
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_admin;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_data_engineer;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_data_scientist;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_bi;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_data_app;
-GRANT ALL ON SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_dev;
+GRANT ALL ON SCHEMA tb_101.analytics TO ROLE tb_admin;
+GRANT ALL ON SCHEMA tb_101.analytics TO ROLE tb_data_engineer;
+GRANT ALL ON SCHEMA tb_101.analytics TO ROLE tb_dev;
 
 -- warehouse grants
-GRANT ALL ON WAREHOUSE demo_build_wh TO ROLE sysadmin;
+GRANT OWNERSHIP ON WAREHOUSE tb_de_wh TO ROLE tb_admin COPY CURRENT GRANTS;
+GRANT ALL ON WAREHOUSE tb_de_wh TO ROLE tb_admin;
+GRANT ALL ON WAREHOUSE tb_de_wh TO ROLE tb_data_engineer;
 
-GRANT OWNERSHIP ON WAREHOUSE tasty_de_wh TO ROLE tasty_admin REVOKE CURRENT GRANTS;
-GRANT ALL ON WAREHOUSE tasty_de_wh TO ROLE tasty_admin;
-GRANT ALL ON WAREHOUSE tasty_de_wh TO ROLE tasty_data_engineer;
-
-GRANT ALL ON WAREHOUSE tasty_ds_wh TO ROLE tasty_admin;
-GRANT ALL ON WAREHOUSE tasty_ds_wh TO ROLE tasty_data_scientist;
-
-GRANT ALL ON WAREHOUSE tasty_data_app_wh TO ROLE tasty_admin;
-GRANT ALL ON WAREHOUSE tasty_data_app_wh TO ROLE tasty_data_app;
-
-GRANT ALL ON WAREHOUSE tasty_bi_wh TO ROLE tasty_admin;
-GRANT ALL ON WAREHOUSE tasty_bi_wh TO ROLE tasty_bi;
-
-GRANT ALL ON WAREHOUSE tasty_dev_wh TO ROLE tasty_admin;
-GRANT ALL ON WAREHOUSE tasty_dev_wh TO ROLE tasty_data_engineer;
-GRANT ALL ON WAREHOUSE tasty_dev_wh TO ROLE tasty_dev;
+GRANT ALL ON WAREHOUSE tb_dev_wh TO ROLE tb_admin;
+GRANT ALL ON WAREHOUSE tb_dev_wh TO ROLE tb_data_engineer;
+GRANT ALL ON WAREHOUSE tb_dev_wh TO ROLE tb_dev;
 
 -- future grants
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.raw_pos TO ROLE tasty_admin;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.raw_pos TO ROLE tasty_data_engineer;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.raw_pos TO ROLE tasty_data_scientist;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.raw_pos TO ROLE tasty_bi;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.raw_pos TO ROLE tasty_data_app;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.raw_pos TO ROLE tasty_dev;
+GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.raw_pos TO ROLE tb_admin;
+GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.raw_pos TO ROLE tb_data_engineer;
+GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.raw_pos TO ROLE tb_dev;
 
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.raw_customer TO ROLE tasty_admin;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.raw_customer TO ROLE tasty_data_engineer;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.raw_customer TO ROLE tasty_data_scientist;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.raw_customer TO ROLE tasty_bi;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.raw_customer TO ROLE tasty_data_app;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.raw_customer TO ROLE tasty_dev;
+GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.raw_customer TO ROLE tb_admin;
+GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.raw_customer TO ROLE tb_data_engineer;
+GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.raw_customer TO ROLE tb_dev;
 
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_admin;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_data_engineer;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_data_scientist;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_bi;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_data_app;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_dev;
+GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.harmonized TO ROLE tb_admin;
+GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.harmonized TO ROLE tb_data_engineer;
+GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.harmonized TO ROLE tb_dev;
 
-GRANT ALL ON FUTURE VIEWS IN SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_admin;
-GRANT ALL ON FUTURE VIEWS IN SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_data_engineer;
-GRANT ALL ON FUTURE VIEWS IN SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_data_scientist;
-GRANT ALL ON FUTURE VIEWS IN SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_bi;
-GRANT ALL ON FUTURE VIEWS IN SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_data_app;
-GRANT ALL ON FUTURE VIEWS IN SCHEMA frostbyte_tasty_bytes.harmonized TO ROLE tasty_dev;
+GRANT ALL ON FUTURE VIEWS IN SCHEMA tb_101.harmonized TO ROLE tb_admin;
+GRANT ALL ON FUTURE VIEWS IN SCHEMA tb_101.harmonized TO ROLE tb_data_engineer;
+GRANT ALL ON FUTURE VIEWS IN SCHEMA tb_101.harmonized TO ROLE tb_dev;
 
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_admin;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_data_engineer;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_data_scientist;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_bi;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_data_app;
-GRANT ALL ON FUTURE TABLES IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_dev;
+GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.analytics TO ROLE tb_admin;
+GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.analytics TO ROLE tb_data_engineer;
+GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.analytics TO ROLE tb_dev;
 
-GRANT ALL ON FUTURE VIEWS IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_admin;
-GRANT ALL ON FUTURE VIEWS IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_data_engineer;
-GRANT ALL ON FUTURE VIEWS IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_data_scientist;
-GRANT ALL ON FUTURE VIEWS IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_bi;
-GRANT ALL ON FUTURE VIEWS IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_data_app;
-GRANT ALL ON FUTURE VIEWS IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_dev;
+GRANT ALL ON FUTURE VIEWS IN SCHEMA tb_101.analytics TO ROLE tb_admin;
+GRANT ALL ON FUTURE VIEWS IN SCHEMA tb_101.analytics TO ROLE tb_data_engineer;
+GRANT ALL ON FUTURE VIEWS IN SCHEMA tb_101.analytics TO ROLE tb_dev;
 
-GRANT ALL ON FUTURE FUNCTIONS IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_data_scientist;
+GRANT ALL ON FUTURE FUNCTIONS IN SCHEMA tb_101.analytics TO ROLE tb_data_scientist;
 
-GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_admin;
-GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_data_engineer;
-GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_data_scientist;
-GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_bi;
-GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_data_app;
-GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA frostbyte_tasty_bytes.analytics TO ROLE tasty_dev;
+GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA tb_101.analytics TO ROLE tb_admin;
+GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA tb_101.analytics TO ROLE tb_data_engineer;
+GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA tb_101.analytics TO ROLE tb_dev;
 
 -- Apply Masking Policy Grants
 USE ROLE accountadmin;
-GRANT APPLY MASKING POLICY ON ACCOUNT TO ROLE tasty_admin;
-GRANT APPLY MASKING POLICY ON ACCOUNT TO ROLE tasty_data_engineer;
+GRANT APPLY MASKING POLICY ON ACCOUNT TO ROLE tb_admin;
+GRANT APPLY MASKING POLICY ON ACCOUNT TO ROLE tb_data_engineer;
   
 -- raw_pos table build
 USE ROLE sysadmin;
@@ -249,20 +158,20 @@ USE WAREHOUSE demo_build_wh;
  • file format and stage creation
 --*/
 
-CREATE OR REPLACE FILE FORMAT frostbyte_tasty_bytes.public.csv_ff 
+CREATE OR REPLACE FILE FORMAT tb_101.public.csv_ff 
 type = 'csv';
 
-CREATE OR REPLACE STAGE frostbyte_tasty_bytes.public.s3load
+CREATE OR REPLACE STAGE tb_101.public.s3load
 COMMENT = 'Quickstarts S3 Stage Connection'
 url = 's3://sfquickstarts/frostbyte_tastybytes/'
-file_format = frostbyte_tasty_bytes.public.csv_ff;
+file_format = tb_101.public.csv_ff;
 
 /*--
  raw zone table build 
 --*/
 
 -- country table build
-CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_pos.country
+CREATE OR REPLACE TABLE tb_101.raw_pos.country
 (
     country_id NUMBER(18,0),
     country VARCHAR(16777216),
@@ -274,7 +183,7 @@ CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_pos.country
 );
 
 -- franchise table build
-CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_pos.franchise 
+CREATE OR REPLACE TABLE tb_101.raw_pos.franchise 
 (
     franchise_id NUMBER(38,0),
     first_name VARCHAR(16777216),
@@ -286,7 +195,7 @@ CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_pos.franchise
 );
 
 -- location table build
-CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_pos.location
+CREATE OR REPLACE TABLE tb_101.raw_pos.location
 (
     location_id NUMBER(19,0),
     placekey VARCHAR(16777216),
@@ -298,7 +207,7 @@ CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_pos.location
 );
 
 -- menu table build
-CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_pos.menu
+CREATE OR REPLACE TABLE tb_101.raw_pos.menu
 (
     menu_id NUMBER(19,0),
     menu_type_id NUMBER(38,0),
@@ -314,7 +223,7 @@ CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_pos.menu
 );
 
 -- truck table build 
-CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_pos.truck
+CREATE OR REPLACE TABLE tb_101.raw_pos.truck
 (
     truck_id NUMBER(38,0),
     menu_type_id NUMBER(38,0),
@@ -333,7 +242,7 @@ CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_pos.truck
 );
 
 -- order_header table build
-CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_pos.order_header
+CREATE OR REPLACE TABLE tb_101.raw_pos.order_header
 (
     order_id NUMBER(38,0),
     truck_id NUMBER(38,0),
@@ -354,7 +263,7 @@ CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_pos.order_header
 );
 
 -- order_detail table build
-CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_pos.order_detail 
+CREATE OR REPLACE TABLE tb_101.raw_pos.order_detail 
 (
     order_detail_id NUMBER(38,0),
     order_id NUMBER(38,0),
@@ -368,7 +277,7 @@ CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_pos.order_detail
 );
 
 -- customer loyalty table build
-CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_customer.customer_loyalty
+CREATE OR REPLACE TABLE tb_101.raw_customer.customer_loyalty
 (
     customer_id NUMBER(38,0),
     first_name VARCHAR(16777216),
@@ -392,7 +301,7 @@ CREATE OR REPLACE TABLE frostbyte_tasty_bytes.raw_customer.customer_loyalty
 --*/
 
 -- orders_v view
-CREATE OR REPLACE VIEW frostbyte_tasty_bytes.harmonized.orders_v
+CREATE OR REPLACE VIEW tb_101.harmonized.orders_v
     AS
 SELECT 
     oh.order_id,
@@ -427,22 +336,22 @@ SELECT
     oh.order_tax_amount,
     oh.order_discount_amount,
     oh.order_total
-FROM frostbyte_tasty_bytes.raw_pos.order_detail od
-JOIN frostbyte_tasty_bytes.raw_pos.order_header oh
+FROM tb_101.raw_pos.order_detail od
+JOIN tb_101.raw_pos.order_header oh
     ON od.order_id = oh.order_id
-JOIN frostbyte_tasty_bytes.raw_pos.truck t
+JOIN tb_101.raw_pos.truck t
     ON oh.truck_id = t.truck_id
-JOIN frostbyte_tasty_bytes.raw_pos.menu m
+JOIN tb_101.raw_pos.menu m
     ON od.menu_item_id = m.menu_item_id
-JOIN frostbyte_tasty_bytes.raw_pos.franchise f
+JOIN tb_101.raw_pos.franchise f
     ON t.franchise_id = f.franchise_id
-JOIN frostbyte_tasty_bytes.raw_pos.location l
+JOIN tb_101.raw_pos.location l
     ON oh.location_id = l.location_id
-LEFT JOIN frostbyte_tasty_bytes.raw_customer.customer_loyalty cl
+LEFT JOIN tb_101.raw_customer.customer_loyalty cl
     ON oh.customer_id = cl.customer_id;
 
 -- loyalty_metrics_v view
-CREATE OR REPLACE VIEW frostbyte_tasty_bytes.harmonized.customer_loyalty_metrics_v
+CREATE OR REPLACE VIEW tb_101.harmonized.customer_loyalty_metrics_v
     AS
 SELECT 
     cl.customer_id,
@@ -454,8 +363,8 @@ SELECT
     cl.e_mail,
     SUM(oh.order_total) AS total_sales,
     ARRAY_AGG(DISTINCT oh.location_id) AS visited_location_ids_array
-FROM frostbyte_tasty_bytes.raw_customer.customer_loyalty cl
-JOIN frostbyte_tasty_bytes.raw_pos.order_header oh
+FROM tb_101.raw_customer.customer_loyalty cl
+JOIN tb_101.raw_pos.order_header oh
 ON cl.customer_id = oh.customer_id
 GROUP BY cl.customer_id, cl.city, cl.country, cl.first_name,
 cl.last_name, cl.phone_number, cl.e_mail;
@@ -465,55 +374,55 @@ cl.last_name, cl.phone_number, cl.e_mail;
 --*/
 
 -- orders_v view
-CREATE OR REPLACE VIEW frostbyte_tasty_bytes.analytics.orders_v
+CREATE OR REPLACE VIEW tb_101.analytics.orders_v
 COMMENT = 'Tasty Bytes Order Detail View'
     AS
-SELECT DATE(o.order_ts) AS date, * FROM frostbyte_tasty_bytes.harmonized.orders_v o;
+SELECT DATE(o.order_ts) AS date, * FROM tb_101.harmonized.orders_v o;
 
 -- customer_loyalty_metrics_v view
-CREATE OR REPLACE VIEW frostbyte_tasty_bytes.analytics.customer_loyalty_metrics_v
+CREATE OR REPLACE VIEW tb_101.analytics.customer_loyalty_metrics_v
 COMMENT = 'Tasty Bytes Customer Loyalty Member Metrics View'
     AS
-SELECT * FROM frostbyte_tasty_bytes.harmonized.customer_loyalty_metrics_v;
+SELECT * FROM tb_101.harmonized.customer_loyalty_metrics_v;
 
 /*--
  raw zone table load 
 --*/
 
 -- country table load
-COPY INTO frostbyte_tasty_bytes.raw_pos.country
-FROM @frostbyte_tasty_bytes.public.s3load/raw_pos/country/;
+COPY INTO tb_101.raw_pos.country
+FROM @tb_101.public.s3load/raw_pos/country/;
 
 -- franchise table load
-COPY INTO frostbyte_tasty_bytes.raw_pos.franchise
-FROM @frostbyte_tasty_bytes.public.s3load/raw_pos/franchise/;
+COPY INTO tb_101.raw_pos.franchise
+FROM @tb_101.public.s3load/raw_pos/franchise/;
 
 -- location table load
-COPY INTO frostbyte_tasty_bytes.raw_pos.location
-FROM @frostbyte_tasty_bytes.public.s3load/raw_pos/location/;
+COPY INTO tb_101.raw_pos.location
+FROM @tb_101.public.s3load/raw_pos/location/;
 
 -- menu table load
-COPY INTO frostbyte_tasty_bytes.raw_pos.menu
-FROM @frostbyte_tasty_bytes.public.s3load/raw_pos/menu/;
+COPY INTO tb_101.raw_pos.menu
+FROM @tb_101.public.s3load/raw_pos/menu/;
 
 -- truck table load
-COPY INTO frostbyte_tasty_bytes.raw_pos.truck
-FROM @frostbyte_tasty_bytes.public.s3load/raw_pos/truck/;
+COPY INTO tb_101.raw_pos.truck
+FROM @tb_101.public.s3load/raw_pos/truck/;
 
 -- customer_loyalty table load
-COPY INTO frostbyte_tasty_bytes.raw_customer.customer_loyalty
-FROM @frostbyte_tasty_bytes.public.s3load/raw_customer/customer_loyalty/;
+COPY INTO tb_101.raw_customer.customer_loyalty
+FROM @tb_101.public.s3load/raw_customer/customer_loyalty/;
 
 -- order_header table load
-COPY INTO frostbyte_tasty_bytes.raw_pos.order_header
-FROM @frostbyte_tasty_bytes.public.s3load/raw_pos/order_header/;
+COPY INTO tb_101.raw_pos.order_header
+FROM @tb_101.public.s3load/raw_pos/order_header/;
 
 -- order_detail table load
-COPY INTO frostbyte_tasty_bytes.raw_pos.order_detail
-FROM @frostbyte_tasty_bytes.public.s3load/raw_pos/order_detail/;
+COPY INTO tb_101.raw_pos.order_detail
+FROM @tb_101.public.s3load/raw_pos/order_detail/;
 
 -- drop demo_build_wh
 DROP WAREHOUSE IF EXISTS demo_build_wh;
 
 -- setup completion note
-SELECT 'frostbyte_tasty_bytes setup is now complete' AS note;
+SELECT 'tb_101 setup is now complete' AS note;

@@ -39,12 +39,12 @@ Step 1 - Zero Copy Cloning
 ----------------------------------------------------------------------------------*/
 
 -- before we begin, let's set our Role and Warehouse context
-USE ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_dev;
-USE DATABASE {{ DATAOPS_DATABASE | lower }};
+USE ROLE tb_dev;
+USE DATABASE tb_101;
 
 
 -- assign Query Tag to Session 
-ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts,"version":{"major":1, "minor":1},"attributes":{"medium":"dataops", "source":"tastybytes", "vignette": "transformation"}}';
+ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts,"version":{"major":1, "minor":1},"attributes":{"medium":"quickstart", "source":"tastybytes", "vignette": "transformation"}}';
 
 
 -- to ensure our new Column development does not impact production,
@@ -63,7 +63,7 @@ CREATE OR REPLACE TABLE raw_pos.truck_dev CLONE raw_pos.truck;
 
 -- before we query our clone, let's now set our Warehouse context
     --> NOTE: a Warehouse isn't required in a Clone statement as it is handled via Snowwflake Cloud Services
-USE WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_dev_wh;
+USE WAREHOUSE tb_dev_wh;
 
 
 -- with our Zero Copy Clone created, let's query for what we will need to combine for our new Truck Type column
@@ -90,7 +90,7 @@ Step 2 - Using Persisted Query Results
 
 -- to test Snowflake's Result Cache, let's first suspend our Warehouse
     --> NOTE: if you recieve "..cannot be suspended" then the Warehouse Auto Suspend timer has already elapsed
-ALTER WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_dev_wh SUSPEND;
+ALTER WAREHOUSE tb_dev_wh SUSPEND;
 
 
 -- with our compute suspended, let's re-run our query from above
@@ -278,10 +278,10 @@ DROP TABLE raw_pos.truck_dev;
 USE ROLE accountadmin;
 
 -- revert Ford to Ford_
-UPDATE {{ DATAOPS_DATABASE | lower }}.raw_pos.truck SET make = 'Ford_' WHERE make = 'Ford';
+UPDATE tb_101.raw_pos.truck SET make = 'Ford_' WHERE make = 'Ford';
 
 -- remove Truck Type column
-ALTER TABLE {{ DATAOPS_DATABASE | lower }}.raw_pos.truck DROP COLUMN IF EXISTS truck_year;
+ALTER TABLE tb_101.raw_pos.truck DROP COLUMN IF EXISTS truck_year;
 
 -- unset SQL Variable
 UNSET query_id;

@@ -36,13 +36,13 @@ Step 1 - Semi-Structured Data and the Variant Data Type
 ----------------------------------------------------------------------------------*/
 
 -- first we must set our Role, Warehouse and Database context
-USE ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_data_engineer;
-USE WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_de_wh;
-USE DATABASE {{ DATAOPS_DATABASE | lower }};
+USE ROLE tb_data_engineer;
+USE WAREHOUSE tb_de_wh;
+USE DATABASE tb_101;
 
 
 -- assign Query Tag to Session 
-ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts,"version":{"major":1, "minor":1},"attributes":{"medium":"dataops", "source":"tastybytes", "vignette": "semi_structured"}}';
+ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts,"version":{"major":1, "minor":1},"attributes":{"medium":"quickstart", "source":"tastybytes", "vignette": "semi_structured"}}';
 
 
 -- let's take a look at a few columns in our Raw Menu table we are receiving from our
@@ -214,7 +214,7 @@ WHERE brand_name = 'Better Off Bread';
 
 
 -- the results look great, let's now grant our Developer the ability to query this View
-GRANT SELECT ON analytics.menu_v to ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_dev;
+GRANT SELECT ON analytics.menu_v TO ROLE tb_dev;
 
 
 /*----------------------------------------------------------------------------------
@@ -230,8 +230,8 @@ Step 4 - Leveraging Array Functions
 ----------------------------------------------------------------------------------*/
 
 -- to start this step, let's assume our Developer Role and use the Developer Warehouse
-USE ROLE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_dev;
-USE WAREHOUSE {{ DATAOPS_CATALOG_SOLUTION_PREFIX | lower }}_dev_wh;
+USE ROLE tb_dev;
+USE WAREHOUSE tb_dev_wh;
 
 
 -- with recent Lettuce recalls in the news, which of our Menu Items include this as an Ingredient?
@@ -299,7 +299,7 @@ GROUP BY m.brand_name;
 USE ROLE accountadmin;
 
 -- drop the Harmonized Menu View
-DROP VIEW IF EXISTS {{ DATAOPS_DATABASE | lower }}.harmonized.menu_v;
+DROP VIEW IF EXISTS tb_101.harmonized.menu_v;
 
 -- drop the Analytics Menu View
-DROP VIEW IF EXISTS {{ DATAOPS_DATABASE | lower }}.analytics.menu_v;
+DROP VIEW IF EXISTS tb_101.analytics.menu_v;
