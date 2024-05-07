@@ -220,7 +220,7 @@ ORDER BY fd.date_valid_std ASC;
 
 -- the metrics above would have been a game changer for our Financial Analysts
 -- when they were first diving in. let's now create our Analytics View
--- so that all approriately privileged users can leverage it
+-- so that all appropriately privileged users can leverage it
 CREATE OR REPLACE VIEW analytics.daily_city_metrics_v
 COMMENT = 'Daily Weather Metrics and Orders Data'
     AS
@@ -253,7 +253,7 @@ Step 4 - Using Harmonized Data to Answer Questions from the Business
  analyst may receive from the business.
 ----------------------------------------------------------------------------------*/
 
--- What were the 2022 Sales in Hamburg on days with over 1/4 inch of Precipitation
+-- What were the 2022 Sales in Hamburg on days with over 1/4 inch of Precipitation?
 SELECT
     * EXCLUDE (city_name, country_desc)
 FROM analytics.daily_city_metrics_v

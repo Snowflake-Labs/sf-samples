@@ -15,11 +15,13 @@ Author:       Jacob Kranzler
 Copyright(c): 2024 Snowflake Inc. All rights reserved.
 ****************************************************************************************************
 Geospatial
-    1 - Creating Geography Points from Latitude and Longitude 
-    2 - Calculating Straight Line Distance between Points
-    3 - Collecting Coordinates, Creating a Bounding Polygon & Finding its Center Point
-    4 - Finding Locations Furthest Away from our Top Selling Hub
-    5 - Geospatial Analysis with H3 (Hexagonal Hierarchical Geospatial Indexing System)
+    1 - Acquiring Safegraph POI Data from the Snowflake Marketplace
+    2 - Harmonizing and Promoting First and Third Party Data
+    3 - Creating Geography Points from Latitude and Longitude 
+    4 - Calculating Straight Line Distance between Points
+    5 - Collecting Coordinates, Creating a Bounding Polygon & Finding its Center Point
+    6 - Finding Locations Furthest Away from our Top Selling Hub
+    7 - Geospatial Analysis with H3 (Hexagonal Hierarchical Geospatial Indexing System)
 ****************************************************************************************************
 SUMMARY OF CHANGES
 Date(yyyy-mm-dd)    Author              Comments
@@ -28,21 +30,35 @@ Date(yyyy-mm-dd)    Author              Comments
 ***************************************************************************************************/
 
 /*----------------------------------------------------------------------------------
-Step 1 - Creating Geograpy Points from Latitude and Longitude 
+Step 1 - Acquiring Safegraph POI Data from the Snowflake Marketplace
 
- Tasty Bytes receives Safegraph POI data covering the locations that Food Trucks serve,
- live from the Snowflake Marketplace. Within the POI metrics provided are Latitude
- and Longitude coordinates.
+ Tasty Bytes operates Food Trucks in numerous cities and countries across the
+ globe with each truck having the ability to choose two different selling locations
+ per day. One important item that our Executives are interested in is to learn
+ more about how these locations relate to each other as well as if there are any
+ locations we currently serve that are potentially too far away from top selling
+ city centers.
 
- Within this Vignette we will create Geography Points, conduct Geospatial analysis 
- and leverage H3 Grid functionality.
-
- To begin, we will first conduct high level sales analysis in Paris and prepare
- for our analysis by creating Points from our Coordinates.
+ Unfortunately what we have seen so far is our first party data does not give us
+ the building blocks required to complete this sort of Geospatial analysis.
+ 
+ Thankfully, the Snowflake Marketplace has great listings from Safegraph that 
+ can assist us here.
 ----------------------------------------------------------------------------------*/
 
--- before we begin, let's set our Role, Warehouse and Database context
-USE ROLE tb_data_engineer;
+/*--
+ To begin, acquire the SafeGraph listing by following the steps below within Snowsight:
+    1 - In the bottom left corner, ensure you are operating as ACCOUNTADMIN
+    2 - In the left pane, navigate to 'Data Products' (Cloud Icon) and select 'Marketplace'
+    3 - In the search bar, enter: 'SafeGraph: frostbyte'
+    4 - Select the 'SafeGraph: frostbyte' listing and click 'Get'
+    5 - Adjust Database name to:'TB_SAFEGRAPH'
+    6 - Grant access to: 'PUBLIC'
+--*/
+
+
+-- with our SafeGraph Marketplace listing in place, let's set our Role, Warehouse and Database context
+USE ROLE sysadmin;
 USE WAREHOUSE tb_de_wh;
 USE DATABASE tb_101;
 
@@ -51,15 +67,65 @@ USE DATABASE tb_101;
 ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts,"version":{"major":1, "minor":1},"attributes":{"medium":"quickstart", "source":"tastybytes", "vignette": "geospatial"}}';
 
 
+-- to explore our newly acquired third party data, let's find all Museums in Paris, France
+SELECT 
+    cpg.placekey,
+    cpg.location_name,
+    cpg.longitude,
+    cpg.latitude,
+    cpg.street_address,
+    cpg.city,
+    cpg.country,
+    cpg.polygon_wkt
+FROM tb_safegraph.public.frostbyte_tb_safegraph_s cpg
+WHERE 1=1
+    AND cpg.top_category = 'Museums, Historical Sites, and Similar Institutions'
+    AND cpg.sub_category = 'Museums'
+    AND cpg.city = 'Paris'
+    AND cpg.country = 'France';
+
+
+/*----------------------------------------------------------------------------------
+Step 2 - Harmonizing and Promoting First and Third Party Data
+
+ To make our Geospatial analysis seamless, let's make sure to get Safegraph POI
+ data included in the analytics.orders_v so all of our downstream users can
+ also access it.
+----------------------------------------------------------------------------------*/
+
+-- add SafeGraph columns to our Analytics Orders_V view
+CREATE OR REPLACE VIEW analytics.orders_v
+COMMENT = 'Tasty Bytes Order Detail View'
+    AS
+SELECT 
+    DATE(o.order_ts) AS date,
+    o.* ,
+    cpg.* EXCLUDE (location_id, region, phone_number, country)
+FROM tb_101.harmonized.orders_v o
+JOIN tb_safegraph.public.frostbyte_tb_safegraph_s cpg
+    ON o.location_id = cpg.location_id;
+
+
+/*----------------------------------------------------------------------------------
+Step 3 - Creating Geograpy Points from Latitude and Longitude 
+
+ To begin, we will first conduct high level sales analysis in Paris and prepare
+ for our analysis by creating Points from our Coordinates.
+----------------------------------------------------------------------------------*/
+
+-- assume our Data Engineer role
+USE ROLE tb_data_engineer;
+
 -- at a high level, what are the top 10 locations in Paris in terms of Total Sales?
 SELECT TOP 10
-    location_id,
-    location_name,
-    SUM(price) AS total_sales_usd,
-    COUNT(DISTINCT order_id) AS total_order_count
-FROM analytics.orders_v
-WHERE primary_city = 'Paris'
-GROUP BY location_id, location_name
+    o.location_id,
+    o.location_name,
+    SUM(o.price) AS total_sales_usd
+FROM analytics.orders_v o
+WHERE 1=1
+    AND o.primary_city = 'Paris'
+    AND YEAR(o.date) = 2022
+GROUP BY o.location_id, o.location_name
 ORDER BY total_sales_usd DESC;
 
 
@@ -75,7 +141,7 @@ ORDER BY total_sales_usd DESC;
 
 
 /*----------------------------------------------------------------------------------
-Step 2 - Calculating Straight Line Distance between Points
+Step 4 - Calculating Straight Line Distance between Points
 
  Leveraging the Geography Points from above, we can now begin to use native 
  Geospatial functions. Within this step, we will calculate distance from our
@@ -110,8 +176,9 @@ ORDER BY geography_distance_miles;
      ST_DISTANCE: Returns the minimum geodesic distance or minimum Euclidean distance between two Geography or Geometry objects.
     **/
 
+    
 /*----------------------------------------------------------------------------------
-Step 3 - Collecting Coordinates, Creating a Bounding Polygon & Finding its Center Point
+Step 5 - Collecting Coordinates, Creating a Bounding Polygon & Finding its Center Point
  
  Having just calculated distance, within this step, we will collect Coordinates for the
  Top Selling Locations in Paris. From there we will construct a Minimum Bounding Polygon,
@@ -170,7 +237,7 @@ SET center_point = '{   "coordinates": [     2.323399542234561e+00,     4.885933
 
 
 /*----------------------------------------------------------------------------------
-Step 4 - Finding Locations Furthest Away from our Top Selling Hub
+Step 6 - Finding Locations Furthest Away from our Top Selling Hub
 
  In the last step, we were able to find the hot spot for our Top Selling
  Locations in Paris.
@@ -200,7 +267,7 @@ ORDER BY kilometer_from_top_selling_center DESC;
 
 
 /*----------------------------------------------------------------------------------
-Step 5 - Geospatial Analysis with H3 (Hexagonal Hierarchical Geospatial Indexing System)
+Step 7 - Geospatial Analysis with H3 (Hexagonal Hierarchical Geospatial Indexing System)
 
  H3 is a way of dividing the Earth's surface into hexagonal shapes, organizing them into levels
  of resolution, and assigning unique codes to each hexagon for easy reference. 
@@ -326,8 +393,11 @@ SELECT H3_GRID_DISTANCE('871fb4671ffffff', '871fb4670ffffff') AS cell_distance;
 ----------------------------------------------------------------------------------*/
 USE ROLE accountadmin;
 
--- unsert Variable
+-- unset Variable
 UNSET center_point;
 
 -- unset Query Tag
 ALTER SESSION UNSET query_tag;
+
+-- uncomment and run the below query if you want to drop Weather Source Marketplace DB
+-- DROP DATABASE IF EXISTS tb_safegraph;
