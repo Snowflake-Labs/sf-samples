@@ -14,7 +14,6 @@ Create Date:  2024-05-31
 Author:       Jacob Kranzler
 Copyright(c): 2024 Snowflake Inc. All rights reserved.
 ****************************************************************************************************
-SUMMARY OF CHANGES
  Governance with Snowflake Horizon
   Protect Your Data
     1 - System Defined Roles and Privileges
@@ -29,11 +28,8 @@ SUMMARY OF CHANGES
     8 – Sensitive Custom Classification
     9 – Access History (Read and Writes)
 
-  Audit Your Data
-    10 - Data Quality Monitoring
-
  Discovery with Snowflake Horizon
-    11 - Universal Search
+    10 - Universal Search
 ****************************************************************************************************
 SUMMARY OF CHANGES
 Date(yyyy-mm-dd)    Author              Comments
@@ -868,114 +864,9 @@ ORDER BY number_of_queries DESC;
       Base Objects Accessed: Base data objects required to execute a query.
     **/ 
 
-/*----------------------------------------------------------------------------------
-Step 10 - Data Quality Monitoring 
-
- Within Snowflake, you can measure the quality of your data by using Data Metric
- Functions. Using these, we want to ensure that there are not duplicate or invalid
- Customer Email Addresses present in our system. While our team works to resolve any
- existing bad records, we will work to monitor these occuring moving forward.
-
- Within this step, we will walk through adding Data Metric Functions to our Customer
- Loyalty Table to capture Duplicate and Invalid Email Address counts everytime
- data is updated.
-----------------------------------------------------------------------------------*/
-
--- let's first use the the Snowflake-provided Duplicate Count Data Metric Function (DMF)
--- to see if E-mail duplicates exist in our Customer Loyalty Table
-SELECT snowflake.core.duplicate_count (SELECT e_mail FROM raw_customer.customer_loyalty) AS duplicate_count;
-
-
--- to accompany the Duplicate Count DMF, let's also create a Custom Data Metric Function
--- that uses Regular Expression (RegEx) to Count Invalid Email Addresses
-CREATE DATA METRIC FUNCTION governance.invalid_email_count(iec TABLE(iec_c1 STRING))
-RETURNS NUMBER 
-    AS
-'SELECT COUNT_IF(FALSE = (iec_c1 regexp ''^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'')) FROM iec';
-
-
--- for demo purposes, let's grant this to everyone
-GRANT ALL ON FUNCTION governance.invalid_email_count(TABLE(STRING)) TO ROLE public;
-
-
--- as we did above, let's see how many Invalid Email Addresses currently exist
-SELECT governance.invalid_email_count(SELECT e_mail FROM raw_customer.customer_loyalty) AS invalid_email_count;
-
-
--- before we can apply our DMF's to the table, we must first set the Data Metric Schedule. for our
--- testing we will Trigger this to run every time the table is modified
-ALTER TABLE raw_customer.customer_loyalty
-    SET data_metric_schedule = 'TRIGGER_ON_CHANGES';
-
-    /**
-      Data Metric Schedule specifies the schedule for running Data Metric Functions
-      for tables and can leverage MINUTE, USING CRON or TRIGGER_ON_CHANGES
-     **/
-
--- add the Duplicate Count Data Metric Function (DMF)
-ALTER TABLE raw_customer.customer_loyalty 
-    ADD DATA METRIC FUNCTION snowflake.core.duplicate_count ON (e_mail);
-
-    
--- add our Invalid Email Count Data Metric Function (DMF)
-ALTER TABLE raw_customer.customer_loyalty 
-    ADD DATA METRIC FUNCTION governance.invalid_email_count ON (e_mail);
-
-
--- to test our work so far, let's insert 6 records with duplicate and invalid e-mail addresses
-INSERT INTO raw_customer.customer_loyalty (customer_id, e_mail) VALUES
-    (0000001, 'invalidemail@com'), (0000002, 'invalidemail@com') , (0000003, 'invalidemail@com'),
-    (0000004, 'invalidemaildotcom') , (0000005, 'invalidemaildotcom') , (0000006, 'invalidemaildotcom');
-
-
--- before moving on, let's validate Trigger on Changes Schedule is in place
-SHOW PARAMETERS LIKE 'DATA_METRIC_SCHEDULE' IN TABLE raw_customer.customer_loyalty;
-
-
--- let's also confirm the schedule has been Started
-SELECT 
-    metric_name,
-    ref_entity_schema_name,
-    ref_entity_name,
-    schedule,
-    schedule_status  
-FROM TABLE(information_schema.data_metric_function_references
-(
-    ref_entity_name => 'tb_101.raw_customer.customer_loyalty',
-    ref_entity_domain => 'table')
-);
-
-
--- the results our Data Metric Functions are written to an Event table, let's start by taking a look at the Raw output
-    -- Note: Latency can be up to a few minutes. If the queries below are empty please wait a few minutes.
-SELECT * FROM snowflake.local.data_quality_monitoring_results_raw;
-
-
--- for ease of use, a flattened View is also provided so let's take a look at this as well
-SELECT 
-    change_commit_time,
-    measurement_time,
-    table_schema,
-    table_name,
-    metric_name,
-    value
-FROM snowflake.local.data_quality_monitoring_results
-WHERE table_database = 'TB_101'
-ORDER BY change_commit_time DESC;
-
-
-/**
- With the Data Quality metrics being logged everytime our table changes we will be able to
- monitor the counts as new data flows in and existing e-mail updates are ran.
-
- In a production scenario a logical next step would be to configure alerts to notify you
- when changes to data quality occur. By combining the DMF and alert functionality, you can
- have consistent threshold notifications for data quality on the tables that you measure. 
-**/
-
 
 /*----------------------------------------------------------------------------------
-Step 11 - Discovery with Snowflake Horizon - Universal Search
+Step 10 - Discovery with Snowflake Horizon - Universal Search
 
  Having explored a wide variety of Governance functionality available in Snowflake,
  it is time to put it all together with Universal Search.
@@ -1076,18 +967,6 @@ ALTER TABLE raw_pos.country MODIFY
 
 -- drop Custom Placekey Classifier
 DROP snowflake.data_privacy.custom_classifier classifiers.placekey;
-
--- unset Data Metric Schedule
-ALTER TABLE raw_customer.customer_loyalty 
-    UNSET data_metric_schedule;
-
--- remove Duplicate Count DMF
-ALTER TABLE raw_customer.customer_loyalty 
-    DROP DATA METRIC FUNCTION snowflake.core.duplicate_count ON (e_mail);
-
--- remove Invalid Email Count DMF
-ALTER TABLE raw_customer.customer_loyalty 
-    DROP DATA METRIC FUNCTION governance.invalid_email_count ON (e_mail);
 
 -- drop Tags, Governance and Classifiers Schemas (including everything within)
 DROP SCHEMA IF EXISTS tags;

@@ -25,7 +25,6 @@ Date(yyyy-mm-dd)    Author              Comments
 ------------------- ------------------- ------------------------------------------------------------
 2024-05-31          Jacob Kranzler      Initial Release
 ***************************************************************************************************/
-*********************************************************************************************/
 
 /*----------------------------------------------------------------------------------
 Step 1 - Semi-Structured Data and the Variant Data Type
@@ -183,6 +182,7 @@ SELECT
 FROM raw_pos.menu m,
     LATERAL FLATTEN (input => m.menu_item_health_metrics_obj:menu_item_health_metrics) obj;
 
+    
 -- with the Harmonized View containing the flattening logic in place, let's now promote the data to the
 -- Analytics Schema where our various Business Users will be able to access it
 CREATE OR REPLACE VIEW analytics.menu_v
