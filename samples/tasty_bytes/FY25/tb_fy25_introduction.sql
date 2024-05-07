@@ -43,7 +43,7 @@ CREATE OR REPLACE SCHEMA tb_101.analytics;
 
 -- create warehouses
 CREATE OR REPLACE WAREHOUSE tb_de_wh
-    WAREHOUSE_SIZE = 'xsmall'
+    WAREHOUSE_SIZE = 'large' -- Large for initial data load - scaled down to XSmall at end of this scripts
     WAREHOUSE_TYPE = 'standard'
     AUTO_SUSPEND = 60
     AUTO_RESUME = TRUE
@@ -94,7 +94,7 @@ GRANT USAGE ON ALL SCHEMAS IN DATABASE tb_101 TO ROLE tb_data_engineer;
 GRANT USAGE ON ALL SCHEMAS IN DATABASE tb_101 TO ROLE tb_dev;
 
 GRANT ALL ON SCHEMA tb_101.raw_pos TO ROLE tb_admin;
-GRANT ALL ON SCHEMA tb_101.raw_pos TO ROLE tb_data_app;
+GRANT ALL ON SCHEMA tb_101.raw_pos TO ROLE tb_data_engineer;
 GRANT ALL ON SCHEMA tb_101.raw_pos TO ROLE tb_dev;
 
 GRANT ALL ON SCHEMA tb_101.harmonized TO ROLE tb_admin;
@@ -123,27 +123,13 @@ GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.raw_customer TO ROLE tb_admin;
 GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.raw_customer TO ROLE tb_data_engineer;
 GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.raw_customer TO ROLE tb_dev;
 
-GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.harmonized TO ROLE tb_admin;
-GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.harmonized TO ROLE tb_data_engineer;
-GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.harmonized TO ROLE tb_dev;
-
 GRANT ALL ON FUTURE VIEWS IN SCHEMA tb_101.harmonized TO ROLE tb_admin;
 GRANT ALL ON FUTURE VIEWS IN SCHEMA tb_101.harmonized TO ROLE tb_data_engineer;
 GRANT ALL ON FUTURE VIEWS IN SCHEMA tb_101.harmonized TO ROLE tb_dev;
 
-GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.analytics TO ROLE tb_admin;
-GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.analytics TO ROLE tb_data_engineer;
-GRANT ALL ON FUTURE TABLES IN SCHEMA tb_101.analytics TO ROLE tb_dev;
-
 GRANT ALL ON FUTURE VIEWS IN SCHEMA tb_101.analytics TO ROLE tb_admin;
 GRANT ALL ON FUTURE VIEWS IN SCHEMA tb_101.analytics TO ROLE tb_data_engineer;
 GRANT ALL ON FUTURE VIEWS IN SCHEMA tb_101.analytics TO ROLE tb_dev;
-
-GRANT ALL ON FUTURE FUNCTIONS IN SCHEMA tb_101.analytics TO ROLE tb_data_scientist;
-
-GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA tb_101.analytics TO ROLE tb_admin;
-GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA tb_101.analytics TO ROLE tb_data_engineer;
-GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA tb_101.analytics TO ROLE tb_dev;
 
 -- Apply Masking Policy Grants
 USE ROLE accountadmin;
@@ -152,7 +138,7 @@ GRANT APPLY MASKING POLICY ON ACCOUNT TO ROLE tb_data_engineer;
   
 -- raw_pos table build
 USE ROLE sysadmin;
-USE WAREHOUSE demo_build_wh;
+USE WAREHOUSE tb_de_wh;
 
 /*--
  • file format and stage creation
@@ -421,8 +407,7 @@ FROM @tb_101.public.s3load/raw_pos/order_header/;
 COPY INTO tb_101.raw_pos.order_detail
 FROM @tb_101.public.s3load/raw_pos/order_detail/;
 
--- drop demo_build_wh
-DROP WAREHOUSE IF EXISTS demo_build_wh;
+ALTER WAREHOUSE tb_de_wh SET WAREHOUSE_SIZE = 'XSmall';
 
 -- setup completion note
 SELECT 'tb_101 setup is now complete' AS note;
