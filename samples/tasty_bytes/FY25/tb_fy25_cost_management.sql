@@ -424,4 +424,5 @@ ALTER ACCOUNT SET statement_queued_timeout_in_seconds = default;
 -- unset Query Tag
 ALTER SESSION UNSET query_tag;
 
--- ToDo: Add Account Level Budget deactivation when Budgets is GA
+-- deactivate account budget
+CALL snowflake.local.account_root_budget!DEACTIVATE();
