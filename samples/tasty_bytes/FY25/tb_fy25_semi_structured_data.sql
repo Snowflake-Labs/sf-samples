@@ -10,7 +10,6 @@
 Quickstart:   Tasty Bytes - Zero to Snowflake - Semi-Structured Data
 Version:      v2
 Script:       tb_fy25_semi_structured_data.sql         
-Create Date:  2024-05-31
 Author:       Jacob Kranzler
 Copyright(c): 2024 Snowflake Inc. All rights reserved.
 ****************************************************************************************************

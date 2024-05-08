@@ -10,7 +10,6 @@
 Quickstart:   Tasty Bytes - Zero to Snowflake - Geospatial
 Version:      v2
 Script:       tb_fy25_geospatial.sql         
-Create Date:  2024-05-31
 Author:       Jacob Kranzler
 Copyright(c): 2024 Snowflake Inc. All rights reserved.
 ****************************************************************************************************
