@@ -424,4 +424,5 @@ ALTER ACCOUNT SET statement_queued_timeout_in_seconds = default;
 ALTER SESSION UNSET query_tag;
 
 -- deactivate account budget
+USE WAREHOUSE tb_de_wh;
 CALL snowflake.local.account_root_budget!DEACTIVATE();
