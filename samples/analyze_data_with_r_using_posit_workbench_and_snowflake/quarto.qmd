@@ -1,0 +1,204 @@
+---
+title: "Web traffic"
+format: html
+editor_options: 
+  chunk_output_type: console
+execute:
+  echo: false
+  warning: false
+  error: false
+---
+
+This report uses the
+[Cybersyn Web Traffic Foundation](https://app.snowflake.com/marketplace/listing/GZTSZ290BUX5L/cybersyn-web-traffic-foundation-experimental)
+data to compare web traffic metrics between a select domains.
+
+## Connect to Data
+
+We start by connecting to the `CYBERSYN` schema in snowflake,
+filtering the domains,
+and tidying the data.
+
+```{r}
+library(tidyverse)
+library(DBI)
+library(dbplyr)
+library(gt)
+library(gtExtras)
+library(odbc)
+
+# Connect to the database
+conn <-
+  DBI::dbConnect(
+    odbc::snowflake(),
+    warehouse = "DEVREL_WH_LARGE",
+    database = "WEB_TRAFFIC_FOUNDATION_EXPERIMENTAL",
+    schema = "CYBERSYN"
+  )
+
+# connect to tables/views
+timeseries <- tbl(conn, "WEBTRAFFIC_SYNDICATE_TIMESERIES")
+attributes <- tbl(conn, "WEBTRAFFIC_SYNDICATE_ATTRIBUTES")
+
+# Standardize column names
+timeseries <- timeseries |> rename_with(str_to_lower)
+attributes <- attributes |> rename_with(str_to_lower)
+
+# Join to make complete table
+timeseries <-
+  timeseries |>
+  left_join(
+    attributes,
+    by = join_by(variable, variable_name)
+  )
+```
+
+```{r}
+top_domains <-
+  c(
+    "youtube.com",
+    "google.com",
+    "facebook.com",
+    "tiktok.com",
+    "instagram.com",
+    "airbnb.com",
+    "vrbo.com",
+    "lyft.com",
+    "uber.com"
+  )
+
+timeseries <-
+  timeseries |>
+  filter(domain_id %in% top_domains) |>
+  select(domain_id, date, measure, value)
+```
+
+```{r}
+timeseries <-
+  timeseries |>
+  pivot_wider(names_from = measure, values_from = value) |>
+  rename_with(str_to_lower)
+```
+
+The resulting `timeseries` data will look like this:
+
+```{r}
+timeseries
+```
+
+
+## Visualize Page Views with `{ggplot2}`
+
+Here we will compare the page views between `airbnb.com` and `vrbo.com`.
+
+```{r}
+domains <- c("airbnb.com", "vrbo.com")
+
+timeseries |>
+  filter(domain_id %in% domains) |>
+  ggplot(aes(date, pageviews, color = domain_id)) +
+  geom_line() +
+  scale_y_log10() +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  labs(
+    x = "",
+    y = "",
+    color = "",
+    title = "Pageviews"
+  )
+```
+
+## Compare Metrics in a Table with `{gt}`
+
+Here we compare page views, number of users, and number of sessions
+across all our selected domains, again highlighting airbnb.com and vrbo.com.
+
+```{r}
+comparison <-
+  timeseries |>
+  group_by(domain_id) |>
+  summarize(
+    across(
+      c("pageviews", "users", "sessions"),
+      \(x) median(x, na.rm = TRUE),
+      .names = "avg_{.col}"
+    ),
+    .groups = "drop"
+  )  |>
+  arrange(desc(avg_pageviews))
+```
+
+```{r}
+comparison |>
+  gt(rowname_col = "domain_id") |>
+  fmt_number(scale_by = 1e-6) |>
+  cols_label(
+    avg_pageviews = "Pageviews",
+    avg_users = "Users",
+    avg_sessions = "Sessions"
+  ) |> 
+  gt_highlight_rows(
+    rows = (domain_id == "airbnb.com"), 
+    fill = "#ffce67"
+  ) |> 
+  gt_highlight_rows(
+    rows = (domain_id == "vrbo.com"), 
+    fill = "#78c2ad"
+  )
+```
+
+## Marketing
+
+There are 2 main ratios used in marketing:
+
+- content engagement: page views to users
+- repeat rates and website usage: sessions to users
+
+We also calculate the page views per session for all our domains.
+
+```{r}
+marketing <- timeseries |>
+  mutate(
+    pageviews_per_user = pageviews / users, # content engagement
+    sessions_per_user = sessions / users, # repeat rates and website
+    pageviews_per_session = pageviews / sessions
+  ) |>
+  select(-pageviews, -users, -sessions) |>
+  pivot_longer(
+    c(pageviews_per_user, sessions_per_user, pageviews_per_session)
+  )
+```
+
+```{r}
+marketing |>
+  ggplot() +
+  geom_line(aes(x = date, y = value, color = name)) +
+  facet_wrap(vars(domain_id), scales = "free_y") +
+  labs(
+    title = "Marketing Metric Ratios Over Time"
+  ) +
+  scale_color_manual(
+    breaks = c(
+      "pageviews_per_session",
+      "pageviews_per_user",
+      "sessions_per_user"
+    ),
+    labels = c(
+      'Views / Session',
+      "Content Engagement (views/user)",
+      "Repeats and Usage (sessions/user)"
+    ),
+    values = c('#1b9e77', '#d95f02', '#7570b3')
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank()
+    ) +
+  guides(
+    color = guide_legend(ncol = 2, nrow = 2, byrow = TRUE)
+  )
+```
