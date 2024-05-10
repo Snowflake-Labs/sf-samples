@@ -14,20 +14,32 @@ Before running the Cortex Voice Assistant app, ensure you have the following:
 To set up a clean Snowpark conda environment for running the app, follow these steps:
 
 1. Open a terminal or command prompt and create a new folder called llm-chatbot.
-2. Create a new conda environment named snowpark-llm-chatbot with Python 3.8:
+2. Create a new conda environment named snowpark-llm-chatbot with Python 3.10:
 '''
-conda create --name snowpark-llm-chatbot python=3.8
+	conda create --name snowpark-llm-chatbot python=3.10
 '''
 3. Activate the newly created environment:
 '''
-conda activate snowpark-llm-chatbot
+	conda activate snowpark-llm-chatbot
 '''
 
 4. Install the required packages:
 '''
-conda install snowflake-snowpark-python "openai>=1.0.0"
-conda install conda-forge::"streamlit>=1.28.2"
-pip install speechrecognition pyttsx3 gTTS pygame
+	conda install snowflake-snowpark-python "openai>=1.0.0"
+	conda install conda-forge::"streamlit>=1.28.2"
+	pip install speechrecognition pyttsx3 gTTS pygame
+'''
+
+5. Install PyAudio:
+	On Windows machines simply use
+'''
+	pip install PyAudio
+'''
+	
+	On Macbooks first install the xxxx library with brew. So you should install with the following commands:
+'''
+	brew install portaudio
+	pip install PyAudio
 '''
 
 ## Create Database assets
@@ -52,6 +64,26 @@ CREATE STAGE IF NOT EXISTS ML_HOL_DB.ML_HOL_SCHEMA.DIAMONDS_ASSETS
     -- https://sfquickstarts.s3.us-west-1.amazonaws.com/intro-to-machine-learning-with-snowpark-ml-for-python/diamonds.csv
 
 LS @DIAMONDS_ASSETS;
+
+CREATE TABLE IF NOT EXISTS DIAMONDS (
+    CARAT   NUMBER(10,3),
+    CUT     VARCHAR,
+    COLOR   VARCHAR,
+    CLARITY VARCHAR,
+    DEPTH   NUMBER(10,2),
+    TABLE_PCT   NUMBER(10,2),
+    PRICE   NUMBER(20),    
+    X       NUMBER(10,2),
+    Y       NUMBER(10,2),
+    Z       NUMBER(10,2)
+);
+
+COPY INTO DIAMONDS
+  FROM @DIAMONDS_ASSETS
+  FILE_FORMAT = (FORMAT_NAME = 'CSVFORMAT')
+  ON_ERROR = CONTINUE;  
+    
+SELECT * FROM DIAMONDS LIMIT 100; 
 '''
 These can also be found in the setup.sql file.
 
@@ -67,10 +99,31 @@ git clone https://github.com/your-username/cortex-voice-assistant.git
 cd llm-chatbot
 '''
 
-3. Set your OpenAI API key as an environment variable:
-'''
-export OPENAI_API_KEY="your-api-key"
-'''
+3. Set your OpenAI API key and database credentials:
+	3.1 In the folder, llm-chatbot, create a new folder called '.streamlit'
+	'''
+		mkdir .streamlit
+	'''
+	
+	3.2 Navigate to the new folder:
+	'''
+		cd .streamlit
+	'''
+	
+	3.3 In the .streamlit folder, create a new secrets.toml file that will contain your OpenAI API key and Snowflake credentials. The secrets.toml file should have the following format. Fill in the details with your OpenAI API key and Snowflake credentials: 
+	'''
+		# .streamlit/secrets.toml
+
+		OPENAI_API_KEY = "sk-2v...X"
+
+		[connections.snowflake]
+		user = "<username>"
+		password = "<password>"
+		warehouse = "COMPUTE_WH"
+		role = "ACCOUNTADMIN"
+		account = "<account-id>"
+	'''	
+
 4. Run the Streamlit app:
 '''
 streamlit run cortex_voice_assistant.py
@@ -85,7 +138,12 @@ streamlit run cortex_voice_assistant.py
 3. The app will transcribe your speech using OpenAI's Whisper ASR and generate a response using Google's gTTS.
 4. The app also uses the Cortex Complete LLM function for basic text-to-SQL generation
 5. If the response contains a valid SQL query, the app will execute it against the connected Snowflake database and display the results.
-6. Continue the conversation by asking follow-up questions or providing additional commands.
+6. You can ask questions such as:
+   	Show the 5 most expensive diamonds
+   	Which 3 diamonds have the highest carat values?
+   	Show the average price by cut and sort the results by average price in descending order
+   	Show the average price by color and sort the results by average price
+	Is there a correlation between price and carat? Use the corr function
 7. To exit the app, say "thank you" or close the browser tab.
 
 ##Troubleshooting
