@@ -1,0 +1,10 @@
+{
+  "account": "snowflake_account_name"
+  ,"user": "username"
+  ,"password": "password"
+  ,"role": "role_name"
+  ,"warehouse": "warehouse_name"
+  ,"database": "db_name"
+  ,"schema": "schema_name"
+  }
+  
