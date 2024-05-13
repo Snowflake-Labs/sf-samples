@@ -21,11 +21,9 @@ Cost Management
         3 - Setting up Session Timeout Parameters 
         4 - Setting up Account Timeout Parameters
         5 - Setting up a Resource Monitors 
-        6 - Setting up an Account Level Budget
     c) Cost Visibility
-        7 - Tagging Objects to Attribute Spend
-        8 - Exploring Cost with SQL
-        9 - Exploring Cost with Snowsight
+        6 - Tagging Objects to Attribute Spend
+        7 - Exploring Cost with Snowsight
 ****************************************************************************************************
 SUMMARY OF CHANGES
 Date(yyyy-mm-dd)    Author              Comments
@@ -57,13 +55,7 @@ USE DATABASE tb_101;
 ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts,"version":{"major":1, "minor":1},"attributes":{"medium":"quickstart", "source":"tastybytes", "vignette": "cost_management"}}';
 
 
--- now let's look at all of the Warehouses available in our account by running a SHOW command
-  --> NOTE: to execute a query use the top-right ▶️ button or COMMAND/CONTROL + ENTER
-SHOW WAREHOUSES LIKE '%tb%';
-
-
--- having seen the configurable settings for a Snowflake Warehouse , let's create our own
--- Test Warehouse and reference the section below to understand each parameter is handling
+-- let's create our own Test Warehouse and reference the section below to understand each parameter is handling
 CREATE OR REPLACE WAREHOUSE tb_test_wh WITH
 COMMENT = 'test warehouse for tasty bytes'
     WAREHOUSE_TYPE = 'standard'
@@ -130,20 +122,6 @@ WHERE truck_brand_name = 'Plant Palace';
 
 -- to showcase Snowflakes elastic scalability let's scale our Warehouse up and run a few larger, aggregation queries
 ALTER WAREHOUSE tb_test_wh SET warehouse_size = 'XLarge';
-
-
--- using a Show Warehouses command, we can confirm the current size of our Test Warehouse
-SHOW WAREHOUSES LIKE 'tb_test_wh';
-
-
--- what are the total orders and total sales volumes for our truck brands? 
-SELECT
-    o.truck_brand_name,
-    COUNT(DISTINCT o.order_id) AS order_count,
-    SUM(o.price) AS total_sales
-FROM analytics.orders_v o
-GROUP BY o.truck_brand_name
-ORDER BY total_sales DESC;
 
 
 -- what are the total orders and total sales volumes for our top customer loyalty members? 
@@ -258,59 +236,8 @@ WITH
 ALTER WAREHOUSE tb_test_wh 
     SET RESOURCE_MONITOR = tb_test_rm;
 
-
 /*----------------------------------------------------------------------------------
-Step 6 - Monitoring Cost with Budgets
-
- In the previous step we configured a Resource Monitor that allows for monitoring
- costs for Warehouses and Cloud Services. 
- 
- Now to help Tasty Bytes monitor cost across the entire account we will deploy a
- Budget using SQL however these can also be deployed and monitored in Snowsight
- by navigating to Admin -> Cost Management.
-----------------------------------------------------------------------------------*/
-
-    /**
-     Budget: A Budget enables account-level monitoring and notification of Snowflake
-      credit usage for a group of specific Snowflake objects. A budget sends a daily
-      alert notification when current spending is on track to exceed the spending
-      limit based on time-series forecasting. 
-    **/
-
--- remaining in our Accountadmin role, let's activate our account level budget 
-    --> if you recieve BUDGET_ALREADY_ACTIVATED message then this budget is already enabled on the account
-CALL snowflake.local.account_root_budget!ACTIVATE();
-
-
--- now let's set a 1000 credit monthly spending limit for our account  
-CALL snowflake.local.account_root_budget!SET_SPENDING_LIMIT(1000);
-
-
--- with our 1000 credit monthly Account Level Budget in place, we can now monitor how we are tracking in a few ways:
-    -- option 1: view current, forecasted and historical budget spending using the Budgets page in Snowsight.
-        --> path to Admin -> Cost Management -> Budgets
-
-    -- option 2: recieve daily Email Alert Notifications when current spend is on track to exceed the defined spending limit.
-        --> NOTE: the below SQL is for demonstration purposes only and only needs to be filled out
-        --> and executed if you would like to set up the daily alerts.
-
-        --> create a Budget Notification Integration including the desired email recipients
-            --> NOTE: These Emails must be verified within the Snowflake Account
-            CREATE NOTIFICATION INTEGRATION budgets_notification_integration
-            TYPE= email
-            ENABLED = true
-            ALLOWED_RECIPIENTS = ('costadmin@example.com','budgetadmin@example.com');
-
-        --> grant Usage to leverage the Budget Notification Integration
-            GRANT USAGE ON INTEGRATION budgets_notification_integration TO APPLICATION snowflake;
-        
-        --> turn on daily Email notifications for our Account Level Budget
-            CALL snowflake.local.account_root_budget!SET_EMAIL_NOTIFICATIONS(
-            'budgets_notification_integration', 'costadmin@example.com, budgetadmin@example.com');
-
-
-/*----------------------------------------------------------------------------------
-Step 7 - Tag Objects to Attribute Spend
+Step 6 - Tag Objects to Attribute Spend
 
  Within this step, we will help our Finance department attribute consumption costs
  for the Test Warehouse to our Development Team. 
@@ -334,49 +261,8 @@ CREATE OR REPLACE TAG cost_center;
 ALTER WAREHOUSE tb_test_wh SET TAG cost_center = 'DEVELOPMENT_TEAM';
 
 
--- using our information_schema, let's confirm our tag is in place
-SELECT 
-    tag_name,
-    tag_value,
-    level,
-    object_name
-FROM TABLE(information_schema.tag_references('tb_test_wh', 'warehouse'));
-
-
 /*----------------------------------------------------------------------------------
-Step 8 - Exploring Cost with SQL
-
- Snowflake provides a system-defined, read-only shared database named Snowflake
- that contains metadata and historical usage data about the objects in your
- organization and accounts. 
-
- In this step, we will explore Warehouse and Cloud Services Costs using the 
- Warehouse Metering History View from within.
-----------------------------------------------------------------------------------*/
-
--- what is the total daily warehouse consumption for the last month?
-SELECT 
-    TO_DATE(start_time) AS start_date,
-    SUM(credits_used) AS credits_used
-FROM snowflake.account_usage.warehouse_metering_history
-WHERE start_date > DATEADD(month,-1,CURRENT_TIMESTAMP())
-GROUP BY start_date
-ORDER BY start_date DESC;
-
-
--- what is our total daily consumption by warehouse for the last month?
-SELECT 
-    TO_DATE(start_time) AS start_date,
-    warehouse_name,
-    SUM(credits_used) AS credits_used
-FROM snowflake.account_usage.warehouse_metering_history
-WHERE start_date > DATEADD(month,-1,CURRENT_TIMESTAMP())
-GROUP BY start_date, warehouse_name
-ORDER BY start_date DESC;
-
-
-/*----------------------------------------------------------------------------------
-Step 9 - Exploring Cost with Snowsight
+Step 7 - Exploring Cost with Snowsight
 
 Snowflake also provides many ways to visually inspect Cost data within Snowsight.
 In this step, we will walk through the click path to access a few of these pages.
@@ -413,9 +299,6 @@ DROP TAG IF EXISTS cost_center;
 -- drop Resource Monitor
 DROP RESOURCE MONITOR IF EXISTS tb_test_rm;
 
--- drop Notification Integration
-DROP NOTIFICATION INTEGRATION IF EXISTS budgets_notification_integration;
-
 -- reset Account Timeout Parameters
 ALTER ACCOUNT SET statement_timeout_in_seconds = default;
 ALTER ACCOUNT SET statement_queued_timeout_in_seconds = default;
@@ -423,6 +306,4 @@ ALTER ACCOUNT SET statement_queued_timeout_in_seconds = default;
 -- unset Query Tag
 ALTER SESSION UNSET query_tag;
 
--- deactivate account budget
-USE WAREHOUSE tb_de_wh;
-CALL snowflake.local.account_root_budget!DEACTIVATE();
+
