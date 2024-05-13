@@ -24,6 +24,6 @@
     ```
 1. Launch Jupyter Notebook:
     ```bash
-    jupyter notebook    
+    jupyter notebook
     ```
 1. Open the demo notebook and run the cells !
