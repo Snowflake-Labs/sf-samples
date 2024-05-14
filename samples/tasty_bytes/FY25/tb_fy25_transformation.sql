@@ -197,10 +197,6 @@ SET query_id =
     ORDER BY start_time DESC
     );
 
-
--- for testing, let's confirm our Variable is set
-SELECT $query_id;
-
     /**
     Time-Travel provides many different statement options including:
         • At, Before, Timestamp, Offset and Statement
@@ -281,7 +277,7 @@ USE ROLE accountadmin;
 UPDATE tb_101.raw_pos.truck SET make = 'Ford_' WHERE make = 'Ford';
 
 -- remove Truck Type column
-ALTER TABLE tb_101.raw_pos.truck DROP COLUMN IF EXISTS truck_year;
+ALTER TABLE tb_101.raw_pos.truck DROP COLUMN IF EXISTS truck_type;
 
 -- unset SQL Variable
 UNSET query_id;
