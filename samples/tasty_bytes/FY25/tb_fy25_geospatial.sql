@@ -115,19 +115,6 @@ Step 3 - Creating Geograpy Points from Latitude and Longitude
 -- assume our Data Engineer role
 USE ROLE tb_data_engineer;
 
--- at a high level, what are the top 10 locations in Paris in terms of Total Sales?
-SELECT TOP 10
-    o.location_id,
-    o.location_name,
-    SUM(o.price) AS total_sales_usd
-FROM analytics.orders_v o
-WHERE 1=1
-    AND o.primary_city = 'Paris'
-    AND YEAR(o.date) = 2022
-GROUP BY o.location_id, o.location_name
-ORDER BY total_sales_usd DESC;
-
-
 -- let's now create Geography Points for these Top Selling Locations in Paris
 SELECT TOP 10
     location_id,
