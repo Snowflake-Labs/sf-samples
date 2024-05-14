@@ -2,9 +2,9 @@
 
 
 1. Install the Cybersyn data set used in the demo from Snowflake marketplace [here](https://app.snowflake.com/marketplace/listing/GZTSZAS2KF7/cybersyn-inc-financial-economic-essentials).
-1. Download the [demo notebook](demo.ipynb) and [creds.json](creds.json) files in this directory.
-1. Add your Snowflake account credentials to the creds.json file.
-1. Download the latest private Snowpark library, which incluees Snowpark pandas, [here](https://drive.google.com/drive/folders/1n2ijLihBVe3KuryqverajnqH7fxih3TL) and place the wheel file in the same project directory where you have the demo notebook.
+1. Download the [demo notebook](demo.ipynb) file in this directory.
+1. Follow the instructions [here](https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-connect#setting-a-default-connection) to set up a default Snowflake connection.
+1. Download the latest private Snowpark library, which includes Snowpark pandas, [here](https://drive.google.com/drive/folders/1n2ijLihBVe3KuryqverajnqH7fxih3TL) and place the wheel file in the same project directory where you have the demo notebook.
 1. Navigate to the project directory folder in the terminal.
 1. Create a new conda environment using the command:
     ```bash
