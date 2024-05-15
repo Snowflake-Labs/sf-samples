@@ -91,20 +91,6 @@ who is a leading provider of global weather and climate data.
     6 - Grant access to: 'PUBLIC'
 --*/
 
--- with the Weather Source Marketplace listing available as a database in our account, let's 
--- quickly check what date ranges of weather metrics are available for Hamburg? 
-SELECT 
-    city_name,
-    country,
-    MIN(date_valid_std) AS date_minimum,
-    MAX(date_valid_std) AS date_maximum
-FROM tb_weathersource.onpoint_id.history_day
-WHERE 1=1
-    AND city_name = 'Hamburg'
-    AND country = 'DE'
-GROUP BY ALL;
-
-
 -- let's now create a Daily Weather View in our Harmonized schema that joins Daily Weather History
 -- to our Country dimension table using the Country and City columns
 CREATE OR REPLACE VIEW harmonized.daily_weather_v
@@ -144,14 +130,12 @@ ORDER BY dw.date_valid_std DESC;
 
 -- based on our results above, it does not seem like Temperature was the cause, let's also
 -- check if Precipitation or Wind could have been a factor
-        --> Chart Type: Line | X-Axis: DATE | Line: TOT_PRECIPITATION_IN(none)
         --> Chart Type: Line | X-Axis: DATE | Line: MAX_WIND_SPEED_100M_MPH(none)
 SELECT
     dw.country_desc,
     dw.city_name,
     dw.date_valid_std,
-    MAX(dw.max_wind_speed_100m_mph) AS max_wind_speed_100m_mph,
-    AVG(dw.tot_precipitation_in) AS tot_precipitation_in
+    MAX(dw.max_wind_speed_100m_mph) AS max_wind_speed_100m_mph
 FROM harmonized.daily_weather_v dw
 WHERE 1=1
     AND dw.country_desc IN ('Germany')
