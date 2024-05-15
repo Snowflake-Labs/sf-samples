@@ -17,7 +17,7 @@ Semi-Structured Data
     1 - Semi-Structured Data and the Variant Data Type
     2 - Querying Semi-Structured Data via Dot and Bracket Notation + Flatten
     3 - Providing Flattened Data to Business Users 
-    4 - Leveraging Array Functions 
+    4 - Analyzing Processed Semi-Structured Data in Snowsight
 ****************************************************************************************************
 SUMMARY OF CHANGES
 Date(yyyy-mm-dd)    Author              Comments
@@ -45,12 +45,12 @@ ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts,"version":{"maj
 
 -- let's take a look at a few columns in our Raw Menu table we are receiving from our
 -- Point of Sales (POS) system so we can see where our Dietary and Ingredient data is stored
-SELECT
-    m.truck_brand_name,
-    m.menu_type,
-    m.menu_item_name,
-    m.menu_item_health_metrics_obj
-FROM raw_pos.menu m;
+SELECT TOP 10
+    truck_brand_name,
+    menu_type,
+    menu_item_name,
+    menu_item_health_metrics_obj
+FROM raw_pos.menu;
 
 
 -- based on the results above, the data we need to provide downstream is stored in the
