@@ -223,7 +223,7 @@ Step 3 - Column-Level Security and Tagging = Tag-Based Masking
   our Test Role but not from more privileged Roles.
 ----------------------------------------------------------------------------------*/
 
--- we can now USE the Test Role and Development Warehouse
+-- we can now USE the Test Role,  Development Warehouse and Database
 USE ROLE tb_test_role;
 USE WAREHOUSE tb_dev_wh;
 USE DATABASE tb_101;
