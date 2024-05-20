@@ -386,22 +386,6 @@ GROUP BY clm.customer_id, clm.first_name, clm.last_name, clm.phone_number, clm.e
 ORDER BY lifetime_sales_usd;
 
 
--- before moving on, let's quickly check our privileged users are able to see the data unmasked
-USE ROLE accountadmin;
-
-SELECT TOP 10
-    clm.customer_id,
-    clm.first_name,
-    clm.last_name,
-    clm.phone_number,
-    clm.e_mail,
-    SUM(clm.total_sales) AS lifetime_sales_usd
-FROM analytics.customer_loyalty_metrics_v clm
-WHERE clm.city = 'San Mateo'
-GROUP BY clm.customer_id, clm.first_name, clm.last_name, clm.phone_number, clm.e_mail
-ORDER BY lifetime_sales_usd;
-
-
 /*----------------------------------------------------------------------------------
 Step 4 - Row-Access Policies
 
@@ -472,24 +456,7 @@ FROM raw_customer.customer_loyalty cl SAMPLE (10000 ROWS)
 GROUP BY cl.customer_id, cl.first_name, cl.last_name, cl.city, cl.marital_status, age;
 
 
--- excellent! we were able to see both Row and Column level security in that result set.
--- let's now check that our privileged Sysadmin is not impacted
-USE ROLE sysadmin;
-
-SELECT
-    cl.customer_id,
-    cl.first_name,
-    cl.last_name,
-    cl.city,
-    cl.marital_status,
-    DATEDIFF(year, cl.birthday_date, CURRENT_DATE()) AS age
-FROM raw_customer.customer_loyalty cl SAMPLE (10000 ROWS)
-GROUP BY cl.customer_id, cl.first_name, cl.last_name, cl.city, cl.marital_status, age;
-
-
  -- as we did for our masking, let's double check our Row Level Security is flowing into downstream Analytic Views
-USE ROLE tb_test_role;
-
 SELECT
     clm.city,
     SUM(clm.total_sales) AS total_sales_usd
@@ -570,39 +537,9 @@ JOIN raw_customer.customer_loyalty cl
 GROUP BY ALL
 ORDER BY order_total DESC;
 
-
--- what are the total order amounts by number of children?
-SELECT 
-    cl.children_count,
-    cl.city,
-    COUNT(oh.order_id) AS count_order,
-    SUM(oh.order_amount) AS order_total
-FROM raw_pos.order_header oh
-JOIN raw_customer.customer_loyalty cl
-    ON oh.customer_id = cl.customer_id
-GROUP BY ALL
-ORDER BY order_total DESC;
-
-
 -- what are the total order amounts by postal code?
     --> Note: If the query returns a group that contains fewer records than the minimum group size of the policy,
     --> then Snowflake combines those groups into a remainder group.
-SELECT 
-    cl.postal_code,
-    cl.city,
-    COUNT(oh.order_id) AS count_order,
-    SUM(oh.order_amount) AS order_total
-FROM raw_pos.order_header oh
-JOIN raw_customer.customer_loyalty cl
-    ON oh.customer_id = cl.customer_id
-GROUP BY ALL
-ORDER BY order_total DESC;
-
-
--- switching to our Accountadmin Role, let's now run that same query to see what the results
--- look like in a privileged Role not restricted by Row Access and Aggregation policies.
-USE ROLE accountadmin;
-
 SELECT 
     cl.postal_code,
     cl.city,
@@ -628,6 +565,9 @@ Step 6 - Projection Policies
       whether a column can be projected in the output of a SQL query result. A column
       with a projection policy assigned to it is said to be projection constrained.
     **/
+
+-- assume our Accountadmin role
+USE ROLE accountadmin;
 
 -- for our use case, we will create a Conditional Projection Policy in our Governance Schema
 -- that will only allow our Admin Roles to project the columns we will assign it to
@@ -656,35 +596,6 @@ SELECT TOP 100 * FROM raw_customer.customer_loyalty;
 
 -- what if we EXCLUDE the postal_code column?
 SELECT TOP 100 * EXCLUDE postal_code FROM raw_customer.customer_loyalty;
-
-    /**
-     Although our Projection Policy blocks our Test Role from including the Postal Code column
-     in the SELECT clause it can still be used in the WHERE clause to assist with analysis
-    
-     Knowing this, let's now help our marketing team by addressing a few of their questions
-    **/
-
--- which members from postal_code 144-0000 should recieve a program anniversary promotion this month?
-SELECT 
-    customer_id,
-    preferred_language,
-    sign_up_date
-FROM raw_customer.customer_loyalty
-WHERE 1=1
-    AND postal_code = '144-0000'
-    AND MONTH(sign_up_date) = MONTH(CURRENT_DATE());
-
-
--- which members from postal_code V5K 0A6 have children and should recieve a family night discount code?
-SELECT 
-    customer_id,
-    preferred_language,
-    children_count
-FROM raw_customer.customer_loyalty
-WHERE 1=1
-    AND postal_code = 'V5K 0A6'
-    AND children_count NOT IN ('0','Undisclosed')
-ORDER BY customer_id;
 
 
 /*----------------------------------------------------------------------------------
