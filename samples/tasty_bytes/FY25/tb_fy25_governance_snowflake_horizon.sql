@@ -657,8 +657,7 @@ FROM raw_pos.location
 WHERE city = 'London';
 
 
--- let's now assume our Accountadmin role and create a Classifier Schema
-USE ROLE accountadmin;
+-- let's now create a Classifier Schema
 
 CREATE OR REPLACE SCHEMA classifiers
     COMMENT = 'Schema containing Custom Classifiers';
@@ -724,9 +723,6 @@ Step 9 - Access History (Read and Writes)
  Note: Access History latency is up to 3 hours. If you have just recently setup
  the Tasty Bytes environment, some of the queries below may not have results.
 ---------------------------------------------------------------------------------*/
-
--- let's first assume our Accountadmin role so we can answer questions using the Access History view
-USE ROLE accountadmin;
 
 
 --> 1) how many queries have accessed each of our Raw layer tables directly?
