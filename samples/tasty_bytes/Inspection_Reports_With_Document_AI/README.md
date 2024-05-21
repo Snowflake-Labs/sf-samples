@@ -1,7 +1,7 @@
 ## Extracting Data from Inspection Reports using Document AI
 
 **inspection_reports_full.zip**
-- 46 inspection reports for full extraction
+- 46 PDF Inspection Reports for Full Extraction
 
 **inspection_reports_test.zip**
-- 5 inspection reports for training
+- 5 PDF Inspection Reports for Training within the Document AI interface
