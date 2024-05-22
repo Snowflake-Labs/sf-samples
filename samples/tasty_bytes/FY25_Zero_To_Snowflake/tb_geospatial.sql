@@ -106,7 +106,7 @@ JOIN tb_safegraph.public.frostbyte_tb_safegraph_s cpg
 
 
 /*----------------------------------------------------------------------------------
-Step 3 - Creating Geograpy Points from Latitude and Longitude 
+Step 3 - Creating Geography Points from Latitude and Longitude 
 
  To begin, we will first conduct high level sales analysis in Paris and prepare
  for our analysis by creating Points from our Coordinates.

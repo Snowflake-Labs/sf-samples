@@ -142,7 +142,7 @@ ALTER WAREHOUSE tb_test_wh SET warehouse_size = 'XSmall';
 
 
 -- and now manually Suspend it
-    --> NOTE: if you recieve "Invalid state. Warehouse cannot be suspended." the auto_suspend we configured earlier has already occured
+    --> NOTE: if you receive "Invalid state. Warehouse cannot be suspended." the auto_suspend we configured earlier has already occured
 ALTER WAREHOUSE tb_test_wh SUSPEND;
 
 
@@ -185,7 +185,7 @@ Step 4 - Controlling Cost with Account Timeout Parameters
  Account level.
 
  Moving forward we will plan to monitor these as our Snowflake Workloads and Usage
- grow to ensure they are continuing to protect our account from unneccesary consumption
+ grow to ensure they are continuing to protect our account from unnecessary consumption
  but allowing for expected longer jobs to complete.
 ----------------------------------------------------------------------------------*/
 
@@ -206,7 +206,7 @@ ALTER ACCOUNT
 /*----------------------------------------------------------------------------------
 Step 5 - Monitoring Cost with Resource Monitors
 
- With a Test Warehouse in place, let's now leverage Snowflakes Resource Monitors
+ With a Test Warehouse in place, let's now leverage Snowflake's Resource Monitors
  to ensure the Warehouse has a monthly quota. This will also allow Admins to monitor
  credit consumption and trigger Warehouse suspension if the quota is surpassed.
 

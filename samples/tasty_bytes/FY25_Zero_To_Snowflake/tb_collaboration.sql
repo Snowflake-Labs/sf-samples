@@ -29,7 +29,7 @@ Date(yyyy-mm-dd)    Author              Comments
 Step 1 - Investigating Days with Zero Sales
 
  Tasty Bytes Financial Analysts have let the business know that there are Trucks
- in the Raw Point of Sales Sytem Data that are missing Sales for various days.
+ in the Raw Point of Sales System Data that are missing Sales for various days.
  
  Within this vignette, we will investigate these missing days and leverage the
  Snowflake Marketplace to enhance our analysis with Weather and Location data.
@@ -45,7 +45,7 @@ USE DATABASE tb_101;
 
 
 -- assign Query Tag to Session 
-ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts,"version":{"major":1, "minor":1},"attributes":{"medium":"quickstart", "source":"tastybytes", "vignette": "collaboration"}}';
+ALTER SESSION SET query_tag = '{"origin":"sf_sit","name":"tb_zts","version":{"major":1, "minor":1},"attributes":{"medium":"quickstart", "source":"tastybytes", "vignette": "collaboration"}}';
 
 
 -- let's first look for the days our Analysts flagged in Hamburg, Germany

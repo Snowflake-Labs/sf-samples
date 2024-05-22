@@ -69,7 +69,7 @@ Step 2 - Querying Semi-Structured Data
 
  The data stored within our Variant, Menu Item Health Metrics Object, column is JSON.
  
- Within this step, we will leverage Snowflakes Native Semi-Structured Support,
+ Within this step, we will leverage Snowflake's Native Semi-Structured Support,
  to query and flatten this column so that we can prepare to provide our downstream
  users with their requested data in an easy to understand, tabular format.
 ----------------------------------------------------------------------------------*/
