@@ -24,6 +24,9 @@ Apr 17, 2024        Ravi Kumar           Initial Lab
 /*************************************************/
 USE ROLE HRZN_DATA_USER;
 USE WAREHOUSE HRZN_WH;
+=======
+
+
 
 
 /*----------------------------------------------------------------------------------
@@ -225,7 +228,9 @@ select * from snowflake.account_usage.tag_references where tag_name ='PII_TYPE' 
 select * from snowflake.account_usage.tag_references where tag_name ='COST_CENTER' ;
 
 
--- now we can use the TAG_REFERENCE_ALL_COLUMNS function to return the Tags associated with our Customer Loyalty table
+
+-- now we can use the TAG_REFERENCES_ALL_COLUMNS function to return the Tags associated with our Customer Loyalty table
+
 SELECT
     tag_database,
     tag_schema,
@@ -234,6 +239,7 @@ SELECT
     tag_value
 FROM TABLE(INFORMATION_SCHEMA.TAG_REFERENCES_ALL_COLUMNS
     ('HRZN_DB.HRZN_SCH.customer','table'));
+
 
 
 

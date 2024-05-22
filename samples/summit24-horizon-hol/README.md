@@ -41,6 +41,4 @@ Run hol-lab/3-Data-IT-Admin.sql
 
 # Tear Down  
 Run 99-lab-teardown for removing the lab  
-  
 
-  

@@ -1,2 +1,2 @@
-## Snowpark Pandas
+## Snowpark pandas API
 
