@@ -2,7 +2,7 @@
 /***************************************************************************************************
 | H | O | R | I | Z | O | N |   | L | A | B | S | 
 
-Demo:         Horizon Lab (Data / IT Admin Persona)
+Demo:         Horizon Lab (Data / Governor Admin Persona)
 Version:      HLab v1
 Create Date:  Apr 17, 2024
 Author:       Ravi Kumar
@@ -18,7 +18,7 @@ Apr 17, 2024        Ravi Kumar           Initial Lab
 ***************************************************************************************************/
 /*************************************************/
 /*************************************************/
-/* D A T A      I T   A D M I N      R O L E */
+/* D A T A      G O V E R N O R   A D M I N      R O L E */
 /*************************************************/
 /*************************************************/
 
@@ -42,6 +42,7 @@ Step - Access History (Read and Writes)
  USE ROLE HRZN_IT_ADMIN;
  USE DATABASE HRZN_DB;
  USE SCHEMA HRZN_SCH;
+ USE WAREHOUSE HRZN_WH;
 
 
 --> how many queries have accessed each of our Raw layer tables directly?
