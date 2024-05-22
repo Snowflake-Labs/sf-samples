@@ -23,6 +23,9 @@ Apr 17, 2024        Ravi Kumar           Initial Lab
 /*************************************************/
 /*************************************************/
 USE ROLE HRZN_DATA_USER;
+USE WAREHOUSE HRZN_WH;
+=======
+
 
 
 
@@ -225,7 +228,9 @@ select * from snowflake.account_usage.tag_references where tag_name ='PII_TYPE' 
 select * from snowflake.account_usage.tag_references where tag_name ='COST_CENTER' ;
 
 
+
 -- now we can use the TAG_REFERENCES_ALL_COLUMNS function to return the Tags associated with our Customer Loyalty table
+
 SELECT
     tag_database,
     tag_schema,
@@ -297,6 +302,8 @@ SELECT SSN,CREDITCARD FROM HRZN_DB.HRZN_SCH.CUSTOMER;
 /*************************************************/
 use role HRZN_DATA_GOVERNOR;
 USE SCHEMA HRZN_DB.TAG_SCHEMA;
+USE WAREHOUSE HRZN_WH;
+
 
 --Opt In masking based on condition
 create or replace masking policy HRZN_DB.TAG_SCHEMA.conditionalPoilcyDemo 
@@ -691,4 +698,13 @@ WHERE ZIP IN ('97135', '95357')
     AND OPTIN = 'Y';
 
 
-
+--Remove the Projection and Aggreagation policies for data to be viewed (for the lab)
+USE ROLE HRZN_DATA_GOVERNOR;
+-- with the Aggregation Policy created, let's apply it to our Order Header table
+ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS
+    UNSET AGGREGATION POLICY;
+    
+-- with the Projection Policy in place, let's assign it to our Postal Code column
+ALTER TABLE HRZN_DB.HRZN_SCH.CUSTOMER
+ MODIFY COLUMN ZIP
+ UNSET PROJECTION POLICY;
