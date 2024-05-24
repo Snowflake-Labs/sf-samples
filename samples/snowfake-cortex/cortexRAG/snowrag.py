@@ -8,12 +8,12 @@ class SnowRAG():
                  lm_model: str = "mixtral-8x7b",
                  k: int = 3,
                  snowflake_session=None,
-                 prompt_template=None,
+                 prompt_template:str = None,
                  **kwargs):
         
         self.LM = SnowflakeLM(model=lm_model,snowflake_session=snowflake_session)
         self.RM = SnowflakeRM(snowflake_table_name=embeddings_table,snowflake_session=snowflake_session,k=k)
-        self.prompt_tempalte = prompt_template
+        self.prompt_template = prompt_template
 
     def _zero_shot_rag(self,prompt):
 
@@ -28,7 +28,7 @@ class SnowRAG():
             Answer: """
         
         else:
-            template = self.prompt_tempalte
+            template = self.prompt_template
     
         return self.LM(template)
     

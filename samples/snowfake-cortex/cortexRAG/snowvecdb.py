@@ -20,6 +20,10 @@ class SnowVectorDB():
         self.chunk_overlap = chunk_overlap
         self.file_extension = file_ext
 
+        if snowflake_session.sql("SHOW FUNCTIONS like 'pdf_text_chunker'").count() ==0:
+            
+            self._register_chunker(chunk_size=self.chunk_size,chunk_overlap=self.chunk_overlap)
+            
         if chunker:
             self._register_chunker(chunk_size=self.chunk_size,chunk_overlap=self.chunk_overlap)
     
@@ -38,29 +42,27 @@ class SnowVectorDB():
 
         print("Loading source data...")
         stage = table_name if stage is None else stage
-        self.client.sql(f"create stage if not exists {stage}_RAG DIRECTORY = ( ENABLE = TRUE) ENCRYPTION = (TYPE = 'SNOWFLAKE_SSE')").collect()
+        self.client.sql(f"create stage if not exists {stage} DIRECTORY = ( ENABLE = TRUE) ENCRYPTION = (TYPE = 'SNOWFLAKE_SSE')").collect()
         source_data = f"{source_directory}/*.{self.file_extension}"
-        self.client.file.put(source_data, f"@{stage}_RAG", auto_compress=False, overwrite=True)
-        self.client.sql(f"ALTER STAGE {stage}_RAG REFRESH").collect()
+        self.client.file.put(source_data, f"@{stage}", auto_compress=False, overwrite=True)
+        self.client.sql(f"ALTER STAGE {stage} REFRESH").collect()
         print("...data load complete.")
 
     
-    def _table_loader(self,table,stage:str = None) -> None:
+    def _table_loader(self,table,source:str = None) -> None:
 
         print("Creating embeddings table...")
         self._create_table(table)
 
-        stage = table if stage is None else stage
-
         embeddings_loader = f"""insert into {table} (relative_path, file_url,scoped_file_url, chunk, chunk_vec)
                             select relative_path, 
                                     file_url, 
-                                    build_scoped_file_url(@{stage}_RAG, relative_path) as scoped_file_url,
+                                    build_scoped_file_url(@{source}, relative_path) as scoped_file_url,
                                     func.chunk as chunk,
                                     snowflake.cortex.embed_text('{self.embeddings_model}',CONCAT(relative_path,' ',chunk)) as chunk_vec
                             from 
-                                directory(@{stage}_RAG),
-                                TABLE(pdf_text_chunker(build_scoped_file_url(@{stage}_RAG, relative_path))) as func;"""
+                                directory(@{source}),
+                                TABLE(pdf_text_chunker(build_scoped_file_url(@{source}, relative_path))) as func;"""
 
         self.client.sql(embeddings_loader).collect()
         print(f"Embeddings succesfully loaded in Snowflake table:{table.upper()}")
@@ -119,12 +121,18 @@ class SnowVectorDB():
     
     def __call__(self,
                  vector_table_name:str,
-                 data_source_directory:str,
+                 data_source_directory:str = None,
                  stage: str = None):
 
+        if stage is None:
+        
+            self._stage_loader(source_directory=data_source_directory,table_name=vector_table_name)
+            data_source = vector_table_name
+        
+        else:
+            data_source = stage
 
-        self._stage_loader(source_directory=data_source_directory,table_name=vector_table_name)
 
-        self._table_loader(table=vector_table_name)
+        self._table_loader(table=vector_table_name,source=data_source)
 
     
