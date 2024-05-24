@@ -8,8 +8,7 @@
                           __/ |          __/ |               
                          |___/          |___/            
 Quickstart:   Tasty Bytes - Zero to Snowflake - Governance with Snowflake Horizon
-Version:      v2
-Script:       tb_fy25_governance_snowflake_horizon.sql         
+Version:      v2   
 Author:       Jacob Kranzler
 Copyright(c): 2024 Snowflake Inc. All rights reserved.
 ****************************************************************************************************
