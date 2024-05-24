@@ -8,7 +8,7 @@
                           __/ |          __/ |               
                          |___/          |___/            
 Quickstart:   Tasty Bytes - Zero to Snowflake - Introduction
-Version:      v1     
+Version:      v2     
 Author:       Jacob Kranzler
 Copyright(c): 2024 Snowflake Inc. All rights reserved.
 ****************************************************************************************************
