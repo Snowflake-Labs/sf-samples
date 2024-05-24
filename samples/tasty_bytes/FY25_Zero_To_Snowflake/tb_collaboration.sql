@@ -9,7 +9,6 @@
                          |___/          |___/            
 Quickstart:   Tasty Bytes - Zero to Snowflake - Collaboration
 Version:      v2
-Script:       tb_fy25_collaboration.sql         
 Author:       Jacob Kranzler
 Copyright(c): 2024 Snowflake Inc. All rights reserved.
 ****************************************************************************************************
