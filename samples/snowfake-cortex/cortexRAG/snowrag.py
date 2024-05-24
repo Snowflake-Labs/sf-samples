@@ -28,7 +28,7 @@ class SnowRAG():
             Answer: """
         
         else:
-            template = self.prompt_templte
+            template = self.prompt_template
     
         return self.LM(template)
     
