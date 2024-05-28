@@ -24,7 +24,8 @@ Apr 17, 2024        Ravi Kumar           Initial Lab
 /*************************************************/
 USE ROLE HRZN_DATA_USER;
 USE WAREHOUSE HRZN_WH;
-=======
+USE DATABASE HRZN_DB;
+USE SCHEMA HRZN_SCH;
 
 
 
@@ -581,7 +582,7 @@ SELECT
 FROM HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS oh
 JOIN HRZN_DB.HRZN_SCH.CUSTOMER cl
     ON oh.customer_id = cl.id
-WHERE oh.order_amount > 65
+WHERE oh.order_amount > 3
 GROUP BY ALL
 ORDER BY order_total DESC;
 
