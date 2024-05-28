@@ -1,9 +1,17 @@
-# SnowVectorDB Class to generate and store embeddings from a knowledge base in a Snowflake Table
+# SnowVectorDB Class to generate and store embeddings from a knowledge base in a Snowflake Table. 
+# Experimental, current implementation only supports pdf file processing.
 
 class SnowVectorDB():
-    # given raw pdf data, table name, embeddings model
-    # pdf data in local directory or stage
-    # table is exisiting or new
+    """A helper for automatically converting a directory raw pdfs into a Snowflake Embeddings Table.
+
+    Args:
+            snowflake_session (object): authenticated snowflake session object
+            embeddings_model (str,optional): Snowflake Cortex supported embeddings model. Defaults to e5-base-v2 
+            chunk_size (int,optional): Chunk size to use for the pdf processor. Defaults to 1000.
+            chunk_overlap (int,optional): Chunk overlap to use for the pdf processor. Defaults to 100.
+            file_ext (str,optional): Extension of files include in the embeddings. Defaults to pdf.
+            chunker_overwrite (bool,optional): Whether to overwrite the pdf_processor, defaults to False.
+    """
 
     def __init__(self,
                  snowflake_session:object,
@@ -11,7 +19,7 @@ class SnowVectorDB():
                  chunk_size: int = 1000,
                  chunk_overlap: int = 100,
                  file_ext: str = "pdf",
-                 chunker: bool = False
+                 chunker_overwrite: bool = False
                  ):
         
         self.client = snowflake_session
@@ -20,11 +28,12 @@ class SnowVectorDB():
         self.chunk_overlap = chunk_overlap
         self.file_extension = file_ext
 
+        # Check if there is already a pdf processor registered in the Snowflake Account
         if snowflake_session.sql("SHOW FUNCTIONS like 'pdf_text_chunker'").count() ==0:
             
             self._register_chunker(chunk_size=self.chunk_size,chunk_overlap=self.chunk_overlap)
-            
-        if chunker:
+        
+        if chunker_overwrite:
             self._register_chunker(chunk_size=self.chunk_size,chunk_overlap=self.chunk_overlap)
     
     def _create_table(self,table_name) -> None:
@@ -124,6 +133,7 @@ class SnowVectorDB():
                  data_source_directory:str = None,
                  stage: str = None):
 
+        # if the data source is a local directory, then upload the files into a Snowflake Stage
         if stage is None:
         
             self._stage_loader(source_directory=data_source_directory,table_name=vector_table_name)
@@ -132,7 +142,7 @@ class SnowVectorDB():
         else:
             data_source = stage
 
-
+        # Create embeddings from a stage, create a new table, and load the embeddings into that table
         self._table_loader(table=vector_table_name,source=data_source)
 
     
