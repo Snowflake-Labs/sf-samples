@@ -13,7 +13,7 @@ from snowrag import SnowRAG
 from snowvecdb import SnowVecDB
 
 # Initialize Snowpark
-connection_parameters = {} 
+connection_parameters = {} # See snowflake docs for requisite params
 snowpark = Session.builder.configs(connection_parameters).create()
 
 # Load Knowledge Base From Local Directory + Store Embeddings in a new Snowflake Table
