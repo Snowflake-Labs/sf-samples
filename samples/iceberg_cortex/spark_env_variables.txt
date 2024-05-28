@@ -1,0 +1,9 @@
+export SPARK_HOME=/Users/<username>/anaconda3/envs/iceberg-lab/lib/python3.11/site-packages/pyspark
+export SNOWFLAKE_CATALOG_URI=jdbc:snowflake://<locator>.snowflakecomputing.com
+export SNOWFLAKE_ROLE=ACCOUNTADMIN
+export SNOWFLAKE_USERNAME=<username>
+export PRIVATE_KEY_FILE=~/<path>/rsa_key.p8
+export PACKAGES=org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.4.1,net.snowflake:snowflake-jdbc:3.14.2,software.amazon.awssdk:bundle:2.20.160,software.amazon.awssdk:url-connection-client:2.20.160
+export AWS_REGION=<region>
+export AWS_ACCESS_KEY_ID=<aws-access-key-id>
+export AWS_SECRET_ACCESS_KEY=<aws-secret-access-key>
