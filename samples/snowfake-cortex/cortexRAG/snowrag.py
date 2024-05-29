@@ -22,6 +22,7 @@ class SnowRAG():
                  snowflake_session: object,
                  lm_model: str = "mixtral-8x7b",
                  k: int = 3,
+                 embeddings_model = "e5-base-v2",
                  embeddings_field: str = "CHUNK_VEC",
                  embeddings_text_field: str = "CHUNK",
                  prompt_template:str = None,
@@ -30,6 +31,7 @@ class SnowRAG():
         self.LM = SnowflakeLM(model=lm_model,snowflake_session=snowflake_session)
         self.RM = SnowflakeRM(snowflake_table_name=embeddings_table,
                               snowflake_session=snowflake_session,
+                              embeddings_model=embeddings_model,
                               embeddings_field=embeddings_field ,
                               embeddings_text_field=embeddings_text_field, 
                               k=k)
@@ -44,7 +46,7 @@ class SnowRAG():
             ---
             ---
             Context:{passages}
-            Reasoning: Let'sthink step by step in order to determine the answer to {prompt}.
+            Reasoning: Let's think step by step in order to determine the answer to {prompt}.
             Answer: """
         
         else:
