@@ -46,7 +46,9 @@ class SnowRAG():
             ---
             ---
             Context:{passages}
-            Reasoning: Let's think step by step in order to determine the answer to {prompt}.
+
+            Reasoning: Let'sthink step by step in order to determine the answer to {prompt}.
+
             Answer: """
         
         else:
