@@ -94,8 +94,3 @@ ORDER BY sentiment_diff DESC;
 -- Reload
 DELETE FROM demo.public.product_reviews
     WHERE REVIEW_DATE >= DATE('2024-02-01');
-
--- Cleanup
-DROP DATABASE demo;
-DROP WAREHOUSE demo_wh;
-DROP EXTERNAL VOLUME s3_vol;
