@@ -10,6 +10,6 @@ AWS_REGION="us-west-2"
 
 # Get these from AWS SSO in your Okta
 
-AWS_ACCESS_KEY_ID="<your key>"
-AWS_SECRET_ACCESS_KEY="<your key>"
-AWS_SESSION_TOKEN="your token"
+AWS_ACCESS_KEY_ID="<your_key>"
+AWS_SECRET_ACCESS_KEY="<your_key>"
+AWS_SESSION_TOKEN="<your_token>"
