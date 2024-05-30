@@ -40,7 +40,7 @@ CREATE OR REPLACE FILE FORMAT csv_ff
 -- Create a stage to store the CSV files
 CREATE OR REPLACE STAGE demo.public.files
     FILE_FORMAT = csv_ff
-    DIRECTORY = (ENABLED = TRUE);
+    DIRECTORY = (ENABLE = TRUE);
 
 -- Create a stream to capture new records in the Iceberg table
 CREATE STREAM product_reviews_stream ON TABLE product_reviews;
@@ -69,7 +69,7 @@ WITH jan AS (
     SELECT
         product_name,
         AVG(sentiment) AS avg_sentiment
-    FROM shared_product_reviews.public.product_reviews
+    FROM demo.public.product_reviews
     WHERE MONTHNAME(review_date) = 'Jan'
     GROUP BY 1
 )
@@ -77,7 +77,7 @@ WITH jan AS (
     SELECT
         product_name,
         AVG(sentiment) AS avg_sentiment
-    FROM shared_product_reviews.public.product_reviews
+    FROM demo.public.product_reviews
     WHERE MONTHNAME(review_date) = 'Feb'
     GROUP BY 1
 )
@@ -94,3 +94,8 @@ ORDER BY sentiment_diff DESC;
 -- Reload
 DELETE FROM demo.public.product_reviews
     WHERE REVIEW_DATE >= DATE('2024-02-01');
+
+-- Cleanup
+DROP DATABASE demo;
+DROP WAREHOUSE demo_wh;
+DROP EXTERNAL VOLUME s3_vol;
