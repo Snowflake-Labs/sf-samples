@@ -1,0 +1,15 @@
+{
+  "__accountComment_"  : "enter your 'account' copied from Snowsight: https://docs.snowflake.com/en/user-guide/admin-account-identifier#finding-the-organization-and-account-name-for-an-account",
+  "__accountComment2_" : "then replace '.' with '-' ",
+  "account"            : "ORG-ACCOUNTNAME",
+  "__userComment_"     : "enter your user name",
+  "user"               : "userName or email",
+  "__credComment_"     : "either enter your password if you are confident it's safe to store it, or use externalbrowser authenticator",
+  "__credComment2_"    : "delete the externalbrowser authenticator row if you don't want to use that option",
+  "password"           : "",
+  "authenticator"      : "externalbrowser",
+  "role"               : "PANDAS_ROLE",
+  "warehouse"          : "PANDAS_WH",
+  "database"           : "PANDAS_DB",
+  "schema"             : "EXTERNAL"
+}
