@@ -691,12 +691,12 @@ FROM HRZN_DB.HRZN_SCH.CUSTOMER
 WHERE ZIP NOT IN ('97135', '95357');
 
 
--- which members from postal_code 97135 AND 95357 have have opted in for text messages
+-- which members in Massachusetts have have opted in for text messages?
 SELECT 
-    ID,FIRST_NAME,PHONE_NUMBER,EMAIL, COMPANY
+    ID,FIRST_NAME,PHONE_NUMBER,EMAIL, COMPANY, state
 FROM HRZN_DB.HRZN_SCH.CUSTOMER
-WHERE ZIP IN ('97135', '95357')
-    AND OPTIN = 'Y';
+WHERE state = 'MA'
+AND OPTIN = 'Y';
 
 
 --Remove the Projection and Aggreagation policies for data to be viewed (for the lab)
