@@ -50,15 +50,10 @@ CREATE OR REPLACE TASK cortex_sentiment_score
     SCHEDULE = 'USING CRON 0 0 * * * America/Los_Angeles'
     USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE = 'XSMALL'
 AS
-UPDATE demo.public.product_reviews pr
-SET sentiment = stream_sentiment
-FROM (
-    SELECT
-        id,
-        snowflake.cortex.sentiment(review) AS stream_sentiment
-    FROM demo.public.product_reviews_stream
-) s
-WHERE pr.id = s.id;
+UPDATE demo.public.product_reviews AS pr
+   SET sentiment = snowflake.cortex.sentiment(prs.review)
+  FROM demo.public.product_reviews_stream AS prs
+ WHERE prs.id = pr.id;
 
 -- Use UI to create a reader account
 -- Use UI to create a share with reader account and add both secure views to share
