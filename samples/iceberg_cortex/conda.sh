@@ -1,7 +1,7 @@
-conda activate iceberg-demo
+conda activate iceberg-cortex-demo
 
 jupyter notebook
 
 conda deactivate
 
-conda remove -n iceberg-demo --all
+conda remove -n iceberg-cortex-demo --all
