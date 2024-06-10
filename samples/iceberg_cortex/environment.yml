@@ -1,4 +1,4 @@
-name: iceberg-demo
+name: iceberg-cortex-demo
 channels:
   - conda-forge
 dependencies:
