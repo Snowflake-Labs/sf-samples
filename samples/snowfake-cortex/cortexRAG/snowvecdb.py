@@ -2,7 +2,7 @@
 # Experimental, current implementation only supports pdf file processing.
 
 class SnowVectorDB():
-    """A helper for automatically converting a directory raw pdfs into a Snowflake Embeddings Table.
+    """A utility for automatically generating a Snowflake embeddings table from a local directory or stage containing pdfs.
 
     Args:
             snowflake_session (object): authenticated snowflake session object

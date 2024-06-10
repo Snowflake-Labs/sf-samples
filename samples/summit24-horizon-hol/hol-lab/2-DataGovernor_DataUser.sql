@@ -24,7 +24,8 @@ Apr 17, 2024        Ravi Kumar           Initial Lab
 /*************************************************/
 USE ROLE HRZN_DATA_USER;
 USE WAREHOUSE HRZN_WH;
-=======
+USE DATABASE HRZN_DB;
+USE SCHEMA HRZN_SCH;
 
 
 
@@ -581,7 +582,7 @@ SELECT
 FROM HRZN_DB.HRZN_SCH.CUSTOMER_ORDERS oh
 JOIN HRZN_DB.HRZN_SCH.CUSTOMER cl
     ON oh.customer_id = cl.id
-WHERE oh.order_amount > 65
+WHERE oh.order_amount > 3
 GROUP BY ALL
 ORDER BY order_total DESC;
 
@@ -690,12 +691,12 @@ FROM HRZN_DB.HRZN_SCH.CUSTOMER
 WHERE ZIP NOT IN ('97135', '95357');
 
 
--- which members from postal_code 97135 AND 95357 have have opted in for text messages
+-- which members in Massachusetts have have opted in for text messages?
 SELECT 
-    ID,FIRST_NAME,PHONE_NUMBER,EMAIL, COMPANY
+    ID,FIRST_NAME,PHONE_NUMBER,EMAIL, COMPANY, state
 FROM HRZN_DB.HRZN_SCH.CUSTOMER
-WHERE ZIP IN ('97135', '95357')
-    AND OPTIN = 'Y';
+WHERE state = 'MA'
+AND OPTIN = 'Y';
 
 
 --Remove the Projection and Aggreagation policies for data to be viewed (for the lab)
