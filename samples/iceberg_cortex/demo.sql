@@ -46,7 +46,7 @@ CREATE OR REPLACE STAGE demo.public.files
 CREATE STREAM product_reviews_stream ON TABLE product_reviews;
 
 -- Create task to process new records with Cortex sentiment LLM function
-CREATE OR REPLACE TASK cortex_sentiment_score
+CREATE OR REPLACE TASK demo.public.cortex_sentiment_score
     SCHEDULE = 'USING CRON 0 0 * * * America/Los_Angeles'
     USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE = 'XSMALL'
 AS
