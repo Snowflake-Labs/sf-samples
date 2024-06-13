@@ -24,10 +24,7 @@ CREATE OR REPLACE GIT REPOSITORY SF_SAMPLES
 
 -- set up Tasty Bytes data if it's not already in your account
 EXECUTE IMMEDIATE FROM @SF_SAMPLES/branches/main/samples/tasty_bytes/FY25_Zero_To_Snowflake/tb_introduction.sql;
-
 USE ROLE ACCOUNTADMIN;
-
--- access GitHub repo with demo assets
 
 -- create notebook schema and create notebook from stage
 CREATE SCHEMA IF NOT EXISTS TB_101.CORTEX_ANALYST_DEMO;
@@ -52,6 +49,6 @@ MAIN_FILE = 'notebook_app.ipynb'
 QUERY_WAREHOUSE = NOTEBOOK_WH;
 
 CREATE OR REPLACE STREAMLIT TB_101.CORTEX_ANALYST_DEMO."Tasty Bytes Cortex Analyst"
-ROOT_LOCATION =  '@GIT_DB.PUBLIC.AIML_FCTO_EXAMPLES/branches/main/Cortex Analyst Tasty Bytes/Cortex Analyst Streamlit'
+ROOT_LOCATION =  '@GIT_DB.PUBLIC.SF_SAMPLES/branches/main/samples/cortex-analyst/Cortex Analyst Tasty Bytes/Cortex Analyst Streamlit'
 MAIN_FILE = '/streamlit_in_snowflake_app.py'
 QUERY_WAREHOUSE = NOTEBOOK_WH;
