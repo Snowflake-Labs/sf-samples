@@ -1,0 +1,106 @@
+# Name and description of the semantic model.
+name: performance_marketing
+description: This semantic model can be used for asking questions over Performance Marketing data.
+
+# A semantic model can contain one or more tables.
+tables:
+
+  # A logical table on top of the 'Performance Marketing' base table.
+  - name: performance_marketing
+    description: A logical table capturing Performance Marketing for our streaming platform.
+
+    # The fully qualified name of the base table.
+    base_table:
+      database: llm_demo
+      schema: summit
+      table: performance_marketing
+
+    # Dimension columns in the logical table.
+    dimensions:
+      - name: platform
+        synonyms:
+            - "advertising platform"
+            - "marketing platform"
+        description: The platform the ads were served on
+        expr: platform
+        data_type: TEXT
+        unique: false
+        sample_values:
+          - "meta"
+          - "google"
+          - "snap"
+
+      - name: campaign_id
+        synonyms:
+            - "unique campaign id"
+            - "unique id"
+        description: The unique id of the campaign
+        expr: campaign_id
+        data_type: TEXT
+        unique: true
+        sample_values:
+          - "5ed31e52-0c92-4035-a530-3e3698b53830"
+          - "09b09f7e-9cbf-4771-ad3f-b04b3e708905"
+
+      - name: campaign_name
+        synonyms:
+            - "name of the campaign"
+        description: The name of the campaign.
+        expr: campaign_name
+        data_type: TEXT
+        unique: true
+        sample_values:
+          - "Customer Campaign-125870"
+          - "Customer Campaign-126709"
+    
+    # Measure columns in the logical table.
+    measures:
+    
+      - name: impressions
+        synonyms:
+            - "views"
+        description: The number of impressions in a campaign
+        expr: impressions
+        data_type: NUMBER
+        default_aggregation: sum
+
+      - name: cpm
+        synonyms:
+            - "CPM"
+        description: The cpm of a campaign
+        expr: cpm
+        data_type: NUMBER
+        default_aggregation: sum
+
+      - name: cost
+        synonyms:
+            - "dollars"
+            - "spend"
+        description: The total cost of a campaign
+        expr: cost
+        data_type: NUMBER
+        default_aggregation: sum
+
+      - name: installs
+        synonyms:
+            - "downloads"
+        description: The downloads from a campaign
+        expr: installs
+        data_type: NUMBER
+        default_aggregation: sum
+
+      - name: cost_per_click
+        synonyms:
+            - "cpc"
+        description: The total cost per click
+        expr: cost_per_click
+        data_type: NUMBER
+        default_aggregation: sum
+
+      - name: cost_per_acquisition
+        synonyms:
+            - "cpa"
+        description: The total cost per acquisition
+        expr: cost_per_acquisition
+        data_type: NUMBER
+        default_aggregation: sum
