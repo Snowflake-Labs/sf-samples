@@ -38,4 +38,4 @@ You can modify the database, schema, stage, and semantic model name in the first
 ## Running the example Streamlit app
 Navigate to the Streamlit page of the Snowflake UI and open the Streamlit app titled *Tasty Bytes Cortex Analyst*. The code here is similar to what was run in the Notebook, but also includes the Streamlit `CHAT_MESSAGE` and `CHAT_INPUT` widgets to create a user-friendly interface. 
 
-[streamlit_standalone.py](streamlit_standalone.py) can be used if you'd like to run the Streamlit app outside of Snowflake. You will need to provide your Snowflake connection details to run this example outside of Snowflake. 
+[streamlit_standalone.py](streamlit_standalone.py) can be used if you'd like to run the Streamlit app outside of Snowflake. You will need to provide your Snowflake connection details to run this example outside of Snowflake ([docs](https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-connect#connecting-using-the-connections-toml-file).
