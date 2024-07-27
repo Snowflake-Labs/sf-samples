@@ -4,77 +4,72 @@ Create Date:        2023-01-04
 Author:             Amit Gupta, Fady Heiba 
 Description:        Script installs objects and stored procedures for share watch app. Execute this file as is 
                     Requires accountadmin role
-*************************************************************************************************************
-SUMMARY OF CHANGES
-Date(yyyy-mm-dd)    Author                              Comments
-------------------- -------------------                 --------------------------------------------
-2023-01-05          Amit Gupta, Fady Heiba              Initial Publish
 *************************************************************************************************************/
 
---Uninstall
-/*
-drop notification integration if exists shareops;
-drop warehouse if exists shareops;
-drop database if exists shareops;
-*/
+--Uninstall if current setup exists
+drop notification integration if exists sharewatch;
+drop warehouse if exists sharewatch;
+drop database if exists sharewatch;
 
 --Install as accountadmin
 use role accountadmin;
-CREATE notification integration if not exists shareops_notification_integration type=email enabled=true;
-describe notification integration shareops_notification_integration;
+CREATE notification integration if not exists sharewatch_notification_integration type=email enabled=true;
+describe notification integration sharewatch_notification_integration;
+grant usage ON integration sharewatch_notification_integration to role accountadmin;
 
 
--- shareops database: stores all objects required for share watch app to run
-create database if not exists shareops QUOTED_IDENTIFIERS_IGNORE_CASE=true DATA_RETENTION_TIME_IN_DAYS= 30;
--- shareops warehouse: dedicated warehouse to run share watch app
-create warehouse if not exists shareops;
--- shareops.util schema: stores all objects required for share watch app to run. Including Stored procedures and sp run log table
-create schema if not exists shareops.util;
--- shareops.util.sp_runlog table: records all exectuions of shareops stored procedures whether run via share watch app or manually executed 
-create table if not exists shareops.util.sp_runlog (sp_name varchar(100), sp_arguments varchar, sp_exec_status varchar(10), sp_exec_msg varchar, sp_exec_time timestamp, sp_exec_user varchar, sp_exec_session_id varchar);
--- shareops.util.databases_monitored table: stores all databases (mounted shares) monitored by share watch app
-create table if not exists shareops.util.databases_monitored (db_name varchar(100), origin varchar, scheduled_task_name varchar, schemadrift_flag boolean, cdc_flag boolean); 
--- shareops.util.app_config: records all app configurable parameters and their current value
-create table if not exists shareops.util.app_config (parameter varchar, value variant);
--- shareops.util.master_task: master task defaulted to start daily at 7 am New York Time
-create task if not exists shareops.util.master_task schedule= 'USING CRON 0 7 * * *  America/New_York' as call shareops.util.run_schemadrift_monitor();
+-- sharewatch database: stores all objects required for share watch app to run
+create database if not exists sharewatch QUOTED_IDENTIFIERS_IGNORE_CASE=true DATA_RETENTION_TIME_IN_DAYS= 30;
+drop schema if exists sharewatch.public;
+-- sharewatch warehouse: dedicated warehouse to run share watch app
+create warehouse if not exists sharewatch;
+-- sharewatch.util schema: stores all objects required for share watch app to run. Including Stored procedures and sp run log table
+create schema if not exists sharewatch.util;
+-- sharewatch.util.sp_runlog table: records all exectuions of sharewatch stored procedures whether run via share watch app or manually executed 
+create table if not exists sharewatch.util.sp_runlog (sp_name varchar(100), sp_arguments varchar, sp_exec_status varchar(10), sp_exec_msg varchar, sp_exec_time timestamp, sp_exec_user varchar, sp_exec_session_id varchar);
+-- sharewatch.util.databases_monitored table: stores all databases (mounted shares) monitored by share watch app
+create table if not exists sharewatch.util.databases_monitored (db_name varchar(100), origin varchar, scheduled_task_name varchar, schemadrift_flag boolean, cdc_flag boolean); 
+-- sharewatch.util.app_config: records all app configurable parameters and their current value
+create table if not exists sharewatch.util.app_config (parameter varchar, value variant);
+-- sharewatch.util.master_task: master task defaulted to start daily at 7 am New York Time
+create task if not exists sharewatch.util.master_task schedule= 'USING CRON 0 7 * * *  America/New_York' as call sharewatch.util.run_schemadrift_monitor();
 --populate defaults for app_config
-insert into shareops.util.app_config select 'MASTER_TASK', parse_json('{"name": "master_task","schedule": "0 7 * * *  America/New_York"}');
-insert into shareops.util.app_config select 'NOTIFICATION_EMAIL', null;
-insert into shareops.util.app_config select 'NOTIFICATION_INTEGRATION', parse_json('{"name": "shareops_notification_integration","type": "email","enabled":"true"}');
+insert into sharewatch.util.app_config select 'MASTER_TASK', parse_json('{"name": "master_task","schedule": "0 7 * * *  America/New_York"}');
+insert into sharewatch.util.app_config select 'NOTIFICATION_EMAIL', null;
+insert into sharewatch.util.app_config select 'NOTIFICATION_INTEGRATION', parse_json('{"name": "sharewatch_notification_integration","type": "email","enabled":"true"}');
 
 
 
 use role accountadmin;
-use schema shareops.util;
+use schema sharewatch.util;
 
 --drop procedure setup_schemadrift_monitor (varchar);
---create or replace procedure  shareops.util.setup_schemadrift_monitor (MOUNTEDDB_NAME varchar)
-create procedure if not exists shareops.util.setup_schemadrift_monitor (MOUNTEDDB_NAME varchar)
+--create or replace procedure  sharewatch.util.setup_schemadrift_monitor (MOUNTEDDB_NAME varchar)
+create procedure if not exists sharewatch.util.setup_schemadrift_monitor (MOUNTEDDB_NAME varchar)
 returns string
 language javascript
 execute as caller
 as
 $$
  // Set variables
-    var shareopsdbname = 'shareops';
-    var shareopsutilschema_qualified = 'shareops'.concat('.UTIL');
-    var shareops_sprunlogtbl_qualified = 'shareops'.concat('.UTIL.sp_runlog');
-    var shareops_monitoreddbtbl_qualified = 'shareops'.concat('.UTIL.databases_monitored');
+    var sharewatchdbname = 'sharewatch';
+    var sharewatchutilschema_qualified = 'sharewatch'.concat('.UTIL');
+    var sharewatch_sprunlogtbl_qualified = 'sharewatch'.concat('.UTIL.sp_runlog');
+    var sharewatch_monitoreddbtbl_qualified = 'sharewatch'.concat('.UTIL.databases_monitored');
     var mountdbname = MOUNTEDDB_NAME.toUpperCase();
-    var shareops_mountdbschema_qualified = shareopsdbname.concat('.').concat(mountdbname).toUpperCase();
-    var receivedobject_vw_qualified = shareops_mountdbschema_qualified.concat('._RECEIVED_OBJECTS');
-    var expectedobject_tbl_qualified = shareops_mountdbschema_qualified.concat('._EXPECTED_OBJECTS');
+    var sharewatch_mountdbschema_qualified = sharewatchdbname.concat('.').concat(mountdbname).toUpperCase();
+    var receivedobject_vw_qualified = sharewatch_mountdbschema_qualified.concat('._RECEIVED_OBJECTS');
+    var expectedobject_tbl_qualified = sharewatch_mountdbschema_qualified.concat('._EXPECTED_OBJECTS');
     var infoschema = 'information_schema'.toUpperCase();
     var infoschema_qualified = mountdbname.concat('.').concat(infoschema);
 
     // test if install script was run correctly
- try { snowflake.execute({ sqlText: `describe table `+shareops_monitoreddbtbl_qualified}); } 
+ try { snowflake.execute({ sqlText: `describe table `+sharewatch_monitoreddbtbl_qualified}); } 
 catch (err) {  
     //log sp run in log table
     escaped_error_msg = err.message.replaceAll("'","\\'");
     escaped_error_msg += ". Run install share watch successfully.";
- snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('setup_schemadrift_monitor', '`+mountdbname+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
+ snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('setup_schemadrift_monitor', '`+mountdbname+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
      
      return err;}
      
@@ -83,14 +78,14 @@ catch (err) {
 catch (err) {  
     //log sp run in log table
     escaped_error_msg = err.message.replaceAll("'","\\'");
-     snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('setup_schemadrift_monitor', '`+mountdbname+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
+     snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('setup_schemadrift_monitor', '`+mountdbname+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
      
      return err;}
     
 // if mount_db exists then setup monitoring
 try {
-    // Create a schema under shareops db to hold objects for database mounted from a share
-    snowflake.execute({ sqlText:`create schema if not exists `+ shareops_mountdbschema_qualified+` comment = 'Schema to hold objects for the database mounted from a share'`});
+    // Create a schema under sharewatch db to hold objects for database mounted from a share
+    snowflake.execute({ sqlText:`create schema if not exists `+ sharewatch_mountdbschema_qualified+` comment = 'Schema to hold objects for the database mounted from a share'`});
 
     // Create view to show currently receivedobjects
      snowflake.execute({ sqlText:`
@@ -188,14 +183,14 @@ try {
 
 
     //entry in databases_monitored    
-    snowflake.execute({ sqlText: `insert into `+shareops_monitoreddbtbl_qualified+` values ('`+mountdbname+`',null,null,1,0)`});
+    snowflake.execute({ sqlText: `insert into `+sharewatch_monitoreddbtbl_qualified+` values ('`+mountdbname+`',null,null,1,0)`});
    
      }
     catch (err)  {
 
     err_msg = err.message;
                 //log sp run in log table
- snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('setup_schemadrift_monitor', '`+mountdbname+`','failed','',current_timestamp(), current_user(), current_session())`});
+ snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('setup_schemadrift_monitor', '`+mountdbname+`','failed','',current_timestamp(), current_user(), current_session())`});
                 
 
                 return err_msg;  // Return a success/error indicator.
@@ -210,14 +205,14 @@ success_msg += "\n Expected objects for mounted DB can be viewed here: ".concat(
 success_msg += "\n Received objects for mounted DB can be viewed here: ".concat(receivedobject_vw_qualified) ;
 
     //log sp run in log table     
-    snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('setup_schemadrift_monitor', '`+mountdbname+`','success','`+success_msg+`',current_timestamp(), current_user(), current_session())`});
+    snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('setup_schemadrift_monitor', '`+mountdbname+`','success','`+success_msg+`',current_timestamp(), current_user(), current_session())`});
 
      return success_msg
 $$;
 
---drop procedure shareops.util.run_schemadrift_monitor (varchar);
---create or replace procedure  shareops.util.run_schemadrift_monitor (MOUNTEDDB_NAME varchar)
-create procedure if not exists  shareops.util.run_schemadrift_monitor (MOUNTEDDB_NAME varchar)
+--drop procedure sharewatch.util.run_schemadrift_monitor (varchar);
+--create or replace procedure  sharewatch.util.run_schemadrift_monitor (MOUNTEDDB_NAME varchar)
+create procedure if not exists  sharewatch.util.run_schemadrift_monitor (MOUNTEDDB_NAME varchar)
 returns string
 language javascript
 execute as caller
@@ -225,23 +220,42 @@ as
 $$
 
 // Set variables
-var shareopsdbname = 'shareops';
-var shareopsutilschema_qualified = 'shareops'.concat('.UTIL');
-var shareops_sprunlogtbl_qualified = 'shareops'.concat('.UTIL.sp_runlog');
+var sharewatchdbname = 'sharewatch';
+var sharewatchutilschema_qualified = 'sharewatch'.concat('.UTIL');
+var sharewatch_sprunlogtbl_qualified = 'sharewatch'.concat('.UTIL.sp_runlog');
 var mountdbname = MOUNTEDDB_NAME.toUpperCase();
-var shareops_mountdbschema_qualified = shareopsdbname.concat('.').concat(mountdbname).toUpperCase();
-var receivedobject_vw_qualified = shareops_mountdbschema_qualified.concat('._RECEIVED_OBJECTS');
-var expectedobject_tbl_qualified = shareops_mountdbschema_qualified.concat('._EXPECTED_OBJECTS');
+var sharewatch_mountdbschema_qualified = sharewatchdbname.concat('.').concat(mountdbname).toUpperCase();
+var receivedobject_vw_qualified = sharewatch_mountdbschema_qualified.concat('._RECEIVED_OBJECTS');
+var expectedobject_tbl_qualified = sharewatch_mountdbschema_qualified.concat('._EXPECTED_OBJECTS');
 var infoschema = 'information_schema'.toUpperCase();
 var infoschema_qualified = mountdbname.concat('.').concat(infoschema);
 
-// test if mount_db is setup for monitoring
- try { snowflake.execute({ sqlText: `describe schema `+shareops_mountdbschema_qualified}); }
+// set notification email parameters
+try { 
+param = snowflake.execute({ sqlText: `select trim(value:name::string) from sharewatch.util.app_config where upper(parameter) = 'NOTIFICATION_INTEGRATION'`});
+param.next();
+var sharewatch_notification_integration_name = param.getColumnValue(1);
+
+param = snowflake.execute({ sqlText: `select trim(value:email_address::string) from sharewatch.util.app_config where upper(parameter) = 'NOTIFICATION_EMAIL'`}); 
+param.next();
+var sharewatch_notification_email = param.getColumnValue(1);
+}
 catch (err) {  
     //log sp run in log table
-    error_msg = "Error: shareops monitor is not setup on the database. Run 'call setup_schemadrift_monitor(".concat(mountdbname).concat(")' to setup monitor");
+    error_msg = err.message;
+    //error_msg = "Error: App is not installed properly. Please re-run the install script";
     escaped_error_msg = error_msg.replaceAll("'","\\'");
-     snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('run_schemadrift_monitor', '`+mountdbname+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
+     snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('run_schemadrift_monitor', '`+mountdbname+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
+     return error_msg;};
+
+
+// test if mount_db is setup for monitoring
+ try { snowflake.execute({ sqlText: `describe schema `+sharewatch_mountdbschema_qualified}); }
+catch (err) {  
+    //log sp run in log table
+    error_msg = "Error: sharewatch monitor is not setup on the database. Run 'call setup_schemadrift_monitor(".concat(mountdbname).concat(")' to setup monitor");
+    escaped_error_msg = error_msg.replaceAll("'","\\'");
+     snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('run_schemadrift_monitor', '`+mountdbname+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
      return error_msg;};
     
 // if mount_db exists then setup monitoring
@@ -284,6 +298,9 @@ if(result.next())
          alert_msg += "\n object type: ".concat(result.getColumnValue(2)).concat(", object name: ").concat(result.getColumnValue(3)); 
         }
     }
+//Send notification email when schema has drifted
+snowflake.execute({ sqlText:  `CALL SYSTEM$SEND_EMAIL('`+sharewatch_notification_integration_name+`',
+    '`+sharewatch_notification_email+`','ShareWatch Alert: `+alert_flag+` for  `+mountdbname+`','`+alert_msg+`');` })
 }
 else
 {
@@ -291,31 +308,31 @@ else
 }
 
 //log sp run in log table
- snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('run_schemadrift_monitor', '`+mountdbname+`','success','`+alert_msg+`',current_timestamp(), current_user(), current_session())`});
+ snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('run_schemadrift_monitor', '`+mountdbname+`','success','`+alert_msg+`',current_timestamp(), current_user(), current_session())`});
 
  return alert_msg;
 $$;
 
 
---drop procedure shareops.util.run_schemadrift_monitor ();
---create or replace procedure  shareops.util.run_schemadrift_monitor ()
-create procedure if not exists  shareops.util.run_schemadrift_monitor ()
+--drop procedure sharewatch.util.run_schemadrift_monitor ();
+--create or replace procedure  sharewatch.util.run_schemadrift_monitor ()
+create procedure if not exists  sharewatch.util.run_schemadrift_monitor ()
 returns string
 language javascript
 execute as caller
 as
 $$
-var shareopsdbname = 'shareops';
-var shareopsutilschema_qualified = 'shareops'.concat('.UTIL');
-var shareops_monitoreddb_tbl_qualified = 'shareops'.concat('.UTIL.databases_monitored');
-var shareops_sprunlogtbl_qualified = 'shareops'.concat('.UTIL.sp_runlog');
+var sharewatchdbname = 'sharewatch';
+var sharewatchutilschema_qualified = 'sharewatch'.concat('.UTIL');
+var sharewatch_monitoreddb_tbl_qualified = 'sharewatch'.concat('.UTIL.databases_monitored');
+var sharewatch_sprunlogtbl_qualified = 'sharewatch'.concat('.UTIL.sp_runlog');
 
- try { var result = snowflake.execute({ sqlText: `select db_name from `+shareops_monitoreddb_tbl_qualified+` order by 1` }); }
+ try { var result = snowflake.execute({ sqlText: `select db_name from `+sharewatch_monitoreddb_tbl_qualified+` order by 1` }); }
  catch (err) {  
   //log sp run in log table
     error_msg = err.message;
     escaped_error_msg = error_msg.replaceAll("'","\\'");
-     snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('run_schemadrift_monitor', 'All Monitored DBs','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
+     snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('run_schemadrift_monitor', 'All Monitored DBs','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
      return error_msg;
  }
 // exit if there are no monitor setup 
@@ -324,7 +341,7 @@ if (!result.next()) {
      //log sp run in log table
     error_msg = callsp_msg;
     escaped_error_msg = error_msg.replaceAll("'","\\'");
-     snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('run_schemadrift_monitor', 'All Monitored DBs','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
+     snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('run_schemadrift_monitor', 'All Monitored DBs','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
      return error_msg;
     }
 else {
@@ -333,20 +350,20 @@ else {
     
     // Run Monitor for 1st DB
     var db_name = result.getColumnValue(1);
-    callsp_result=snowflake.execute({ sqlText:  `call `+shareopsutilschema_qualified+`.run_schemadrift_monitor ('`+db_name+`');`});
+    callsp_result=snowflake.execute({ sqlText:  `call `+sharewatchutilschema_qualified+`.run_schemadrift_monitor ('`+db_name+`');`});
     callsp_result.next();
     callsp_msg +="\n".concat(db_name).concat(' MSG: ').concat(callsp_result.getColumnValue(1));
    
    // Run Monitor for 2nd DB and Onwards
     while (result.next()) {
             db_name = result.getColumnValue(1);
-            callsp_result=snowflake.execute({ sqlText:  `call `+shareopsutilschema_qualified+`.run_schemadrift_monitor ('`+db_name+`');`});
+            callsp_result=snowflake.execute({ sqlText:  `call `+sharewatchutilschema_qualified+`.run_schemadrift_monitor ('`+db_name+`');`});
             callsp_result.next();
             callsp_msg +="\n".concat(db_name).concat(' MSG: ').concat(callsp_result.getColumnValue(1));
         }
 
     //log sp run in log table
- snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('run_schemadrift_monitor', 'All Monitored DBs','success','`+callsp_msg+`',current_timestamp(), current_user(), current_session())`});
+ snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('run_schemadrift_monitor', 'All Monitored DBs','success','`+callsp_msg+`',current_timestamp(), current_user(), current_session())`});
     
      return callsp_msg;
 
@@ -354,23 +371,23 @@ else {
 }
 
 $$;
---drop procedure shareops.util.drop_schemadrift_monitor (varchar);
--- create or replace procedure  shareops.util.drop_schemadrift_monitor (MOUNTEDDB_NAME varchar)
-create procedure if not exists  shareops.util.drop_schemadrift_monitor (MOUNTEDDB_NAME varchar)
+--drop procedure sharewatch.util.drop_schemadrift_monitor (varchar);
+-- create or replace procedure  sharewatch.util.drop_schemadrift_monitor (MOUNTEDDB_NAME varchar)
+create procedure if not exists  sharewatch.util.drop_schemadrift_monitor (MOUNTEDDB_NAME varchar)
 returns string
 language javascript
 execute as caller
 as
 $$
  // Set variables
-    var shareopsdbname = 'shareops';
-    var shareopsutilschema_qualified = 'shareops'.concat('.UTIL');
-    var shareops_sprunlogtbl_qualified = 'shareops'.concat('.UTIL.sp_runlog');
-    var shareops_monitoreddbtbl_qualified = 'shareops'.concat('.UTIL.databases_monitored');
+    var sharewatchdbname = 'sharewatch';
+    var sharewatchutilschema_qualified = 'sharewatch'.concat('.UTIL');
+    var sharewatch_sprunlogtbl_qualified = 'sharewatch'.concat('.UTIL.sp_runlog');
+    var sharewatch_monitoreddbtbl_qualified = 'sharewatch'.concat('.UTIL.databases_monitored');
     var mountdbname = MOUNTEDDB_NAME.toUpperCase();
-    var shareops_mountdbschema_qualified = shareopsdbname.concat('.').concat(mountdbname).toUpperCase();
-    var receivedobject_vw_qualified = shareops_mountdbschema_qualified.concat('._RECEIVED_OBJECTS');
-    var expectedobject_tbl_qualified = shareops_mountdbschema_qualified.concat('._EXPECTED_OBJECTS');
+    var sharewatch_mountdbschema_qualified = sharewatchdbname.concat('.').concat(mountdbname).toUpperCase();
+    var receivedobject_vw_qualified = sharewatch_mountdbschema_qualified.concat('._RECEIVED_OBJECTS');
+    var expectedobject_tbl_qualified = sharewatch_mountdbschema_qualified.concat('._EXPECTED_OBJECTS');
     var infoschema = 'information_schema'.toUpperCase();
     var infoschema_qualified = mountdbname.concat('.').concat(infoschema);
 
@@ -382,32 +399,32 @@ $$
 catch (err) {  
     //log sp run in log table
     escaped_error_msg = err.message.replaceAll("'","\\'");
-     snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('drop_schemadrift_monitor', '`+mountdbname+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
+     snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('drop_schemadrift_monitor', '`+mountdbname+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
      
      return err;}
 
 //test if database is monitored for schemadrift. If not, do nothing
-    result=snowflake.execute({ sqlText:  `select db_name, schemadrift_flag from `+shareops_monitoreddbtbl_qualified+` where db_name = '`+mountdbname+`' and schemadrift_flag=1;`});
+    result=snowflake.execute({ sqlText:  `select db_name, schemadrift_flag from `+sharewatch_monitoreddbtbl_qualified+` where db_name = '`+mountdbname+`' and schemadrift_flag=1;`});
     if (!result.next()) {
             //log sp run in log table
             escaped_error_msg = 'ERROR: Database is not setup for schemadrift monitoring';
-             snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('drop_schemadrift_monitor', '`+mountdbname+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
+             snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('drop_schemadrift_monitor', '`+mountdbname+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
     
     return escaped_error_msg ;}
     
 // if mount_db is setup for schemadrift monitoring then cleanup
 try {
-    // Drop schema under shareops db 
-    snowflake.execute({ sqlText:`drop schema if exists `+ shareops_mountdbschema_qualified});
+    // Drop schema under sharewatch db 
+    snowflake.execute({ sqlText:`drop schema if exists `+ sharewatch_mountdbschema_qualified});
     // Delete entry from databases monitored table
-    snowflake.execute({ sqlText:`delete from `+shareops_monitoreddbtbl_qualified+` where db_name = '`+mountdbname+`' and schemadrift_flag=1;`});
+    snowflake.execute({ sqlText:`delete from `+sharewatch_monitoreddbtbl_qualified+` where db_name = '`+mountdbname+`' and schemadrift_flag=1;`});
    
      }
     catch (err)  {
 
          err_msg = err.message;
         //log sp run in log table
- snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('drop_schemadrift_monitor', '`+mountdbname+`','failed','',current_timestamp(), current_user(), current_session())`});
+ snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('drop_schemadrift_monitor', '`+mountdbname+`','failed','',current_timestamp(), current_user(), current_session())`});
                 
                 return err_msg;  // Return a success/error indicator
                 }
@@ -417,187 +434,180 @@ success_msg = "Schema drift monitor is successfully dropped for ".concat(mountdb
 
 
     //log sp run in log table     
-    snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('drop_schemadrift_monitor', '`+mountdbname+`','success','`+success_msg+`',current_timestamp(), current_user(), current_session())`});
+    snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('drop_schemadrift_monitor', '`+mountdbname+`','success','`+success_msg+`',current_timestamp(), current_user(), current_session())`});
 
      return success_msg
 $$;
 
---create or replace procedure shareops.util.update_app_config (PARAMETER_NAME varchar, PARAMETER_VALUE_JSON_STRING varchar)
-create procedure if not exists  shareops.util.update_app_config (PARAMETER_NAME varchar, PARAMETER_VALUE_JSON_STRING varchar)
+--create or replace procedure sharewatch.util.update_app_config (PARAMETER_NAME varchar, PARAMETER_VALUE_JSON_STRING varchar)
+create procedure if not exists  sharewatch.util.update_app_config (PARAMETER_NAME varchar, PARAMETER_VALUE_JSON_STRING varchar)
 returns string
 language javascript
 execute as caller
 as
 $$
-var shareopsdbname = 'shareops';
-var shareopsutilschema_qualified = 'shareops'.concat('.util');
-var shareops_appconfigtbl_qualified = 'shareops'.concat('.util.app_config');
-var shareops_sprunlogtbl_qualified = 'shareops'.concat('.util.sp_runlog');
+var sharewatchdbname = 'sharewatch';
+var sharewatchutilschema_qualified = 'sharewatch'.concat('.util');
+var sharewatch_appconfigtbl_qualified = 'sharewatch'.concat('.util.app_config');
+var sharewatch_sprunlogtbl_qualified = 'sharewatch'.concat('.util.sp_runlog');
 var parameter_name = PARAMETER_NAME.toUpperCase();
 var parameter_value_json_string = PARAMETER_VALUE_JSON_STRING; // Not upper case since CRON Schedule timezones are case sensitive
 var sp_argument = parameter_name.concat(',').concat(parameter_value_json_string);
 try {
      // delete parameter if exists
-     snowflake.execute({ sqlText: `delete from  `+shareops_appconfigtbl_qualified+`  where upper(parameter) ='`+parameter_name+`'`});
+     snowflake.execute({ sqlText: `delete from  `+sharewatch_appconfigtbl_qualified+`  where upper(parameter) ='`+parameter_name+`'`});
      //insert new value
-     snowflake.execute({ sqlText: `insert into `+shareops_appconfigtbl_qualified+` select '`+parameter_name+`', parse_json('`+parameter_value_json_string+`')`});}
+     snowflake.execute({ sqlText: `insert into `+sharewatch_appconfigtbl_qualified+` select '`+parameter_name+`', parse_json('`+parameter_value_json_string+`')`});}
     catch(err){
     //log sp run in log table
         error_msg = err.message;
         escaped_error_msg = error_msg.replaceAll("'","\\'");
-        snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('update_app_config','`+sp_argument+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
+        snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('update_app_config','`+sp_argument+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
          return error_msg;
     }
-success_msg = 'Successfully updated table:'.concat(shareops_appconfigtbl_qualified);
+success_msg = 'Successfully updated table:'.concat(sharewatch_appconfigtbl_qualified);
 //log sp run in log table
-snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('update_app_config','`+sp_argument+`','success','`+success_msg+`',current_timestamp(), current_user(), current_session())`});
+snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('update_app_config','`+sp_argument+`','success','`+success_msg+`',current_timestamp(), current_user(), current_session())`});
     
 return success_msg;
 
 $$;
 
---create or replace procedure  shareops.util.configure_task (FULLY_QUALIFIEFD_TASK_NAME varchar, CRON_SCHEDULE varchar)
-create procedure if not exists  shareops.util.configure_task (FULLY_QUALIFIEFD_TASK_NAME varchar, CRON_SCHEDULE varchar)
+--create or replace procedure  sharewatch.util.configure_task (FULLY_QUALIFIEFD_TASK_NAME varchar, CRON_SCHEDULE varchar)
+create procedure if not exists  sharewatch.util.configure_task (FULLY_QUALIFIEFD_TASK_NAME varchar, CRON_SCHEDULE varchar)
 returns string
 language javascript
 execute as caller
 as
 $$
-var shareopsdbname = 'shareops';
-var shareopsutilschema_qualified = 'shareops'.concat('.UTIL');
+var sharewatchdbname = 'sharewatch';
+var sharewatchutilschema_qualified = 'sharewatch'.concat('.UTIL');
 var taskname = FULLY_QUALIFIEFD_TASK_NAME.toUpperCase();
-var shareops_master_task_qualified = taskname;
-var shareops_monitoreddb_tbl_qualified = 'shareops'.concat('.UTIL.databases_monitored');
-var shareops_sprunlogtbl_qualified = 'shareops'.concat('.UTIL.sp_runlog');
+var sharewatch_master_task_qualified = taskname;
+var sharewatch_monitoreddb_tbl_qualified = 'sharewatch'.concat('.UTIL.databases_monitored');
+var sharewatch_sprunlogtbl_qualified = 'sharewatch'.concat('.UTIL.sp_runlog');
 
 var cron_schedule = CRON_SCHEDULE; // Not upper case since CRON Schedule timezones are case sensitive
 var sp_argument = taskname.concat(',').concat(cron_schedule);
 
- try { snowflake.execute({ sqlText: `describe task `+shareops_master_task_qualified}); } 
+ try { snowflake.execute({ sqlText: `describe task `+sharewatch_master_task_qualified}); } 
  catch (err) {  
   //log sp run in log table
     error_msg = err.message;
     escaped_error_msg = error_msg.replaceAll("'","\\'");
-     snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values('configure_task','`+sp_argument+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
+     snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values('configure_task','`+sp_argument+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
      return error_msg;
  }
 
 //suspend to alter task, alter task, resume task
- snowflake.execute({ sqlText: `alter task `+shareops_master_task_qualified+` suspend;`  }); 
- snowflake.execute({ sqlText: `alter task `+shareops_master_task_qualified+`  set schedule= 'USING CRON `+cron_schedule+`';`  });
-snowflake.execute({ sqlText: `alter task `+shareops_master_task_qualified+` resume;`  }); 
+ snowflake.execute({ sqlText: `alter task `+sharewatch_master_task_qualified+` suspend;`  }); 
+ snowflake.execute({ sqlText: `alter task `+sharewatch_master_task_qualified+`  set schedule= 'USING CRON `+cron_schedule+`';`  });
+snowflake.execute({ sqlText: `alter task `+sharewatch_master_task_qualified+` resume;`  }); 
 success_msg = "Task successfully altered: ".concat(taskname);
 
 //log sp run in log table
-snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('configure_task','`+sp_argument+`','success','`+success_msg+`',current_timestamp(), current_user(), current_session())`});
+snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('configure_task','`+sp_argument+`','success','`+success_msg+`',current_timestamp(), current_user(), current_session())`});
     
 return success_msg;
 $$;
 
 
---create or replace procedure shareops.util.configure_master_task (CRON_SCHEDULE varchar)
-create procedure if not exists  shareops.util.configure_master_task (CRON_SCHEDULE varchar)
+--create or replace procedure sharewatch.util.configure_master_task (CRON_SCHEDULE varchar)
+create procedure if not exists  sharewatch.util.configure_master_task (CRON_SCHEDULE varchar)
 returns string
 language javascript
 execute as caller
 as
 $$
-var shareopsdbname = 'shareops';
-var shareopsutilschema_qualified = 'shareops'.concat('.UTIL');
-var shareops_sprunlogtbl_qualified = 'shareops'.concat('.UTIL.sp_runlog');
+var sharewatchdbname = 'sharewatch';
+var sharewatchutilschema_qualified = 'sharewatch'.concat('.UTIL');
+var sharewatch_sprunlogtbl_qualified = 'sharewatch'.concat('.UTIL.sp_runlog');
 var cron_schedule = CRON_SCHEDULE;
 var app_config_parameter = 'MASTER_TASK'
 var master_taskname = 'MASTER_TASK';
-var shareops_master_task_qualified = 'shareops'.concat('.UTIL.').concat(master_taskname);
+var sharewatch_master_task_qualified = 'sharewatch'.concat('.UTIL.').concat(master_taskname);
 var sp_argument = cron_schedule;
 try{
-    snowflake.execute({ sqlText:  `call `+shareopsutilschema_qualified+`.configure_task ('`+shareops_master_task_qualified+`','`+cron_schedule+`');`});
-    snowflake.execute({ sqlText:  `call `+shareopsutilschema_qualified+`.update_app_config ('`+app_config_parameter+`','{"name": "`+master_taskname+`","schedule": "`+cron_schedule+`"}')`});
+    snowflake.execute({ sqlText:  `call `+sharewatchutilschema_qualified+`.configure_task ('`+sharewatch_master_task_qualified+`','`+cron_schedule+`');`});
+    snowflake.execute({ sqlText:  `call `+sharewatchutilschema_qualified+`.update_app_config ('`+app_config_parameter+`','{"name": "`+master_taskname+`","schedule": "`+cron_schedule+`"}')`});
 }
 catch(err)
 {
       //log sp run in log table
     error_msg = err.message;
     escaped_error_msg = error_msg.replaceAll("'","\\'");
-     snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values('configure_master_task','`+sp_argument+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
+     snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values('configure_master_task','`+sp_argument+`','failed','`+escaped_error_msg+`',current_timestamp(), current_user(), current_session())`});
      return error_msg;
 }
 
 success_msg = "Task successfully altered: ".concat(master_taskname);
 //log sp run in log table
-snowflake.execute({ sqlText:  ` insert into `+shareops_sprunlogtbl_qualified+` values ('configure_master_task','`+sp_argument+`','success','`+success_msg+`',current_timestamp(), current_user(), current_session())`});
+snowflake.execute({ sqlText:  ` insert into `+sharewatch_sprunlogtbl_qualified+` values ('configure_master_task','`+sp_argument+`','success','`+success_msg+`',current_timestamp(), current_user(), current_session())`});
     
 return success_msg;
 
 $$;
 
 
-/*
---- Manually Running ShareOps Stored Procedures 
---Per share
-
--- Mount a share on database 
-show shares;
-set mounted_db = 'mutating_share_db';
-create or replace database identifier($mounted_db) from share SFSENORTHAMERICA.DEMO61.MUTATING_SHARE;
-use database identifier($mounted_db);
-
---Once Share passes onboarding checklist, setup share for monitoring. Review Onboarding checklist in ShareOps Whitepaper for details
--- Enable shareops monitor on shared Db
-call shareops.util.setup_schemadrift_monitor('mutating_share_db');
-call shareops.util.setup_schemadrift_monitor('clean_room_party1');
-
--- Run monitor to check status of shares
-call shareops.util.run_schemadrift_monitor('mutating_share_db');
-
--- Run monitor for all shares being watched
-call shareops.util.run_schemadrift_monitor();
-
--- Drop monitor on a share
-call shareops.util.drop_schemadrift_monitor('mutating_share_db');
-
---configure task. Called by configure_master_task; 
--- NOT to be called standalone
---call shareops.util.configure_task('shareops.util.master_task','0 7 * * *  America/New_York');
-
--- update app parameters including master_task, notification_email. Called by configure_master_task
--- NOT to be called standalone
---call shareops.util.update_app_config('master_task','{"name": "master_task","schedule": "0 7 * * *  America/New_York"}');
---call shareops.util.update_app_config('notificiation_email','{"email_address": "amit.gupta@snowflake.com"}');
-
---configure master task
---call shareops.util.configure_master_task ('0/2 * * * *  America/New_York'); -- Run Every 2 mins
-call shareops.util.configure_master_task ('* 7 * * *  America/New_York'); -- Runs at 7 AM New York Time Every Day
-
--- Manually trigger master task
-execute task shareops.util.master_task ;
-
---determine task state (suspended or started). see state column
-describe task shareops.util.master_task ;
-
--- Get master task run status. If returns no rows meaning task has not run in last 7 days or is not scheduled to run in next 8 days.
--- Via App  madate: min of 1 min to max of 1 week frequency to schedule master task
-select name,
-case when state = 'SCHEDULED' then state else 'SUSPENDED' END as status,
-case when state = 'SCHEDULED' then scheduled_time else NULL END  as next_run_scheduled_at,  
-case when state = 'SCHEDULED' then lead(state)over(order by scheduled_time desc) else state END as last_run_status, 
-case when state = 'SCHEDULED' then lead(scheduled_time)over(order by scheduled_time desc) else scheduled_time END as last_run_at,
-case when state = 'SCHEDULED' then lead(scheduled_from)over(order by scheduled_time desc) else scheduled_from END as last_run_scheduled_from,
-case when last_run_scheduled_from = 'EXECUTE TASK' then 'MANUALLY TRIGERRED' ELSE 'SCHEDULED RUN' END as last_run_trigerred_by
-  from table(shareops.information_schema.task_history(task_name=>'master_task'))
-  qualify row_number() over(order by scheduled_time desc) = 1 ;
 
 
--- Table tracks all stored procedure runs and their output 
-select * from shareops.UTIL.SP_RUNLOG order by SP_EXEC_TIME desc;
+-- --/*
+-- --- Manually Running ShareWatch Stored Procedures (Per Share)
 
--- Table tracks all databases setup for monitoring
-select db_name from shareops.util.databases_monitored order by 1;
+-- -- Assuming you already have a share mounted 
+-- show shares;
 
--- Table tracks all application config parameters including master_task, notification integration, notification email
-select * from shareops.util.app_config;
+-- -- Once the share passes the onboarding checklist (available in the ShareWatch whitepaper), set up share 
+-- -- for monitoring by enabling the ShareWatch monitor on the shared database
+-- call sharewatch.util.setup_schemadrift_monitor('share_example_db');
 
--- Master task that runs monitor for all databases setu pfor monitoring. Default is suspended state
-describe task shareops.util.master_task;
+-- -- Run monitor to check the status of shares
+-- call sharewatch.util.run_schemadrift_monitor('share_example_db');
 
-*/
+-- -- Run monitor to check the status of all shares being watched
+-- call sharewatch.util.run_schemadrift_monitor();
+
+-- -- Drop monitor on a share
+-- call sharewatch.util.drop_schemadrift_monitor('share_example_db');
+
+-- -- Configure the master task. Called by configure_master_task (NOT to be called standalone)
+-- --call sharewatch.util.configure_task('sharewatch.util.master_task','0 7 * * *  America/New_York');
+
+-- -- Update app parameters including master_task and notification_email. Called by configure_master_task (NOT to be called standalone)
+-- --call sharewatch.util.update_app_config('master_task','{"name": "master_task","schedule": "0 7 * * *  America/New_York"}');
+-- --call sharewatch.util.update_app_config('notificiation_email','{"email_address": "fady.heiba@snowflake.com"}');
+
+-- -- Configure master task
+-- call sharewatch.util.configure_master_task ('* 7 * * *  America/New_York'); -- Runs at 7 AM New York Time Every Day
+
+-- -- Configure email recepient for alerts
+-- call sharewatch.util.update_app_config('notification_email','{"email_address": "fady.heiba@snowflake.com"}');
+
+-- -- Manually trigger master task
+-- execute task sharewatch.util.master_task;
+
+-- -- Determine task state (suspended or started), specifically the state field
+-- describe task sharewatch.util.master_task ;
+
+-- -- Get master task run status. If it returns no rows, it means the task has not run in the last 7 days or is not scheduled to run in the next 8 days.
+-- select name,
+-- case when state = 'SCHEDULED' then state else 'SUSPENDED' END as status,
+-- case when state = 'SCHEDULED' then scheduled_time else NULL END  as next_run_scheduled_at,  
+-- case when state = 'SCHEDULED' then lead(state)over(order by scheduled_time desc) else state END as last_run_status, 
+-- case when state = 'SCHEDULED' then lead(scheduled_time)over(order by scheduled_time desc) else scheduled_time END as last_run_at,
+-- case when state = 'SCHEDULED' then lead(scheduled_from)over(order by scheduled_time desc) else scheduled_from END as last_run_scheduled_from,
+-- case when last_run_scheduled_from = 'EXECUTE TASK' then 'MANUALLY TRIGERRED' ELSE 'SCHEDULED RUN' END as last_run_trigerred_by
+--   from table(sharewatch.information_schema.task_history(task_name=>'master_task'))
+--   qualify row_number() over(order by scheduled_time desc) = 1 ;
+
+-- -- Table tracks all stored procedure runs and their output 
+-- select * from sharewatch.UTIL.SP_RUNLOG order by SP_EXEC_TIME desc;
+
+-- -- Table tracks all databases setup for monitoring
+-- select db_name from sharewatch.util.databases_monitored order by 1;
+
+-- -- Table tracks all application config parameters including master_task, notification integration, notification email
+-- select * from sharewatch.util.app_config;
+
+-- -- Master task that runs monitor for all databases setup for monitoring (default is suspended state)
+-- describe task sharewatch.util.master_task;
