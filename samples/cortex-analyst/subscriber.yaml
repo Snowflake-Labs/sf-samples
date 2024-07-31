@@ -1,0 +1,193 @@
+# Name and description of the semantic model.
+name: Subscriber
+description: This semantic model can be used for asking questions over subscriber data.
+
+# A semantic model can contain one or more tables.
+tables:
+
+  # A logical table on top of the 'subscriber' base table.
+  - name: subscriber
+    description: A logical table capturing subscriber information across our streaming platform.
+
+    # The fully qualified name of the base table.
+    base_table:
+      database: llm_demo
+      schema: summit
+      table: subscriber
+
+    # Dimension columns in the logical table.
+    dimensions:
+      - name: top_genre
+        synonyms:
+            - "genre"
+            - "favorite genre"
+        description: The category of the content
+        expr: top_genre
+        data_type: TEXT
+        unique: false
+        sample_values:
+          - "comedy"
+          - "action"
+          - "drama"
+
+      - name: sub_type
+        synonyms:
+            - "customer_behavior"
+            - "subscriber_journey"
+        description: The subscriber behavior of the user
+        expr: sub_type
+        data_type: TEXT
+        unique: false
+        sample_values:
+          - "Price-Sensitive"
+          - "Mature"
+          - "New"
+
+      - name: viewer_type
+        synonyms:
+            - "viewing_behavior"
+            - "viewing_habits"
+        description: The type of viewing behavior by the subscriber.
+        expr: viewer_type
+        data_type: TEXT
+        unique: false
+        sample_values:
+          - "Daytime"
+          - "Late Night"
+        
+      - name: gender
+        synonyms:
+            - "sex"
+        description: The gender of the subscriber
+        expr: gender
+        data_type: TEXT
+        unique: false
+        sample_values:
+          - "Male"
+          - "Female"
+
+      - name: unique_id
+        synonyms:
+            - "unique_customers"
+        description: A unique id for a customer
+        expr: unique_id
+        data_type: TEXT
+        unique: true
+        sample_values:
+          - "89787e77-bb29-4b70-9665-d91a8f4892c3"
+          - "35b9145b-7931-4277-aa07-f8b12fe26d1c"
+
+      - name: age
+        synonyms:
+            - "age_group"
+        description: The age of the subscriber
+        expr: age
+        data_type: NUMBER
+        unique: false
+        sample_values:
+          - "27"
+          - "38"
+          - "45"
+
+      - name: profiles
+        synonyms:
+            - "sub_accounts"
+        description: The number of profiles of the subscriber
+        expr: profiles
+        data_type: NUMBER
+        unique: false
+        sample_values:
+          - "1"
+          - "2"
+          - "3"
+      
+      - name: price_plan
+        synonyms:
+            - "billing type"
+            - "payment cycle"
+        description: The type of price plan of the subscriber
+        expr: price_plan
+        data_type: TEXT
+        unique: false
+        sample_values:
+          - "Monthly"
+          - "Annual"
+          - "Promotional"
+
+      - name: plan_type
+        synonyms:
+            - "sub_accounts"
+        description: The type of plan of the subscriber, ad free or ad supported
+        expr: plan_type
+        data_type: TEXT
+        unique: false
+        sample_values:
+          - "Ad-Free"
+          - "Ad-Supported"
+
+      - name: active_flag
+        synonyms:
+            - "active subscriber"
+            - "active user"
+        description: Whether the current subscriber is actively paying for the service
+        expr: active_flag
+        data_type: TEXT
+        unique: false
+        sample_values:
+          - "Cancelled"
+          - "Active"
+
+      - name: country
+        synonyms:
+            - "location"
+        description: The country the content was viewed in
+        expr: country
+        data_type: TEXT
+        unique: false
+        sample_values:
+          - "US"
+          - "UK"
+          - "CA"
+
+    # Time dimension columns in the logical table.
+    time_dimensions:
+      - name: sign_up_date
+        synonyms:
+            - "acquisition_date"
+            - "install_date"
+        description: The day the subscriber signed up.
+        expr: sign_up_date
+        data_type: TIMESTAMP
+        unique: false
+
+      - name: cancel_date
+        synonyms:
+            - "date cancelled"
+            - "churn date"
+        description: The day the subscriber churned.
+        expr: cancel_date
+        data_type: TIMESTAMP
+        unique: false
+    
+    # Measure columns in the logical table.
+    measures:
+    
+      - name: hours_watched
+        synonyms:
+            - "time"
+        description: The number of hours watched by a subscriber
+        expr: hours_watched
+        data_type: NUMBER
+        default_aggregation: sum
+
+      - name: total_revenue
+        synonyms:
+            - "total revenue"
+            - "revenue"
+            - "lifetime revenue"
+        description: The number of hours watched by a subscriber
+        expr: total_revenue
+        data_type: NUMBER
+        default_aggregation: sum
+
+
