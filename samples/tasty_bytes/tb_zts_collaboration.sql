@@ -33,6 +33,8 @@ Quickstart Section 3 - Investigating Zero Sales Days in our First Party Data
 -- Section 3: Step 1 - Querying Point of Sales Data for Trends
 USE ROLE tasty_data_engineer;
 USE WAREHOUSE tasty_de_wh;
+-- assign Query Tag to Session 
+ALTER SESSION SET query_tag = '{"origin":"sf_sit-is","name":"tb_zts","version":{"major":1, "minor":0},"attributes":{"is_quickstart":1, "source":"tastybytes", "vignette": "collaboration"}}';
 
 SELECT 
     o.date,

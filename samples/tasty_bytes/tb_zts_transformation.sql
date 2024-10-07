@@ -48,6 +48,8 @@ Quickstart Section 4: Testing Snowflakes Query Result Set Cache
 
 -- Section 4: Step 1 - Querying our Cloned Table
 USE WAREHOUSE tasty_dev_wh;
+-- assign Query Tag to Session 
+ALTER SESSION SET query_tag = '{"origin":"sf_sit-is","name":"tb_zts","version":{"major":1, "minor":0},"attributes":{"is_quickstart":1, "source":"sql", "vignette": "transformation"}}';
 
 SELECT
     t.truck_id,
