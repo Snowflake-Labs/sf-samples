@@ -1,18 +1,18 @@
 import altair as alt
 import streamlit as st
-from get_data import TABLE_NAME, get_events
+from common.get_data import TABLE_NAME, get_events
 from snowflake.snowpark.functions import count_distinct
-from utils import (
-    SnowparkConnection,
+from common.utils import (
     altair_time_series,
     format_sql_from_df,
+    get_data_frame_from_raw_sql,
     get_pandas_df,
     tile,
+    format_sql,
 )
 
-for key in ["date_range", "customers"]:
-    if key in st.session_state:
-        st.session_state[key] = st.session_state[key]
+st.session_state["customers"] = st.session_state.get("customers", [])
+
 
 st.set_page_config(page_title="App Users", page_icon="👥", layout="wide")
 st.write("# 👥 App Users")
@@ -80,11 +80,7 @@ with col2:
     where day between '{start}' and '{end}'
     """
 
-    session = SnowparkConnection().connect()
-
-    sp_df = session.sql(query)
-
-    df = get_pandas_df(sp_df, lowercase_columns=True)
+    df = get_data_frame_from_raw_sql(query, lowercase_columns=True)
 
     df = df.melt("day")
     customers_plot = altair_time_series(df, "day", "value", "Date", "Number of events")
@@ -93,8 +89,7 @@ with col2:
         df,
         "Customers per day",
         customers_plot,
-        format_sql_from_df(sp_df),
-        # sql=format_sql(query),
+        sql=format_sql(query),
     )
 
 with col1:
