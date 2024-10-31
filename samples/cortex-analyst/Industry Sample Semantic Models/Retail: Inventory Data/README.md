@@ -1,10 +1,9 @@
 # Retail & CPG Inventory Planning Data Setup for Cortex Analyst
 
 ## Data Setup
-**`TODO`: Describe the data we have and the types of questions that can be asked.**
+This example uses the CRISP dataset from Snowflake Marketplace that is centered around inventory and demand planning use cases.
 
-### Get data on Snowflake Marketplace
-**`TODO`: Steps to access CRISP data on Snowflake Marketplace.**
+Specifically, the Distribution Center Inventory data is used here.
 
 ### Create Snowflake objects
 Copy & paste the following in a sql worksheet and run all:
@@ -21,6 +20,25 @@ CREATE OR REPLACE DATABASE RETAIL_CPG_INVENTORY_DB;
 CREATE OR REPLACE SCHEMA RETAIL_CPG_INVENTORY_SCHEMA;
 CREATE OR REPLACE STAGE RETAIL_CPG_INVENTORY_STAGE;
 ```
+
+### Get data on Snowflake Marketplace
+:exclamation: Make sure to switch to `SYSADMIN` for the rest of these steps! :exclamation:
+#### Steps to access CRISP data on Snowflake Marketplace:
+
+1. Search for `CRISP` in Snowflake Marketplace.
+![](img/retail_1.png)
+
+2. Select `Get`
+![](img/retail_2.png)
+
+3. Add roles `SYSADMIN` and `PUBLIC`
+![](img/retail_3.png)
+
+4. It should be `Ready to Use`
+![](img/retail_4.png)
+
+5. Check to see if the tables were populated.
+![](img/retail_5.png)
 
 ## Cortex Analyst Setup
 Use the [Getting Started with Cortex Analyst](https://quickstarts.snowflake.com/guide/getting_started_with_cortex_analyst/index.html#0) QuickStart guide to setup the demo but swap the semantic model and data objects to the ones provided here.
