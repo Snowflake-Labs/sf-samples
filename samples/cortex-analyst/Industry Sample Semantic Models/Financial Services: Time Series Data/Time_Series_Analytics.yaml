@@ -1,0 +1,561 @@
+name: th_sf_mktplace
+tables:
+  - name: TH_SF_MKTPLACE
+    description: Historical market data view containing trade and quote information
+      for various securities, including timestamp, ticker, and market data metrics.__
+    base_table:
+      database: TICK_HISTORY
+      schema: PUBLIC
+      table: TH_SF_MKTPLACE
+    dimensions:
+      - name: TICKER
+        synonyms:
+          - ('stock', 'security', 'asset', 'share')
+        description: Stock Tickers_
+        expr: TICKER
+        data_type: TEXT
+        sample_values:
+          - 85R4S
+          - 8718S
+          - P082T
+          - 2434T
+          - 79DNH
+          - 79I9H
+          - E6JIB
+          - E6ZIB
+          - E84GB
+          - QJ88V
+          - 33W7H
+          - 58AHH
+          - 59IUH
+          - P419T
+          - P436T
+          - 5DC3H
+          - 4DKIB
+          - 4E39S
+          - YQ23B
+          - M9UGB
+          - MF2IB
+          - 6CNIB
+          - 6D61S
+          - JR5HB
+          - 0A3IB
+      - name: SECURITY_STATUS
+        synonyms:
+          - ''
+        description: Security status of the marketplace.__
+        expr: SECURITY_STATUS
+        data_type: TEXT
+        sample_values:
+          - None
+      - name: TRADE_CONDITION
+        synonyms:
+          - ''
+        description: Trade Conditions for Marketplace Transactions__
+        expr: TRADE_CONDITION
+        data_type: TEXT
+        sample_values:
+          - 00 62 65
+          - 00 94
+          - 01 383 94 24
+          - 11 23 49 24 21 391
+          - 01 31 94 24
+          - 01 18 383 33 177
+          - 10 21 391
+          - 01 0 23 49 24
+          - 01 17 383 177 24
+          - 00 0
+          - 00 19
+          - 00 141 336 21 391
+          - 01 0 23 24
+          - 11 383 24 21 391
+          - 00 141 336 21
+          - 11 2 24 21 391
+          - 01 2 94 24
+          - 00 3 46
+          - 00 20
+          - 01 26 24
+          - 01 27 3 24
+          - 01 0 23 94 24
+          - 00 336 391
+          - 01 94 24
+          - 00 62
+      - name: VENUE
+        synonyms:
+          - '  '
+        description: Financial Institution Names__
+        expr: VENUE
+        data_type: TEXT
+        sample_values:
+          - FINC
+          - None
+          - FINN
+          - FINY
+          - FIBX
+      - name: BUY_ID
+        synonyms:
+          - '  '
+        description: Unique identifier for a buy transaction.__
+        expr: BUY_ID
+        data_type: TEXT
+        sample_values:
+          - None
+      - name: ORDER_CODE
+        synonyms:
+          - '  '
+        description: Order Code__
+        expr: ORDER_CODE
+        data_type: TEXT
+        sample_values:
+          - '00011105400010003655169'
+          - '00011105400010003657217'
+          - '00011105400010003658497'
+          - '00011105400010003661569'
+          - '00011105400010003669249'
+          - '00011105400010003671809'
+          - '00011105400010003660801'
+          - '00011534230010000000769'
+          - '00030048820010000000257'
+          - '00031329470010000001025'
+          - '00013655510010000000513'
+          - '00011105130010000007425'
+          - '00031710910010000001025'
+          - '00031431380010000000769'
+          - '00031971360010000000513'
+          - '00031044630010000002049'
+          - '00011886230010000000513'
+          - '00011107540010000001537'
+          - '00011105320010000007169'
+          - '00011105320010000016897'
+          - '00011105320010000022785'
+          - '00031504780010000000257'
+          - '00031658640010000000513'
+          - '00026183700010000001025'
+          - '00026183700010000003329'
+      - name: REPORTING_SIDE
+        synonyms:
+          - '  '
+        description: Reporting side of the market place.__
+        expr: REPORTING_SIDE
+        data_type: TEXT
+        sample_values:
+          - None
+      - name: SELL_ID
+        synonyms:
+          - '  '
+        description: Unique identifier for each sale transaction.__
+        expr: SELL_ID
+        data_type: TEXT
+        sample_values:
+          - None
+      - name: TRADED_CONDITION
+        synonyms:
+          - '  '
+        description: Traded condition of the item, such as new, used, refurbished,
+          etc.__
+        expr: TRADED_CONDITION
+        data_type: TEXT
+        sample_values:
+          - None
+      - name: ISO_CODE
+        synonyms:
+          - '  '
+        description: International Organization for Standardization (ISO) Country
+          Code.__
+        expr: ISO_CODE
+        data_type: TEXT
+        sample_values:
+          - PAR
+          - USA
+    measures:
+      - name: MSG_TYPE
+        synonyms:
+          - '  '
+        description: Message Type Code__
+        expr: MSG_TYPE
+        data_type: NUMBER
+        sample_values:
+          - '1'
+          - '5'
+          - '4'
+          - '0'
+          - '2'
+      - name: DATE
+        synonyms:
+          - '  '
+        description: Date of marketplace transactions.__
+        expr: DATE
+        data_type: NUMBER
+        sample_values:
+          - '20220822'
+          - '20221012'
+          - '20221013'
+          - '20221026'
+          - '20221005'
+      - name: TIME
+        synonyms:
+          - '  '
+        description: Time stamps for marketplace transactions.__
+        expr: TIME
+        data_type: NUMBER
+        sample_values:
+          - '164904330'
+          - '120044411'
+          - '80812930'
+          - '80817851'
+          - '173038923'
+      - name: SEQUENCE
+        synonyms:
+          - '  '
+        description: Sequence ID for Marketplaces__
+        expr: SEQUENCE
+        data_type: NUMBER
+        sample_values:
+          - '48828407'
+          - '3280382'
+          - '5885720'
+          - '13686956'
+          - '15317571'
+      - name: LAST_PRICE
+        synonyms:
+          - '  '
+        description: Last price of a market place item.__
+        expr: LAST_PRICE
+        data_type: FLOAT
+        sample_values:
+          - '2.854'
+          - '18.56'
+          - '45.935'
+          - '0.9047'
+          - '2.74'
+      - name: LAST_VOL
+        synonyms:
+          - '  '
+        description: Last Volume__
+        expr: LAST_VOL
+        data_type: NUMBER
+        sample_values:
+          - '175'
+          - '250'
+          - '7000'
+          - '1510'
+          - '5000'
+      - name: CVOL
+        synonyms:
+          - '  '
+        description: Cumulative Volume__
+        expr: CVOL
+        data_type: NUMBER
+        sample_values:
+          - '30000'
+          - '1000'
+          - '700'
+          - '22850'
+          - '1700'
+      - name: VWAP
+        synonyms:
+          - '  '
+        description: Volume-Weighted Average Price (VWAP)__
+        expr: VWAP
+        data_type: FLOAT
+        sample_values:
+          - '0.46135135135135'
+          - '3.09'
+          - '1.31660784313726'
+          - '1.32298484848485'
+          - '0.91569293055123'
+      - name: BID
+        synonyms:
+          - '  '
+        description: Bid Price__
+        expr: BID
+        data_type: FLOAT
+        sample_values:
+          - None
+          - '87.29'
+          - '2.715'
+          - '2.745'
+          - '11.43'
+      - name: BID_VOL
+        synonyms:
+          - '  '
+        description: Volume of bids.__
+        expr: BID_VOL
+        data_type: NUMBER
+        sample_values:
+          - '900'
+          - '3005'
+          - '62457'
+          - '1080'
+          - '60420'
+      - name: BID_EXCH
+        synonyms:
+          - '  '
+        description: Bid Exchange ID__
+        expr: BID_EXCH
+        data_type: NUMBER
+        sample_values:
+          - '11100'
+          - '12166'
+          - '11103'
+          - '11018'
+          - '10050'
+      - name: ASK
+        synonyms:
+          - '  '
+        description: Average Selling Price__
+        expr: ASK
+        data_type: FLOAT
+        sample_values:
+          - '1.31'
+          - '1.05'
+          - '1.06'
+          - '6.85'
+          - '0.949'
+      - name: ASK_VOL
+        synonyms:
+          - '  '
+        description: Total Volume of Ask Orders__
+        expr: ASK_VOL
+        data_type: NUMBER
+        sample_values:
+          - '5000'
+          - '17900'
+          - '49525'
+          - '48100'
+          - '246900'
+      - name: ASK_EXCH
+        synonyms:
+          - '  '
+        description: Exchange Codes for Ask Prices__
+        expr: ASK_EXCH
+        data_type: NUMBER
+        sample_values:
+          - '11102'
+          - '788'
+          - '11103'
+          - '10075'
+          - '11100'
+      - name: MID
+        synonyms:
+          - '  '
+        description: Marketplace ID__
+        expr: MID
+        data_type: FLOAT
+        sample_values:
+          - None
+      - name: MSG_BITMASK
+        synonyms:
+          - '  '
+        description: Bitmask representing various marketplace settings.__
+        expr: MSG_BITMASK
+        data_type: NUMBER
+        sample_values:
+          - '16777264'
+          - '164281'
+          - '16907535'
+          - '48'
+          - '16906510'
+      - name: ORIG_SEQUENCE
+        synonyms:
+          - '  '
+        description: Original sequence numbers for marketplace transactions.__
+        expr: ORIG_SEQUENCE
+        data_type: NUMBER
+        sample_values:
+          - '74519256'
+          - '61553912'
+          - '67410327'
+          - '69981675'
+          - '60941114'
+      - name: ASK_YIELD
+        synonyms:
+          - '  '
+        description: ASK Yield__
+        expr: ASK_YIELD
+        data_type: FLOAT
+        sample_values:
+          - None
+      - name: BID_YIELD
+        synonyms:
+          - '  '
+        description: Bid Yield__
+        expr: BID_YIELD
+        data_type: FLOAT
+        sample_values:
+          - None
+      - name: CURRENT_YIELD
+        synonyms:
+          - '  '
+        description: Current yield on a bond or other fixed-income investment.__
+        expr: CURRENT_YIELD
+        data_type: FLOAT
+        sample_values:
+          - None
+      - name: MID_YIELD
+        synonyms:
+          - '  '
+        description: Mid-Yield refers to the average yield of a marketplace, calculated
+          as the total revenue generated by all sellers divided by the total number
+          of transactions.__
+        expr: MID_YIELD
+        data_type: FLOAT
+        sample_values:
+          - None
+      - name: PRODUCT
+        synonyms:
+          - '  '
+        description: Product IDs for marketplaces.__
+        expr: PRODUCT
+        data_type: NUMBER
+        sample_values:
+          - '12354'
+          - '9001'
+          - None
+          - '9597'
+          - '9002'
+      - name: MID_TIME
+        synonyms:
+          - '  '
+        description: Midpoint timestamp of a marketplace transaction.__
+        expr: MID_TIME
+        data_type: NUMBER
+        sample_values:
+          - '115712288'
+          - '115733397'
+          - '115802170'
+          - '122644825'
+          - '122712011'
+      - name: BID_TIME
+        synonyms:
+          - '  '
+        description: Bid Time__
+        expr: BID_TIME
+        data_type: NUMBER
+        sample_values:
+          - '121800178'
+          - '121908147'
+          - '154629968'
+          - '154624101'
+          - '133529195'
+      - name: ASK_TIME
+        synonyms:
+          - '  '
+        description: Time of day when a request was made to the marketplace.__
+        expr: ASK_TIME
+        data_type: NUMBER
+        sample_values:
+          - '110645100'
+          - '110651627'
+          - '180853901'
+          - '91455764'
+          - '91654113'
+      - name: SECURITY_TYPE
+        synonyms:
+          - '  '
+        description: Security Type Code - 1 = equity
+        expr: SECURITY_TYPE
+        data_type: NUMBER
+        sample_values:
+          - '1'
+          - '5'
+          - None
+          - '41'
+          - '12'
+      - name: YIELD_PRICE
+        synonyms:
+          - '  '
+        description: Yield price of a marketplace transaction.__
+        expr: YIELD_PRICE
+        data_type: FLOAT
+        sample_values:
+          - None
+      - name: BENCHMARK_YIELD
+        synonyms:
+          - '  '
+        description: Benchmark Yield__
+        expr: BENCHMARK_YIELD
+        data_type: FLOAT
+        sample_values:
+          - None
+      - name: BENCHMARK_SPREAD
+        synonyms:
+          - '  '
+        description: Benchmark spread__
+        expr: BENCHMARK_SPREAD
+        data_type: FLOAT
+        sample_values:
+          - None
+      - name: TRADED_PRICE
+        synonyms:
+          - '  '
+        description: Traded price of a product in the marketplace.__
+        expr: TRADED_PRICE
+        data_type: FLOAT
+        sample_values:
+          - None
+      - name: TRADED_VOL
+        synonyms:
+          - '  '
+        description: Total traded volume.__
+        expr: TRADED_VOL
+        data_type: NUMBER
+        sample_values:
+          - None
+      - name: TRADED_YIELD
+        synonyms:
+          - '  '
+        description: Traded Yield represents the rate of return on investment for
+          a specific market place, typically expressed as a percentage.__
+        expr: TRADED_YIELD
+        data_type: FLOAT
+        sample_values:
+          - None
+      - name: LAST_EXCH
+        synonyms:
+          - '  '
+        description: Last Exchange Date__
+        expr: LAST_EXCH
+        data_type: NUMBER
+        sample_values:
+          - '14034'
+          - '11100'
+          - '14007'
+          - '11102'
+          - '11019'
+      - name: LAST_DATE
+        synonyms:
+          - '  '
+        description: Last Date of Marketplace Activity__
+        expr: LAST_DATE
+        data_type: NUMBER
+        sample_values:
+          - '20221012'
+          - '20221021'
+          - '20221006'
+          - '20221014'
+          - '20221027'
+      - name: LAST_TIME
+        synonyms:
+          - '  '
+        description: Last Time a Marketplace was Active__
+        expr: LAST_TIME
+        data_type: NUMBER
+        sample_values:
+          - '183000262'
+          - '183000205'
+          - '183000187'
+          - '171700542'
+          - '183000109'
+      - name: ORDER_NUM
+        synonyms:
+          - '  '
+        description: Unique identifier for each order in the marketplace.__
+        expr: ORDER_NUM
+        data_type: NUMBER
+        sample_values:
+          - '3403577'
+          - '462305917'
+          - '462306009'
+          - '462306123'
+          - '799811'
