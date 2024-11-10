@@ -1,0 +1,8 @@
+# It informs SiS app about required packages
+name: sf_env
+channels:
+- snowflake
+dependencies:
+- snowflake-snowpark-python=1.23.0
+- streamlit=1.35.0
+- plotly=5.24.1
