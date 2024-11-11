@@ -1,0 +1,130 @@
+name: HARMONIZED_RETAILER_INVENTORY_DC
+description: 'This semantic model can be used for asking retailer specific inventory information for inventory planning purposes'
+
+tables:
+
+- name: HARMONIZED_RETAILER_INVENTORY_DC
+  description: 'A logical table capturing retailer specific inventory data'
+  base_table:
+    database: SAMPLE_HARMONIZED_DATA_FOR_TOP_CPG_RETAILERS_AND_DISTRIBUTORS
+    schema: PUBLIC
+    table: HARMONIZED_RETAILER_INVENTORY_DC
+  
+  dimensions:
+  - name: ACCOUNT_ID
+    expr: ACCOUNT_ID
+    description: Identifier representing the customer account associated with the inventory data.
+    data_type: NUMBER
+    unique: false
+    synonyms:
+    - 'Account_Identifier'
+  - name: CONNECTOR_CONFIG_ID
+    expr: CONNECTOR_CONFIG_ID
+    description: Identifier representing the data integration instance responsible for sourcing the data.
+    data_type: VARCHAR(16777216)
+    unique: false
+  - name: DATE_KEY
+    expr: DATE_KEY
+    description: The date of the reported inventory.
+    data_type: DATE
+    unique: false
+    synonyms:
+    - 'Date'
+    - 'Report_Date'
+    - 'Inventory_Report_Date'
+  - name: DISTRIBUTION_CENTER
+    expr: DISTRIBUTION_CENTER
+    description: The distribution center name.
+    data_type: VARCHAR(16777216)
+    unique: false
+  - name: DISTRIBUTION_CENTER_ADDRESS
+    expr: DISTRIBUTION_CENTER_ADDRESS
+    description: The street address of the distribution center.
+    data_type: VARCHAR(16777216)
+    unique: false
+  - name: DISTRIBUTION_CENTER_CITY
+    expr: DISTRIBUTION_CENTER_CITY
+    description: The city in which the distribution center is located.
+    data_type: VARCHAR(16777216)
+    unique: false
+  - name: DISTRIBUTION_CENTER_ID
+    expr: DISTRIBUTION_CENTER_ID
+    description: Identifier representing the distribution center.
+    data_type: NUMBER
+    unique: false
+  - name: DISTRIBUTION_CENTER_KEY
+    expr: DISTRIBUTION_CENTER_KEY
+    description: The source identifier for the distribution center.
+    data_type: VARCHAR(16777216)
+    unique: false
+  - name: DISTRIBUTION_CENTER_LAT_LONG
+    expr: DISTRIBUTION_CENTER_LAT_LONG
+    description: The comma-separated latitude and longitude of the distribution center.
+    data_type: VARCHAR(16777216)
+    unique: false
+  - name: DISTRIBUTION_CENTER_STATE
+    expr: DISTRIBUTION_CENTER_STATE
+    description: The state in which the distribution center is located (2 character abbreviation).
+    data_type: VARCHAR(16777216)
+    unique: false
+  - name: DISTRIBUTION_CENTER_ZIP
+    expr: DISTRIBUTION_CENTER_ZIP
+    description: The zip/postal code of the distribution center.
+    data_type: VARCHAR(16777216)
+    unique: false
+  - name: INVENTORY_ID
+    expr: INVENTORY_ID
+    description: The primary key.
+    data_type: NUMBER
+    unique: false
+  - name: MARKET_KEY
+    expr: MARKET_KEY
+    description: The geographic market to which the data applies.
+    data_type: VARCHAR(16777216)
+    unique: false
+  - name: PRODUCT
+    expr: PRODUCT
+    description: The name of the product.
+    data_type: VARCHAR(16777216)
+    unique: false
+  - name: PRODUCT_ID
+    expr: PRODUCT_ID
+    description: Identifier representing the product.
+    data_type: NUMBER
+    unique: false
+  - name: PRODUCT_KEY
+    expr: PRODUCT_KEY
+    description: The source identifier for the product.
+    data_type: VARCHAR(16777216)
+    unique: false
+  - name: RETAILER
+    expr: RETAILER
+    description: The retailer source of the data.
+    data_type: VARCHAR(16777216)
+    unique: false
+  - name: SUPPLIER
+    expr: SUPPLIER
+    description: The product supplier.
+    data_type: VARCHAR(16777216)
+    unique: false
+  - name: UPC
+    expr: UPC
+    description: The UPC / GTIN-13 code of the product. 13 digits. No check digit.
+    data_type: VARCHAR(16777216)
+    unique: false
+  
+  # Measure columns in the logical table.
+  measures:
+  - name: ON_HAND_QUANTITY
+    expr: ON_HAND_QUANTITY
+    description: The inventory on hand at the distribution center.
+    data_type: FLOAT
+    default_aggregation: sum
+  - name: DISTRIBUTION_CENTER_LONGITUDE
+    expr: DISTRIBUTION_CENTER_LONGITUDE
+    description: The distribution center's location longitude.
+    data_type: FLOAT
+  - name: DISTRIBUTION_CENTER_LATITUDE
+    expr: DISTRIBUTION_CENTER_LATITUDE
+    description: The distribution center's location latitude.
+    data_type: FLOAT
