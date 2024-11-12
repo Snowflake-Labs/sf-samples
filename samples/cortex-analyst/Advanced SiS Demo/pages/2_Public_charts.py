@@ -32,9 +32,9 @@ handle_notification_queue()
 
 sidebar()
 
-st.title("Public charts")
+st.title("👥 Public charts")
 st.write(
-    "Welcome to the Query Gallery! Here, you can browse and discover queries shared by all app users, including your own."
+    "Welcome to the public charts gallery! Here, you can browse and discover queries shared by all app users, including your own."
 )
 st.divider()
 

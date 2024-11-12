@@ -115,9 +115,9 @@ st.set_page_config(layout="centered")
 handle_notification_queue()
 sidebar()
 
-st.title("Saved")
+st.title("💾 Saved queries")
 st.write(
-    "On this page, you can browse through all your saved queries, preview them, and edit them as needed."
+    "On this page, you can browse through all your saved queries, preview and edit them as needed."
 )
 st.divider()
 
@@ -151,5 +151,5 @@ for idx, obj in enumerate(st.session_state["user_saved_queries"]):
 
 if not st.session_state["user_saved_queries"]:
     st.info(
-        'It seems like there are no saved queries here. Go to "Talk to your data" tab, and add some!'
+        'It seems like there are no saved queries here. Go to "Talk to your data" page, and add some!'
     )

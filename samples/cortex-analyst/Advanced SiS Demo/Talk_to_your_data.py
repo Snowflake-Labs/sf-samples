@@ -50,7 +50,7 @@ def reset_session_state():
 def show_header_and_sidebar():
     """Display the header and sidebar of the app."""
     # Set the title and introductory text of the app
-    st.title("Cortex Analyst")
+    st.title("💬 Talk to your data")
     st.markdown(
         "Welcome to Cortex Analyst! Type your questions below to interact with your data. "
     )
