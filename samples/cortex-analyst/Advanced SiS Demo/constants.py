@@ -22,3 +22,11 @@ SAVED_QUERIES_TABLE_NAME = "SAVED_QUERIES"
 DEV_SNOWPARK_CONNECTION_NAME = os.getenv(
     "SNOWPARK_CONNECTION_NAME", "ca-sis-demo-connection"
 )
+
+# Enable/disable additional LLM-powered features:
+# Followup questions in chat after each analyst reponse containing SQL
+ENABLE_SMART_FOLLOWUP_QUESTIONS_SUGGESTIONS = True
+# Data summary after executing the query in chat
+ENABLE_SMART_DATA_SUMMARY = True
+# Chart suggestions for data after executing the query in chat
+ENABLE_SMART_CHART_SUGGESTION = True

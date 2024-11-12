@@ -23,7 +23,7 @@ def message_idx_to_question(idx: int) -> str:
 
     # if it's user message, just return prompt content
     if msg["role"] == "user":
-        return str(msg["content"]["text"])
+        return str(msg["content"][0]["text"])
 
     # If it's analyst response, if it's possibleget question interpretation from Analyst
     if msg["content"][0]["text"].startswith(
@@ -37,7 +37,7 @@ def message_idx_to_question(idx: int) -> str:
         )
 
     # Else just return previous user prompt
-    return str(st.session_state.messages[idx - 1]["content"]["text"])
+    return str(st.session_state.messages[idx - 1]["content"][0]["text"])
 
 
 def update_analysts_sql_response_message_in_state(new_sql: str, idx: int):
@@ -66,3 +66,30 @@ def update_analysts_sql_response_message_in_state(new_sql: str, idx: int):
                 st.session_state.messages[idx]["content"][content_idx][
                     "statement"
                 ] = new_sql
+
+
+def get_semantic_model_desc_from_messages() -> str:
+    """Retrieve semantic model description from chat history.
+
+    It assumes that in history there was a descritpion provided by Cortex Analyst,
+    and it starts with "This semantic data model contains information about".
+    """
+    for msg in st.session_state.messages:
+        for content in msg["content"]:
+            if content["type"] == "text" and content["text"].startswith(
+                "This semantic data model contains information about"
+            ):
+                return content["text"]
+    return ""
+
+
+def get_last_chat_message_idx() -> str:
+    """Get message index for the last message in chat."""
+    return len(st.session_state.messages) - 1
+
+
+def last_chat_message_contains_sql() -> str:
+    """Check if the last message in chat contains SQL content."""
+    last_msg = st.session_state.messages[get_last_chat_message_idx()]
+    msg_content_types = {c["type"] for c in last_msg["content"]}
+    return "sql" in msg_content_types

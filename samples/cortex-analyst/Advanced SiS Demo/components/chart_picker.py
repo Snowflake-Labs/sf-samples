@@ -176,16 +176,16 @@ def chart_picker(
     # Now we can pick more columns
     if len(df.columns) > 2:
         for col_param_name in picked_chart_setings.extra_column_args:
+            def_idx = _get_default_idx(
+                def_params.get(col_param_name), all_col_names, None
+            )
             selectbox_args = {
                 "label": col_param_name,
                 "options": all_col_names,
                 "key": f"{col_param_name}_select_{component_idx}",
             }
-            default_idx = _get_default_idx(
-                def_params.get(col_param_name), all_col_names, -1
-            )
-            if default_idx not in (None, -1):
-                selectbox_args["index"] = default_idx
+            if def_idx is not None:
+                selectbox_args["index"] = def_idx
             picked_params[col_param_name] = st.selectbox(**selectbox_args)
 
     # Other, non-column args

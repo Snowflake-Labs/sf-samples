@@ -6,7 +6,7 @@ it provides a function to generate Plotly figures based on the provided configur
 """
 
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Literal, Optional, TypedDict
+from typing import Callable, Dict, List, Literal, Optional, Set, Tuple, TypedDict
 
 import pandas as pd
 import plotly.express as px
@@ -160,3 +160,62 @@ def plotly_fig_from_config(df: pd.DataFrame, cfg: ChartConfigDict) -> Figure:
     plt_args["data_frame"] = df
     chart_cfg = AVAILABLE_CHARTS[chart_name]
     return chart_cfg.plotly_fnc(**plt_args)
+
+
+def try_to_parse_raw_response_to_chart_cfg(
+    raw_resp: Dict, valid_col_names: Set[str]
+) -> Tuple[Optional[ChartConfigDict], Optional[str]]:
+    """
+    Try to parse a dictionary to a chart configuration object.
+
+    This function validates the input dictionary against predefined rules and
+    converts it into a ChartConfigDict object if all validations pass.
+
+    Args:
+        raw_resp (Dict): The input dictionary containing chart configuration data.
+        valid_col_names (Set[str]): A set of valid column names for validation.
+
+    Returns:
+        Tuple[Optional[ChartConfigDict], Optional[str]]: A tuple containing the
+        ChartConfigDict object if the input is valid, and None otherwise. The
+        second element of the tuple is an error message if validation fails,
+        or None if validation passes.
+    """
+    if not isinstance(raw_resp, dict):
+        return None, f"expected a dict but got {type(raw_resp)}"
+    chart_type = raw_resp.get("type")
+    if chart_type is None:
+        return None, "missing required 'type' key"
+    if chart_type not in AVAILABLE_CHARTS:
+        return None, f"Got chart type '{chart_type}' which doesn't seem to be supported"
+    params_dict = raw_resp.copy()
+    params_dict.pop("type")
+    for param_name, param_value in params_dict.items():
+        if param_name not in ALL_SUPPORTED_ARGS:
+            return None, f"Param '{param_name}' doesn't seem to be supported"
+        param_type = ALL_SUPPORTED_ARGS[param_name]
+        if param_type == "column":
+            if not isinstance(param_value, str):
+                return (
+                    None,
+                    f"Column param '{param_name}' is expected to be of type str, but found '{type(param_value)}''",
+                )
+            if param_value not in valid_col_names:
+                return (
+                    None,
+                    f"Column param '{param_name}' does not contain valud column name: '{param_value}'",
+                )
+        elif param_type == "option":
+            allowed_values = ALL_SUPPORTED_OPTIONS[param_name]
+            if param_value not in allowed_values:
+                return (
+                    None,
+                    f"Param '{param_name}' contain invalid value: '{param_value}'. Allowed values: {allowed_values}",
+                )
+        elif param_type == "number":
+            if not str(param_value).isnumeric():
+                return (
+                    None,
+                    f"Numeric param '{param_name}' is expected to hold numeric value",
+                )
+    return ChartConfigDict(type=chart_type, params=ChartParams(**params_dict)), None
