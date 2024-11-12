@@ -1,6 +1,6 @@
 # Cortex Analyst - advanced SiS (Streamlit in Snowflake) demo
 
-This repository hosts a cutting-edge Streamlit in Snowflake application showcasing the capabilities of Cortex Analyst. The demo serves three primary purposes:
+This repository hosts a cutting-edge [Streamlit in Snowflake](https://docs.snowflake.com/en/developer-guide/streamlit/about-streamlit) application showcasing the capabilities of [Cortex Analyst](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst). The demo serves three primary purposes:
 
 * Demonstrate the full potential of Cortex Analyst.
 * Illustrate the possibilities of building innovative applications with Streamlit in Snowflake and Cortex Analyst.
@@ -17,6 +17,32 @@ This app offers the following features:
 * 👥 Collaborate and share: Share your discoveries with others and explore what the community has shared in the Public Charts page.
 * 💡 Discover new insights: Browse the Public Charts page to see what others have discovered, and get inspired by new ideas.
 
+### Extra LLM-based features and how to enable them
+
+This codebase also provides additional, LLM-based features enhancing your chat experience:
+
+* **Generate Text Summary for Query Execution Results**: Automatically summarize the results of your queries in a concise text format.
+* **Generate Plot Config Suggestion for Generated Data**: Receive suggestions on how to best visualize your query results with appropriate plot configurations.
+* **Generate Additional Follow-up Questions for Further Data Exploration**: Get intelligent suggestions for follow-up questions to help you explore your data more deeply.
+
+These features can be enabled or disabled by setting the following constants in [constants.py](./constants.py):
+
+```python
+ENABLE_SMART_DATA_SUMMARY = True|False
+ENABLE_SMART_CHART_SUGGESTION = True|False
+ENABLE_SMART_FOLLOWUP_QUESTIONS_SUGGESTIONS = True|False
+```
+
+All of these features utilize [Snowflake Cortex LLM Functions](https://docs.snowflake.com/en/user-guide/snowflake-cortex/llm-functions) to generate text with the use of LLMs. You can set which particular models are used through the following constants, also placed in [constants.py](./constants.py):
+
+```
+SMART_DATA_SUMMARY_MODEL = "..."
+SMART_CHART_SUGGESTION_MODEL = "..."
+SMART_FOLLOWUP_QUESTIONS_SUGGESTIONS_MODEL = "..."
+```
+
+For the list of available models, visit the [documentation page](https://docs.snowflake.com/en/user-guide/snowflake-cortex/llm-functions#availability).
+
 
 ## Local app development
 This repo provides an out-of-the-box local development setup which should enable developers to iterate on their app's versions more smoothly.
@@ -29,7 +55,7 @@ This repo provides an out-of-the-box local development setup which should enable
 pyenv install 3.8
 ```
 
-Create virtual environment and install packages:
+Create a virtual environment and install packages:
 
 ```bash
 python -m virtualenv -p ~/.pyenv/versions/3.8.19/bin/python venv
@@ -81,7 +107,7 @@ python -m streamlit run --server.runOnSave true Talk_to_your_data.py
 ```
 This will start the Streamlit app in your default web browser. You can interact with the app and see the changes reflected in real-time thanks to the `--server.runOnSave true` flag.
 
-If the app doesn't start, check that you've activated the virtual environment and installed all required packages — see the [Get the right Python version and install packages](#get-the-right-python-version-and-install-packages) sub-section.
+If the app doesn't start, check if you've activated the virtual environment and installed all required packages — see the [Get the right Python version and install packages](#get-the-right-python-version-and-install-packages) sub-section.
 
 
 ## SiS setup
