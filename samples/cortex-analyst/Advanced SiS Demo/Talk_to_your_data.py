@@ -314,7 +314,7 @@ def display_sql_query(sql: str, message_index: int):
             # Show query results in two tabs
             data_tab, chart_tab = st.tabs(["Data 📄", "Chart 📉"])
             with data_tab:
-                st.dataframe(df, use_container_width=True)
+                st.dataframe(df)
 
             with chart_tab:
                 plot_cfg = show_chart_tab(df, message_index)

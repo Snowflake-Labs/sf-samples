@@ -48,7 +48,7 @@ def edit_query_dialog(obj: SavedQuery):
             st.error(f"Could not execute SQL query. Error: {err_msg}")
             st.stop()
         else:
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(df)
 
     plot_cfg = chart_picker(df, default_config=obj.plot_config)
     if plot_cfg.get("type") is not None:
