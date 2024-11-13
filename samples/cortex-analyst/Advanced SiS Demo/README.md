@@ -35,7 +35,7 @@ ENABLE_SMART_FOLLOWUP_QUESTIONS_SUGGESTIONS = True|False
 
 All of these features utilize [Snowflake Cortex LLM Functions](https://docs.snowflake.com/en/user-guide/snowflake-cortex/llm-functions) to generate text with the use of LLMs. You can set which particular models are used through the following constants, also placed in [constants.py](./constants.py):
 
-```
+```python
 SMART_DATA_SUMMARY_MODEL = "..."
 SMART_CHART_SUGGESTION_MODEL = "..."
 SMART_FOLLOWUP_QUESTIONS_SUGGESTIONS_MODEL = "..."
@@ -138,7 +138,7 @@ Upload all files from this repository to the `cortex_analyst_demo.ca_sis_demo_ap
 Just run a following Snowflake SQL command:
 ```sql
 CREATE STREAMLIT cortex_analyst_demo_app
-FROM @cortex_analyst_demo.ca_sis_demo_app_schema.app_code
+ROOT_LOCATION = '@cortex_analyst_demo.ca_sis_demo_app_schema.app_code
 MAIN_FILE = 'Talk_to_your_data.py'
 QUERY_WAREHOUSE = <warehouse name>
 TITLE = 'Cortex Analyst - extended demo';

@@ -15,7 +15,7 @@ from plotly.io import to_json
 from components.chart_picker import chart_picker
 from components.editable_query import editable_query
 from constants import (
-    AVAILABLE_SEMANTIC_MODELS_PATHS,
+    ENABLE_SMART_CHART_SUGGESTION,
     ENABLE_SMART_DATA_SUMMARY,
     ENABLE_SMART_FOLLOWUP_QUESTIONS_SUGGESTIONS,
 )
@@ -27,7 +27,7 @@ from utils.llm import (
     get_results_summary,
 )
 from utils.notifications import add_to_notification_queue, handle_notification_queue
-from utils.plots import plotly_fig_from_config
+from utils.plots import ChartConfigDict, plotly_fig_from_config
 from utils.session_state import (
     get_last_chat_message_idx,
     get_semantic_model_desc_from_messages,
@@ -36,6 +36,12 @@ from utils.session_state import (
     update_analysts_sql_response_message_in_state,
 )
 from utils.storage.saved_answers import save_analyst_answer
+
+# List of available semantic model paths in the format: <DATABASE>.<SCHEMA>.<STAGE>/<FILE-NAME>
+# Each path points to a YAML file defining a semantic model
+AVAILABLE_SEMANTIC_MODELS_PATHS = [
+    "CORTEX_ANALYST_DEMO.REVENUE_TIMESERIES.RAW_DATA/revenue_timeseries.yaml"
+]
 
 
 def reset_session_state():
@@ -325,31 +331,70 @@ def display_sql_query(sql: str, message_index: int):
 
 
 @st.experimental_fragment
-def show_chart_tab(df: pd.DataFrame, message_index: int):
+def show_chart_tab(df: pd.DataFrame, message_index: int) -> ChartConfigDict:
+    """
+    Render the chart tab containing chart picker controls and a chart preview.
+
+    This function displays a chart tab with controls for selecting a chart type and
+    a preview of the selected chart. If the smart chart suggestion feature is enabled,
+    it will use a suggested chart configuration as the default.
+
+    Parameters:
+        df (pd.DataFrame): The DataFrame containing the data to be visualized.
+        message_index (int): The index of the message for which the chart is being generated.
+
+    Returns:
+        ChartConfigDict: The configuration dictionary for the selected chart.
+    """
     default_plot_cfg = None
-    suggested_charts_memory = st.session_state.get("suggested_charts_memory")
-    if suggested_charts_memory:
-        default_plot_cfg = suggested_charts_memory.get(message_index)
 
-    else:
-        st.session_state["suggested_charts_memory"] = {}
+    # If smart chart suggestion is enabled, get the default chart-picker configuration
+    if ENABLE_SMART_CHART_SUGGESTION:
+        question = message_idx_to_question(message_index)
+        default_plot_cfg = get_suggested_plot_config(question, df, message_index)
 
+    # Display the chart picker and get the selected chart configuration
     plot_cfg = chart_picker(
         df, default_config=default_plot_cfg, component_idx=message_index
     )
+    # If a chart type is selected, generate and display the chart
     if plot_cfg.get("type") is not None:
         plotly_fig = plotly_fig_from_config(df, plot_cfg)
-        # On the first run, try to get config suggestion
-        if message_index not in st.session_state["suggested_charts_memory"]:
-            with st.spinner("Generating chart suggestion..."):
-                question = message_idx_to_question(message_index)
-                chart_suggestion, _ = get_chart_suggestion(question, df)
-                st.session_state["suggested_charts_memory"][
-                    message_index
-                ] = chart_suggestion
         st.plotly_chart(plotly_fig)
 
     return plot_cfg
+
+
+def get_suggested_plot_config(
+    question: str, df: pd.DataFrame, message_index: int
+) -> ChartConfigDict:
+    """
+    Get the suggested chart configuration and store it in the session state.
+
+    This function retrieves the suggested chart configuration for a given question and
+    DataFrame, and stores it in the session state to avoid repeated calls to the LLM.
+
+    Parameters:
+        question (str): The question for which the chart suggestion is being generated.
+        df (pd.DataFrame): The DataFrame containing the data to be visualized.
+        message_index (int): The index of the message for which the chart is being generated.
+
+    Returns:
+        ChartConfigDict: The suggested chart configuration dictionary.
+    """
+    # Initialize the session state for storing suggested chart configurations if not already present
+    if "suggested_charts_memory" not in st.session_state:
+        st.session_state["suggested_charts_memory"] = {}
+
+    # Retrieve the suggested chart configuration from the session state if available
+    suggested_config = st.session_state["suggested_charts_memory"].get(message_index)
+
+    # If no configuration is stored, generate a new one and store it in the session state
+    if suggested_config is None:
+        suggested_config, _ = get_chart_suggestion(question, df)
+        st.session_state["suggested_charts_memory"][message_index] = suggested_config
+
+    return suggested_config
 
 
 st.set_page_config(layout="centered")
