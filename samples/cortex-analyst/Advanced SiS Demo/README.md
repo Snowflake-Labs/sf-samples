@@ -134,15 +134,46 @@ Upload all files from this repository to the `cortex_analyst_demo.ca_sis_demo_ap
 
 **Note:** Make sure to maintain the same directory structure as in this repository.
 
+#### Example of uploading files to stage through SnowSQL
+
+1. Install SnowSQL - Snowflake CLI client. [Instructions: Installing SnowSQL](https://docs.snowflake.com/en/user-guide/snowsql-install-config). We recommend to use version >= 3.0:
+```bash
+snow --version
+Snowflake CLI version: 3.1.0
+```
+
+2. Setup [connection config](https://docs.snowflake.com/en/user-guide/snowsql-config#about-the-snowsql-config-file). You can do it throught creating `.toml` file and place it in `~/snowflake/connections.toml`. Here is an example configuration for connection aliased `ca-sis-demo-connection`:
+```toml
+[ca-sis-demo-connection]
+host = "<host>"
+account = "<account>"
+user = "<user>"
+password = "<password>"
+warehouse = "<warehouse>"
+role = "<role>"
+```
+
+3. Put files to stage by executing set of `PUT` commands from `sis_setup/upload_files_to_stage.sql`:
+```bash
+snow sql -c ca-sis-demo-connection -f sis_setup/upload_files_to_stage.sql
+```
+> Those commands assume that code for your deployed app should be uploaded to `@CORTEX_ANALYST_DEMO.CA_SIS_DEMO_APP_SCHEMA.app_code` stage, you will need to update it accordingly, path in your setup differ.
+
 ### Create SiS app
 Just run a following Snowflake SQL command:
 ```sql
 CREATE STREAMLIT cortex_analyst_demo_app
-ROOT_LOCATION = '@cortex_analyst_demo.ca_sis_demo_app_schema.app_code
+ROOT_LOCATION = '@cortex_analyst_demo.ca_sis_demo_app_schema.app_code'
 MAIN_FILE = 'Talk_to_your_data.py'
 QUERY_WAREHOUSE = <warehouse name>
 TITLE = 'Cortex Analyst - extended demo';
 ```
+
+If you followed SnowSQL setup for the section above, you can also do it through following command:
+```bash
+snow sql -c ca-sis-demo-connection -f sis_setup/create_app.sql
+```
+Just remember to replace `<warehouse name>` with the actual name of the warehouse intended for this app.
 
 ### Note on Applying Code Changes deployed SiS app
 
