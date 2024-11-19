@@ -1,0 +1,484 @@
+name: TASTY_BYTES_SEMANTIC_MODEL
+tables:
+  - name: ORDERS_V
+    description: 'Table containing the line-item details of food truck orders'
+    base_table:
+      database: TB_101
+      schema: ANALYTICS
+      table: ORDERS_V
+    dimensions:
+      - name: TRUCK_BRAND_NAME
+        synonyms:
+          - 'Truck brand name'
+          - 'Truck brand'
+        description: 'Brand name for the food truck'
+        expr: TRUCK_BRAND_NAME
+        data_type: TEXT
+        sample_values:
+          - Freezing Point
+          - Guac n' Roll
+          - Smoky BBQ
+          - Revenge of the Curds
+          - The Mac Shack
+          - Amped Up Franks
+          - Nani's Kitchen
+          - Peking Truck
+          - Better Off Bread
+          - Cheeky Greek
+      - name: MENU_TYPE
+        synonyms:
+          - 'Menu type'
+          - 'Cuisine type'
+          - 'Menu category'
+        description: 'The category of the items on the menu'
+        expr: MENU_TYPE
+        data_type: TEXT
+        sample_values:
+          - Crepes
+          - BBQ
+          - Gyros
+          - Ice Cream
+          - Tacos
+          - Poutine
+          - Ethiopian
+          - Mac & Cheese
+          - Sandwiches
+          - Vegetarian
+      - name: PRIMARY_CITY
+        synonyms:
+          - 'City'
+          - 'City name'
+          - 'Truck city'
+        description: 'Primary city for the food truck'
+        expr: PRIMARY_CITY
+        data_type: TEXT
+        sample_values:
+          - Vancouver
+          - Warsaw
+          - London
+          - Seattle
+          - Hamburg
+          - Melbourne
+          - New York City
+          - Seoul
+          - Stockholm
+          - Paris
+      - name: REGION
+        synonyms:
+          - 'Region'
+        description: 'Region where the food truck is stationed'
+        expr: REGION
+        data_type: TEXT
+        sample_values:
+          - New York
+          - Madrid provincia
+          - Seoul Capital
+          - Cairo Governorate
+          - Brandenburg
+          - Victoria
+          - Bavaria
+          - Hamburg
+          - São Paulo estado
+          - Île-de-France
+      - name: COUNTRY
+        synonyms:
+          - 'Country'
+          - 'Truck country'
+        description: 'Country where the food truck is stationed'
+        expr: COUNTRY
+        data_type: TEXT
+        sample_values:
+          - Germany
+          - Canada
+          - Brazil
+          - Spain
+          - Sweden
+          - Poland
+          - Australia
+          - South Korea
+          - Japan
+          - United States
+      - name: FRANCHISEE_FIRST_NAME
+        synonyms:
+          - 'Franchisee first name' # <FILL-OUT>
+        description: 'First name of the franchisee' # <FILL-OUT>
+        expr: FRANCHISEE_FIRST_NAME
+        data_type: TEXT
+        sample_values:
+          - Cindy
+          - Alison
+          - William
+          - Leslie
+          - Morgan
+          - Olivia
+          - Erika
+          - Jennifer
+          - Roger
+          - Allison
+      - name: FRANCHISEE_LAST_NAME
+        synonyms:
+          - 'Franchisee Last Name'
+        description: 'Last name of the franchisee' # <FILL-OUT>
+        expr: FRANCHISEE_LAST_NAME
+        data_type: TEXT
+        sample_values:
+          - Turner
+          - Moss
+          - Carpenter
+          - Warren
+          - Sanders
+          - Roberts
+          - Best
+          - Jones
+          - Carter
+          - Heath
+      - name: FIRST_NAME
+        synonyms:
+          - 'Customer first name' # <FILL-OUT>
+        description: 'First name of the customer' # <FILL-OUT>
+        expr: FIRST_NAME
+        data_type: TEXT
+        sample_values:
+          - Madden
+          - Lilly
+          - Julie
+          - Lillianna
+          - Kianna
+          - Makayla
+          - Roger
+          - Brody
+          - Jamarcus
+          - Morgan
+      - name: LAST_NAME
+        synonyms:
+          - 'Customer last name'
+          - 'Customer surname'
+        description: 'Last name of the customer'
+        expr: LAST_NAME
+        data_type: TEXT
+        sample_values:
+          - Grant
+          - Golden
+          - Carter
+          - Barber
+          - Guerrero
+          - Harrell
+          - Hodges
+          - Fuentes
+          - Irwin
+          - Herring
+      - name: E_MAIL
+        synonyms:
+          - 'Customer email address' 
+          - 'email address'
+        description: 'Customer email address' # <FILL-OUT>
+        expr: E_MAIL
+        data_type: TEXT
+      - name: PHONE_NUMBER
+        synonyms:
+          - 'mobile number'
+          - 'telephone number'
+        description: 'customer telephone number'
+        expr: PHONE_NUMBER
+        data_type: TEXT
+      - name: CHILDREN_COUNT
+        synonyms:
+          - 'number of kids'
+        description: 'number of childern in the customer household'
+        expr: CHILDREN_COUNT
+        data_type: TEXT
+        sample_values:
+          - '4'
+          - '1'
+          - 5+
+          - '3'
+          - '2'
+          - None
+          - '0'
+          - Undisclosed
+      - name: GENDER
+        synonyms:
+          - 'sex' 
+        description: 'Customer gender'
+        expr: GENDER
+        data_type: TEXT
+        sample_values:
+          - Male
+          - None
+          - Undisclosed
+          - Female
+      - name: MARITAL_STATUS
+        synonyms:
+          - 'marital status'
+        description: 'Customer marital status' # <FILL-OUT>
+        expr: MARITAL_STATUS
+        data_type: TEXT
+        sample_values:
+          - Married
+          - None
+          - Single
+          - Undisclosed
+          - Divorced/Seperated
+      - name: MENU_ITEM_NAME
+        synonyms:
+          - 'menu item name'
+          - 'menu item'
+          - 'product name'
+        description: 'Name of the item purchased'
+        expr: MENU_ITEM_NAME
+        data_type: TEXT
+        sample_values:
+          - Ice Tea
+          - Two Meat Plate
+          - Crepe Suzette
+          - Mothers Favorite
+          - Miss Piggie
+          - Lobster Mac & Cheese
+          - The Ranch
+          - Veggie Combo
+          - Three Meat Plate
+          - Creamy Chicken Ramen
+      - name: ORDER_ID
+        synonyms:
+          - 'Order ID'
+          - 'Order number'
+        description: 'unique identifier for the order'
+        expr: ORDER_ID
+        data_type: NUMBER
+        sample_values:
+          - '31215660'
+          - '31215980'
+          - '31216998'
+          - '31218696'
+          - '353424028'
+          - '31215532'
+          - '31219948'
+          - '31220131'
+          - '31218334'
+          - '31221841'
+      - name: TRUCK_ID
+        synonyms:
+          - 'Truck ID'
+          - 'Truck number'
+        description: 'Unique identifier for the truck'
+        expr: TRUCK_ID
+        data_type: NUMBER
+        sample_values:
+          - '109'
+          - '116'
+          - '94'
+          - '448'
+          - '447'
+          - '361'
+          - '389'
+          - '380'
+          - '281'
+          - '283'
+      - name: ORDER_DETAIL_ID
+        synonyms:
+          - 'Order detail ID'
+          - 'Order line ID'
+        description: 'Unique identifier for the order line'
+        expr: ORDER_DETAIL_ID
+        data_type: NUMBER
+        sample_values:
+          - '852794211'
+          - '852795007'
+          - '852797900'
+          - '852799789'
+          - '852805595'
+          - '852797901'
+          - '852799601'
+          - '852802349'
+          - '852803096'
+          - '852802374'
+      - name: LINE_NUMBER
+        synonyms:
+          - 'Line number'
+          - 'Order line number'
+        description: 'Sequence of the item within the order'
+        expr: LINE_NUMBER
+        data_type: NUMBER
+        sample_values:
+          - '4'
+          - '9'
+          - '1'
+          - '5'
+          - '7'
+          - '2'
+          - '3'
+          - '6'
+          - '8'
+          - '0'
+      - name: FRANCHISE_FLAG
+        synonyms:
+          - 'Franchise flag'
+          - 'Franchise indicator'
+        description: '1 or 0 to indicate whether the truck is franchised. 1 is true, 0 is false'
+        expr: FRANCHISE_FLAG
+        data_type: NUMBER
+        sample_values:
+          - '1'
+          - '0'
+      - name: FRANCHISE_ID
+        synonyms:
+          - 'Franchise number'
+          - 'Franchise ID'
+        description: 'Unique identifier for the truck franchise'
+        expr: FRANCHISE_ID
+        data_type: NUMBER
+        sample_values:
+          - '1'
+          - '201'
+          - '205'
+          - '296'
+          - '208'
+          - '297'
+          - '171'
+          - '172'
+          - '173'
+          - '231'
+      - name: LOCATION_ID
+        synonyms:
+          - 'Location ID'
+        description: 'Unique identifier for where the food truck was located when the order was placed'
+        expr: LOCATION_ID
+        data_type: NUMBER
+        sample_values:
+          - '5347'
+          - '2063'
+          - '2434'
+          - '14191'
+          - '7658'
+          - '3319'
+          - '2724'
+          - '9451'
+          - '12572'
+          - '11246'
+      - name: CUSTOMER_ID
+        synonyms:
+          - 'Customer ID'
+          - 'Customer number'
+        description: 'Unique identifier for the customer who placed the order'
+        expr: CUSTOMER_ID
+        data_type: NUMBER
+        sample_values:
+          - '59109'
+          - '21491'
+          - '212003'
+          - '10999'
+          - '23866'
+          - '58339'
+          - '27778'
+          - '47358'
+          - '91405'
+          - '26309'
+      - name: MENU_ITEM_ID
+        synonyms:
+          - 'Menu Item ID'
+        description: 'Unique identifier for the menu item'
+        expr: MENU_ITEM_ID
+        data_type: NUMBER
+        sample_values:
+          - '28'
+          - '23'
+          - '155'
+          - '146'
+          - '19'
+          - '10'
+          - '133'
+          - '51'
+          - '14'
+          - '102'
+    time_dimensions:
+      - name: DATE
+        synonyms:
+          - 'Order date'
+          - 'Purchase date'
+        description: 'date when the order was placed'
+        expr: DATE
+        data_type: DATE
+        sample_values:
+          - '2022-07-08'
+          - '2021-06-14'
+          - '2021-11-30'
+          - '2020-08-09'
+          - '2020-08-10'
+          - '2021-12-04'
+          - '2020-08-15'
+          - '2020-08-16'
+          - '2021-06-27'
+          - '2022-10-30'
+      - name: ORDER_TS
+        synonyms:
+          - 'Order Timestamp'
+        description: 'Timestamp when the order was placed'
+        expr: ORDER_TS
+        data_type: TIMESTAMP_NTZ
+        sample_values:
+          - '2022-07-06 09:50:14'
+          - '2022-07-06 19:39:08'
+          - '2022-07-06 13:10:07'
+          - '2022-07-06 09:23:24'
+          - '2022-07-06 09:32:58'
+          - '2022-07-06 09:24:39'
+          - '2022-07-06 08:31:25'
+          - '2022-07-06 20:57:11'
+          - '2022-07-06 18:25:04'
+          - '2022-07-06 21:46:43'
+    measures:
+      - name: QUANTITY
+        synonyms:
+          - 'Item quantity'
+          - 'Item QTY'
+          - 'QTY'
+        description: 'Quantity purchased for the specific menu item'
+        expr: QUANTITY
+        data_type: NUMBER
+        sample_values:
+          - '1'
+          - '5'
+          - '10'
+          - '14'
+          - '19'
+          - '7'
+          - '4'
+          - '9'
+          - '13'
+          - '15'
+      - name: UNIT_PRICE
+        synonyms:
+          - 'Unit Price'
+          - 'Item price'
+        description: 'Per-unit price for the specific item purchased'
+        expr: UNIT_PRICE
+        data_type: NUMBER
+        sample_values:
+          - '3.0000'
+          - '5.0000'
+          - '14.0000'
+          - '8.0000'
+          - '17.2500'
+          - '21.0000'
+          - '13.0000'
+          - '3.5000'
+          - '12.5000'
+          - '12.0000'
+      - name: PRICE
+        synonyms:
+          - 'Total price'
+          - 'Line price'
+        description: 'Total price for the order line, equal to unit price multiplied by quantity'
+        expr: PRICE
+        data_type: NUMBER
+        sample_values:
+          - '3.0000'
+          - '40.0000'
+          - '5.0000'
+          - '48.0000'
+          - '108.0000'
+          - '33.0000'
+          - '90.0000'
+          - '100.0000'
+          - '119.0000'
+          - '156.0000'

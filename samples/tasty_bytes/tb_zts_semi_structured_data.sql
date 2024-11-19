@@ -30,6 +30,8 @@ Quickstart Section 3 - Profiling our Menu Data
 -- Section 3: Step 1 - Setting our Context and Querying our Table
 USE ROLE tasty_data_engineer;
 USE WAREHOUSE tasty_de_wh;
+-- assign Query Tag to Session 
+ALTER SESSION SET query_tag = '{"origin":"sf_sit-is","name":"tb_zts","version":{"major":1, "minor":0},"attributes":{"is_quickstart":1, "source":"sql", "vignette": "semi_structured"}}';
 
 SELECT TOP 10
     m.truck_brand_name,
