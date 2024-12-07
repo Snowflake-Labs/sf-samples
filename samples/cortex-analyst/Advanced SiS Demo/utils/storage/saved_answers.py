@@ -111,7 +111,7 @@ def _build_insert_to_saved_queries_table_sql(
         PLOT_RENDERED_ON
     ) VALUES (
         '{user}',
-        '{prompt}',
+        $${prompt}$$,
         $${sql}$$,
         $${serialized_plot_cfg}$$,
         $${serialized_plot}$$,
@@ -152,7 +152,7 @@ def _build_update_query_by_id_sql(table_path: str, saved_query: SavedQuery) -> s
     UPDATE {table_path}
     SET
         USER = '{saved_query.user}',
-        PROMPT = '{saved_query.prompt}',
+        PROMPT = $${saved_query.prompt}$$,
         SQL = $${saved_query.sql}$$,
         PLOT_CONFIG = $${plot_cfg_as_str}$$,
         SERIALIZED_PLOT = $${serialized_plot_as_str}$$,
