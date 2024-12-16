@@ -2,6 +2,13 @@
 
 ## Setup
 
+This sample depends on unreleased `snowflake-ml-python` features. Contact the
+Snowflake Container Runtimes team for early access.
+
+The [Jupyter notebook](#jupyter) includes cells for generating synthetic data
+to be used for training and evaluation. Be sure to run the data generation
+steps before attempting to run the [VSCode](#vscode) scripts.
+
 ### Connecting to Snowflake in Python
 
 The scripts included in this example use the `SnowflakeLoginOptions` utility API
