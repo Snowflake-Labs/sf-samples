@@ -1,7 +1,5 @@
 import os
 
-HOST = "snowpilot-test.preprod6.us-west-2.aws.snowflakecomputing.com"
-
 # Api-related:
 API_ENDPOINT = "/api/v2/cortex/analyst/message"
 API_TIMEOUT = 30_000  # in miliseconds
@@ -18,6 +16,7 @@ DEV_SNOWPARK_CONNECTION_NAME = os.getenv(
     "SNOWPARK_CONNECTION_NAME", "ca-sis-demo-connection"
 )
 
+
 # Enable/disable additional LLM-powered features:
 
 # Followup questions in chat after each analyst reponse containing SQL
@@ -30,4 +29,4 @@ SMART_DATA_SUMMARY_MODEL = "llama3-8b"
 
 # Chart suggestions for data after executing the query in chat
 ENABLE_SMART_CHART_SUGGESTION = True
-SMART_CHART_SUGGESTION_MODEL = "mistral-large"
+SMART_CHART_SUGGESTION_MODEL = "mistral-large2"
