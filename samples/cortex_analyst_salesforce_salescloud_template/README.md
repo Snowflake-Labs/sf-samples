@@ -4,8 +4,8 @@
 The provided semantic YAML file enables analysts to answer questions about accounts, opportunities, and sales reps out-of-the-box when using Cortex Analyst against Salesforce Sales Cloud tables in Snowflake.
 
 This repository has instructions for implementing the semantic YAML file:
-1. With the included sample Salesforce data
-2. Against your own Salesforce data in Snowflake
+1. With the included sample Salesforce data (use sfdc_sales_demo.yaml)
+2. Against your own Salesforce data in Snowflake (use sfdc_sales.yaml)
 
 ## Key Assets & Pre-Requisites
 1. If you are planning on editing the sample yaml template file, you will need the [The Semantic Model Generator for Cortex Analyst](https://github.com/Snowflake-Labs/semantic-model-generator). This is a developer solution for validation, iteration testing, editing and saving of a final file to stage. 
@@ -13,16 +13,16 @@ This repository has instructions for implementing the semantic YAML file:
 
 ## Setup for Using Sample Salesforce Data
 1. Open `setup_01.sql` in VS Code or Snowsight and run all.  This script will create a database, schema, stage, and 3 tables (Account, Opportunity, and User).
-2. Upload `sfdc_sales_samples.yaml`, 'Account.csv', 'Opportunity.csv' and 'User.csv' to the stage `SFDC.SALESCLOUD.SEMANTICS`.
+2. Upload `sfdc_sales_samples.yaml`, `Account.csv`, `Opportunity.csv` and `User.csv` to the stage `SFDC.SALESCLOUD.SEMANTICS`.
 3. Open `setup_02.sql` in VS Code or Snowsight and run all. This script will copy your csv files from Stage into your Account, Opportunity and User tables.
-4. Open your Cortex Analyst UI in SiS and change AVAILABLE_SEMANTIC_MODEL_PATHS to "SFDC.SALESCLOUD.SEMANTICS/sfdc_sales_samples.yaml" 
+4. Open your Cortex Analyst UI in SiS and change the value of AVAILABLE_SEMANTIC_MODEL_PATHS to "SFDC.SALESCLOUD.SEMANTICS/sfdc_sales_samples.yaml" 
   - INSERT IMAGE
-6. Click Run nd start asking questions.
+6. Click Run and start asking questions.
 
 ## Setup to Connect to Your Salesforce Data in Snowflake
 > **Note:** While this template only includes non-custom fields common to most Salesforce implementations, your tables may have additional fields (custom or otherwise) not currently listed in the semantic template. You may add your custom or other fields to the semantic file as needed.
 
-1. Upload `sfdc_sales.yaml` to a stage in your SFDC database (create a stage if necessary; it is not required to be in the SFDC database). This template file differs from `sfdc_sales_samples.yaml` in that it doesn't have any sample values populated.
+1. Upload `sfdc_sales.yaml` to a stage in your SFDC database (create a stage if necessary; it is not required to be in the SFDC database). This template file differs from `sfdc_sales_demo.yaml` in that it doesn't have any sample values populated.
 2. Use the Semantic Model Generator to validate, iterate on, and edit the template. Some options:
     - **Add custom dimensions, time dimensions, and measures** from your Account, Opportunity, or User tables that are required to answer your user questions.
     - **Add sample values** from your tables in the `sample_values` section for each/any dimension and measure.
