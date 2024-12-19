@@ -4,8 +4,8 @@
 The provided semantic YAML file enables analysts to answer questions about accounts, opportunities, and sales reps out-of-the-box when using Cortex Analyst against Salesforce Sales Cloud tables in Snowflake.
 
 This repository has instructions for implementing the semantic YAML file:
-1. With the included sample Salesforce data - use [sfdc_sales_demo.yaml]()
-2. Against your own Salesforce data in Snowflake (use sfdc_sales.yaml)
+1. With the included sample Salesforce data - use [`sfdc_sales_demo.yaml`](samples/cortex_analyst_salesforce_salescloud_template/sfdc_sales_demo.yaml)
+2. Against your own Salesforce data in Snowflake use [`sfdc_sales.yaml`](samples/cortex_analyst_salesforce_salescloud_template/sfdc_sales.yaml)
 
 ## Key Assets & Pre-Requisites
 1. If you are planning on editing the sample yaml template file, you will need the [The Semantic Model Generator for Cortex Analyst](https://github.com/Snowflake-Labs/semantic-model-generator). This is a developer solution for validation, iteration testing, editing and saving of a final file to stage. 
