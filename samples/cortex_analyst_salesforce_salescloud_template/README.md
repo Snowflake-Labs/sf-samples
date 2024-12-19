@@ -22,7 +22,7 @@ This repository has instructions for implementing the semantic YAML file:
 ## Setup to Connect to Your Salesforce Data in Snowflake
 > **Note:** While this template only includes non-custom fields common to most Salesforce implementations, your tables may have additional fields (custom or otherwise) not currently listed in the semantic template. You may add your custom or other fields to the semantic file as needed.
 
-1. Upload `sfdc_sales.yaml` to a stage in your SFDC database (create a stage if necessary; it is not required to be in the SFDC database).
+1. Upload `sfdc_sales.yaml` to a stage in your SFDC database (create a stage if necessary; it is not required to be in the SFDC database). This template file differs from `sfdc_sales_samples.yaml` in that it doesn't have any sample values populated.
 2. Use the Semantic Model Generator to validate, iterate on, and edit the template. Some options:
     - **Add custom dimensions, time dimensions, and measures** from your Account, Opportunity, or User tables that are required to answer your user questions.
     - **Add sample values** from your tables in the `sample_values` section for each/any dimension and measure.
@@ -38,7 +38,7 @@ This repository has instructions for implementing the semantic YAML file:
 - Opportunity
 - User
 
-See `setup.sql` or the semantic YAML file for included columns.
+See `setup_01.sql` or the semantic YAML file for included columns.
 
 ### Example Questions
 Accounts Analysis:
