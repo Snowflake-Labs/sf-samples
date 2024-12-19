@@ -1,0 +1,31 @@
+ID,NAME,FORECASTCATEGORY,STAGENAME,ISCLOSED,ISWON,CREATEDDATE,CLOSEDATE,PROBABILITY,LEADSOURCE,AMOUNT,FISCALQUARTER,FISCALYEAR,ACCOUNTID,OWNERID
+O6,Wayne Enterprises Deal 6,Best Case,Closed Won,True,True,2024-03-24 00:00:00.000,2024-10-06,57,Phone Inquiry,1180662.34,3,2025,A3,U6
+O12,Gekko & Co Deal 12,Pipeline,Closed Won,True,True,2024-02-28 00:00:00.000,2024-11-10,63,Trade Show,349567.61,4,2025,A1,U6
+O16,Prestige Worldwide Deal 16,Best Case,Closed Won,True,True,2024-02-01 00:00:00.000,2024-10-18,23,Trade Show,537426.75,3,2025,A19,U8
+O19,Wonka Industries Deal 19,Commit,Closed Won,True,True,2024-02-16 00:00:00.000,2024-11-06,50,Partner Referral,3705927.07,4,2025,A8,U4
+O21,Hooli Deal 21,Best Case,Closed Won,True,True,2024-04-15 00:00:00.000,2024-11-11,68,Partner Referral,681440.69,4,2025,A17,U1
+O23,Globex Corporation Deal 23,Commit,Closed Won,True,True,2024-06-03 00:00:00.000,2024-02-28,12,Partner Referral,2306072.93,1,2025,A1,U6
+O26,Skynet Deal 26,Best Case,Closed Won,True,True,2023-12-18 00:00:00.000,2024-02-08,27,Web,3156361.75,1,2025,A17,U1
+O27,Wonka Industries Deal 27,Pipeline,Closed Won,True,True,2023-04-11 00:00:00.000,2024-02-16,47,Partner Referral,3689538.22,1,2025,A7,U7
+O1,Monsters Inc. Deal 1,Commit,Closed Lost,True,False,2023-06-03 00:00:00.000,2024-03-11,86,Phone Inquiry,4358293.38,1,2025,A3,U6
+O3,Initech Deal 3,Best Case,Closed Lost,True,False,2023-06-04 00:00:00.000,2024-03-18,45,Trade Show,3735184.14,1,2025,A13,U6
+O9,Pied Piper Deal 9,Pipeline,Closed Lost,True,False,2023-01-06 00:00:00.000,2024-03-18,54,Web,2388940.95,1,2025,A8,U4
+O20,Stark Industries Deal 20,Pipeline,Closed Lost,True,False,2023-03-26 00:00:00.000,2024-04-06,64,Web,4208081.83,1,2025,A14,U2
+O24,Umbrella Corp Deal 24,Pipeline,Closed Lost,True,False,2023-05-08 00:00:00.000,2024-04-09,21,Phone Inquiry,1990897.08,1,2025,A13,U6
+O28,Duff Beer Deal 28,Best Case,Closed Lost,True,False,2023-03-28 00:00:00.000,2024-04-17,62,Phone Inquiry,4883475.21,1,2025,A1,U6
+O29,Daily Planet Deal 29,Commit,Closed Lost,True,False,2024-01-09 00:00:00.000,2024-05-25,65,Phone Inquiry,2133183.14,2,2025,A9,U5
+O2,Initech Deal 2,Pipeline,Negotiation,False,False,2024-03-20 00:00:00.000,2024-05-15,13,Trade Show,4913616.83,2,2025,A13,U6
+O4,Acme Corp Deal 4,Commit,Prospecting,False,False,2024-01-24 00:00:00.000,2024-06-07,10,Web,305052.44,2,2025,A13,U6
+O5,Wayne Enterprises Deal 5,Best Case,Prospecting,False,False,2024-01-14 00:00:00.000,2024-06-18,80,Phone Inquiry,4669175.24,2,2025,A3,U6
+O7,Wonka Industries Deal 7,Commit,Negotiation,False,False,2024-01-17 00:00:00.000,2024-07-29,72,Web,3665117.83,2,2025,A12,U7
+O8,Pied Piper Deal 8,Best Case,Prospecting,False,False,2024-03-15 00:00:00.000,2024-07-24,32,Phone Inquiry,1042140.15,2,2025,A11,U5
+O10,Daily Planet Deal 10,Best Case,Prospecting,False,False,2024-02-26 00:00:00.000,2024-07-27,45,Partner Referral,2599438.31,2,2025,A8,U4
+O11,Cyberdyne Systems Deal 11,Commit,Prospecting,False,False,2024-04-10 00:00:00.000,2024-08-19,75,Partner Referral,2036882.21,3,2025,A20,U5
+O13,Soylent Corporation Deal 13,Best Case,Prospecting,False,False,2024-03-07 00:00:00.000,2024-08-05,21,Trade Show,211528.65,3,2025,A6,U1
+O14,Skynet Deal 14,Best Case,Negotiation,False,False,2024-03-31 00:00:00.000,2024-08-05,48,Web,4462388.2,3,2025,A7,U7
+O15,Pied Piper Deal 15,Best Case,Prospecting,False,False,2024-05-03 00:00:00.000,2024-09-17,83,Trade Show,4819381.01,3,2025,A20,U5
+O17,Dunder Mifflin Deal 17,Pipeline,Negotiation,False,False,2024-02-22 00:00:00.000,2024-09-27,71,Trade Show,202971.54,3,2025,A12,U7
+O18,Duff Beer Deal 18,Best Case,Negotiation,False,False,2024-03-21 00:00:00.000,2024-09-22,33,Web,3818812.32,3,2025,A17,U1
+O22,Wayne Enterprises Deal 22,Pipeline,Negotiation,False,False,2024-04-14 00:00:00.000,2024-11-15,84,Phone Inquiry,2292607.84,4,2025,A9,U5
+O25,Monsters Inc. Deal 25,Commit,Prospecting,False,False,2024-01-14 00:00:00.000,2024-11-01,15,Partner Referral,3496935.49,4,2025,A20,U5
+O30,Cyberdyne Systems Deal 30,Pipeline,Prospecting,False,False,2024-03-06 00:00:00.000,2024-10-08,84,Web,928918.58,3,2025,A7,U7

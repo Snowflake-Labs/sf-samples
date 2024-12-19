@@ -1,0 +1,21 @@
+ID,LASTMODIFIEDDATE,NAME,INDUSTRY,ACCOUNTSOURCE,WEBSITE,OWNERID,ANNUALREVENUE,BILLINGCITY,BILLINGSTATE,BILLINGCOUNTRY
+A1,2023-08-06 00:00:00.000,Acme Corp,Finance,Email Campaign,www.acmecorp.com,U6,1060259474,New York,CA,Australia
+A2,2023-03-16 00:00:00.000,Globex Corporation,Education,Advertisement,www.globexcorporation.com,U5,407150169,San Francisco,IL,Germany
+A3,2023-05-17 00:00:00.000,Initech,Education,Social Media,www.initech.com,U6,1811117928,Houston,NY,USA
+A4,2023-05-26 00:00:00.000,Umbrella Corp,Finance,Social Media,www.umbrellacorp.com,U7,1012612333,Chicago,TX,Germany
+A5,2023-08-19 00:00:00.000,Soylent Corporation,Finance,Email Campaign,www.soylentcorporation.com,U8,1686701153,San Francisco,TX,USA
+A6,2023-08-25 00:00:00.000,Hooli,Finance,Social Media,www.hooli.com,U1,1739887245,Los Angeles,IL,Australia
+A7,2023-06-16 00:00:00.000,Stark Industries,Manufacturing,Social Media,www.starkindustries.com,U7,885350230,Los Angeles,TX,Germany
+A8,2023-12-11 00:00:00.000,Wayne Enterprises,Transportation,Advertisement,www.wayneenterprises.com,U4,866964430,Houston,NY,Canada
+A9,2023-07-05 00:00:00.000,Wonka Industries,Education,Web,www.wonkaindustries.com,U5,963668283,San Francisco,NY,Germany
+A10,2023-10-11 00:00:00.000,Gringotts Bank,Retail,Trade Show,www.gringottsbank.com,U6,44946028,Chicago,TX,Canada
+A11,2023-04-26 00:00:00.000,Cyberdyne Systems,Healthcare,Advertisement,www.cyberdynesystems.com,U5,879240626,New York,TX,USA
+A12,2023-04-19 00:00:00.000,Tyrell Corporation,Education,Advertisement,www.tyrellcorporation.com,U7,360365235,Houston,CA,UK
+A13,2023-01-08 00:00:00.000,Dunder Mifflin,Manufacturing,Referral,www.dundermifflin.com,U6,1418175391,Los Angeles,CA,Germany
+A14,2023-06-04 00:00:00.000,Prestige Worldwide,Retail,Advertisement,www.prestigeworldwide.com,U2,1052667002,Los Angeles,TX,Germany
+A15,2023-10-02 00:00:00.000,Gekko & Co,Education,Referral,www.gekko&co.com,U4,1917190143,New York,IL,Australia
+A16,2023-08-29 00:00:00.000,Duff Beer,Manufacturing,Advertisement,www.duffbeer.com,U8,1168394632,San Francisco,IL,Canada
+A17,2023-03-02 00:00:00.000,Pied Piper,Healthcare,Web,www.piedpiper.com,U1,1895587567,San Francisco,TX,UK
+A18,2023-03-09 00:00:00.000,Monsters Inc.,Retail,Trade Show,www.monstersinc..com,U8,1853182654,New York,CA,Australia
+A19,2023-07-21 00:00:00.000,Daily Planet,Transportation,Web,www.dailyplanet.com,U8,259983713,Houston,TX,Canada
+A20,2023-07-11 00:00:00.000,Skynet,Retail,Advertisement,www.skynet.com,U5,899171894,Los Angeles,NY,Germany
