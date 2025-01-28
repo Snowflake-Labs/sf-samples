@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 
 from airflow.decorators import dag, task
 from airflow.exceptions import AirflowException
@@ -11,7 +11,7 @@ _PAYLOAD_SOURCE = os.path.realpath(os.path.join(os.path.dirname(__file__), "..",
     dag_id="single_node_xgb_dag_example",
     dag_display_name="Single Node XGBoost Example DAG",
     schedule=timedelta(weeks=1),
-    start_date=datetime(2024, 12, 15, tzinfo=UTC),
+    start_date=datetime(2024, 12, 15, tzinfo=timezone.utc),
     catchup=False,
 )
 def single_node_xgb_dag_example():
@@ -27,7 +27,7 @@ def single_node_xgb_dag_example():
             _PAYLOAD_SOURCE,
             entrypoint="prepare_data.py",
             args=["--table_name", "HEADLESS_DEMO_DB.DAG_DEMO.DATA_TABLE", "--num_rows", "100000"],
-            compute_pool="SYSTEM_COMPUTE_POOL_CPU",
+            compute_pool="DEMO_POOL_CPU",
             stage_name="HEADLESS_DEMO_DB.DAG_DEMO.PAYLOAD_STAGE",
         )
 
@@ -40,15 +40,15 @@ def single_node_xgb_dag_example():
         return job.id
 
     @task.snowpark()
-    def start_training_job(run_id: str):
+    def start_training_job(model_id: str):
         job = jobs.submit_directory(
             _PAYLOAD_SOURCE,
             entrypoint="train.py",
             args=[
                 "--source_data", "HEADLESS_DEMO_DB.DAG_DEMO.DATA_TABLE",
-                "--output_dir", f"@HEADLESS_DEMO_DB.DAG_DEMO.MODELS/{run_id}",
+                "--output_dir", f"@HEADLESS_DEMO_DB.DAG_DEMO.MODELS/{model_id}",
             ],
-            compute_pool="SYSTEM_COMPUTE_POOL_GPU",
+            compute_pool="DEMO_POOL_CPU",
             stage_name="HEADLESS_DEMO_DB.DAG_DEMO.PAYLOAD_STAGE",
             # num_instances=4, # Multi-node not supported in PrPr
         )
@@ -58,29 +58,30 @@ def single_node_xgb_dag_example():
     @task.snowpark()
     def wait_for_completion(job_id: str):
         job = jobs.get_job(job_id)
-        job.wait()
-        if job.status == "DONE":
+        status = job.wait()
+        if status == "DONE":
             print("Job completed. Logs:\n%s" % job.get_logs())
-        elif job.status == "FAILED":
+            return
+        elif status == "FAILED":
             raise AirflowException("Job failed. Logs:\n%s" % job.get_logs())
-        raise AirflowException("Invalid job status %s. Logs:\n%s" % (job.status, job.get_logs()))
+        raise AirflowException("Invalid job status %s. Logs:\n%s" % (status, job.get_logs()))
 
     @task.snowpark()
-    def evaluate_model(run_id: str):
+    def evaluate_model(model_id: str):
         # Run eval job to completion and retrieve result
         job = jobs.submit_directory(
             _PAYLOAD_SOURCE,
             entrypoint="evaluate.py",
-            args=["--model_path", f"@HEADLESS_DEMO_DB.DAG_DEMO.MODELS/{run_id}", "--source_data", "HEADLESS_DEMO_DB.DAG_DEMO.DATA_TABLE"],
-            compute_pool="SYSTEM_COMPUTE_POOL_GPU",
+            args=["--model_path", f"@HEADLESS_DEMO_DB.DAG_DEMO.MODELS/{model_id}", "--source_data", "HEADLESS_DEMO_DB.DAG_DEMO.DATA_TABLE"],
+            compute_pool="DEMO_POOL_CPU",
             stage_name="HEADLESS_DEMO_DB.DAG_DEMO.PAYLOAD_STAGE",
         )
 
         job.wait()
         job.show_logs()
 
-    run_id = prepare_data()
-    job_id = start_training_job(run_id)
-    wait_for_completion(job_id) >> evaluate_model(run_id)
+    model_id = prepare_data()
+    job_id = start_training_job(model_id)
+    wait_for_completion(job_id) >> evaluate_model(model_id)
 
 single_node_xgb_dag_example()
