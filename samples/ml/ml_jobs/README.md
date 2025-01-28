@@ -1,4 +1,18 @@
-# Headless Container Runtime Jobs
+# ML Jobs (PrPr)
+
+Snowflake ML Jobs enables you to run machine learning workloads inside Snowflake
+[ML Container Runtimes](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml)
+from any environment. This solution allows you to:
+
+- Leverage GPU and high-memory CPU instances for resource-intensive tasks
+- Use your preferred development environment (VS Code, external notebooks, etc.)
+- Maintain flexibility with custom dependencies and packages
+- (Coming soon) Scale workloads across multiple nodes effortlessly
+
+Whether you're looking to productionize your ML workflows or prefer working in
+your own development environment, Snowflake ML Jobs provides the same powerful
+capabilities available in Snowflake Notebooks in a more flexible, integration-friendly
+format.
 
 ## Setup
 
@@ -7,9 +21,6 @@ The Runtime Job API (`snowflake.ml.jobs`) API is available in
 
 ```bash
 pip install snowflake-ml-python>=1.7.4
-
-# Alternative: Install from private build/wheel file
-pip install snowflake_ml_python-1.7.4a20240117-py3-none-any.whl
 ```
 
 > NOTE: The Runtime Job API currently only supports Python 3.10.
