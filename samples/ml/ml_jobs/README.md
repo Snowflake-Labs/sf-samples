@@ -35,7 +35,7 @@ ALTER ACCOUNT SET ENABLE_SNOWSERVICES_ASYNC_JOBS = TRUE;
 Create a compute pool if you don't already have one ready to use.
 
 ```sql
-CREATE COMPUTE POOL IF NOT EXISTS HEADLESS_JOB_POOL -- Customize as desired
+CREATE COMPUTE POOL IF NOT EXISTS MY_COMPUTE_POOL -- Customize as desired
     MIN_NODES = 1
     MAX_NODES = 1               -- Increase if more concurrency desired
     INSTANCE_FAMILY = CPU_X64_S -- See https://docs.snowflake.com/en/sql-reference/sql/create-compute-pool
