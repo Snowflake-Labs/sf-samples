@@ -1,0 +1,9 @@
+spec:
+  containers:
+    - name: "main"
+      volumeMounts:
+        - name: cifar10-data
+          mountPath: /data
+  volumes:
+    - name: cifar10-data
+      source: "@cifar10_data"
