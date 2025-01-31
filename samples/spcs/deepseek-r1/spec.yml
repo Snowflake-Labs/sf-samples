@@ -1,0 +1,41 @@
+spec:
+  containers:
+    - name: deepseek
+      image: {{ deepseek_image }} 
+      resources:
+        requests:
+          nvidia.com/gpu: 4
+        limits:
+          nvidia.com/gpu: 4
+      env:
+        MODEL: deepseek-ai/DeepSeek-R1-Distill-Qwen-32B
+        HF_TOKEN: {{ hf_token }}
+        TENSOR_PARALLEL_SIZE: 4
+        GPU_MEMORY_UTILIZATION: 0.99
+        MAX_MODEL_LEN: 75000
+        VLLM_API_KEY: dummy
+      volumeMounts:
+        - name: models
+          mountPath: /models
+        - name: dshm
+          mountPath: /dev/shm
+    - name: ui
+      image: {{ ui_image }}
+      env:
+        MODEL: deepseek-ai/DeepSeek-R1-Distill-Qwen-32B
+
+  endpoints:
+    - name: chat
+      port: 8501
+      public: true
+
+  volumes:
+    - name: models
+      source: block
+      size: 100Gi
+    - name: dshm
+      source: memory
+      size: 10Gi
+
+  networkPolicyConfig:
+    allowInternetEgress: true

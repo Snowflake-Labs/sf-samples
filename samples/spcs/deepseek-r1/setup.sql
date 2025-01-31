@@ -1,0 +1,71 @@
+USE ROLE CONTAINER_USER_ROLE;
+USE DATABASE DEEKSEEK_DB;
+USE SCHEMA PUBLIC;
+
+-- Create compute pool
+CREATE COMPUTE POOL IF NOT EXISTS DS_GPU_M
+  MIN_NODES = 1
+  MAX_NODES = 4
+  INSTANCE_FAMILY = GPU_NV_M
+  AUTO_SUSPEND_SECS = 300
+  AUTO_RESUME = TRUE
+
+CREATE OR REPLACE IMAGE REPOSITORY IMAGE_REPO;
+
+-- Create stage to store LLM
+CREATE OR REPLACE STAGE models
+ DIRECTORY = (ENABLE = TRUE)
+ ENCRYPTION = (TYPE='SNOWFLAKE_SSE');
+
+-- Create stage to store specs
+CREATE OR REPLACE STAGE specs
+ DIRECTORY = (ENABLE = TRUE)
+ ENCRYPTION = (TYPE='SNOWFLAKE_SSE');
+
+-- Configure network access (for Hugging Face model retrieval)
+CREATE OR REPLACE NETWORK RULE ALLOW_ALL_RULE
+  MODE = EGRESS
+  TYPE = HOST_PORT
+  VALUE_LIST = ('0.0.0.0');
+
+CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION ALLOW_ALL_EAI
+  ALLOWED_NETWORK_RULES = (ALLOW_ALL_RULE)
+  ENABLED = TRUE;
+
+
+-- Image build and publish => run on CLI
+
+-- docker build --platform=linux/amd64 -t local/spcs-deepseek:latest deepseek/
+-- docker build --platform=linux/amd64 -t local/spcs-ui:latest ui/
+-- docker tag local/spcs-deepseek:latest REGISTRY/REPO/DEEPSEEK_IMAGE:DEEPSEEK_IMAGE_VERSION
+-- docker tag local/spcs-ui:latest REGISTRY/REPO/UI_IMAGE:UI_IMAGE_VERSION
+-- docker push REGISTRY/REPO/DEEPSEEK_IMAGE:DEEPSEEK_IMAGE_VERSION
+-- docker push REGISTRY/REPO/UI_IMAGE:UI_IMAGE_VERSION
+-- snow stage copy ./spec.yml @specs --overwrite --database DEEKSEEK_DB --schema PUBLIC
+
+-- Create service
+CREATE SERVICE DEEPSEEK
+IN COMPUTE POOL DS_GPU_M
+FROM @specs SPECIFICATION_TEMPLATE_FILE='spec.yml'
+EXTERNAL_ACCESS_INTEGRATIONS = (ALLOW_ALL_EAI);
+USING ( deepseek_image => ' "REGISTRY/REPO/DEEPSEEK_IMAGE:DEEPSEEK_IMAGE_VERSION" ',
+        ui_image => ' "REGISTRY/REPO/UI_IMAGE:UI_IMAGE_VERSION" ',
+        hf_token => ' "HUGGING_FACE_TOKEN" ')
+
+
+
+-- (Optional: SQL Debug commands)
+ALTER SERVICE DEEPSEEK FROM @specs SPECIFICATION_TEMPLATE_FILE ='spec2.yml'
+USING ( deepseek_image => ' "REGISTRY/REPO/DEEPSEEK_IMAGE:DEEPSEEK_IMAGE_VERSION" ',
+        ui_image => ' "REGISTRY/REPO/UI_IMAGE:UI_IMAGE_VERSION" ',
+        hf_token => ' "HUGGING_FACE_TOKEN" ')
+
+DESCRIBE SERVICE DEEPSEEK
+SHOW ENDPOINTS IN SERVICE DEEPSEEK
+DESCRIBE COMPUTE POOL DS_GPU_M
+ALTER COMPUTE POOL DS_GPU_M SUSPEND
+ALTER SERVICE DEEPSEEK SUSPEND
+LS @DEEKSEEK_DB.PUBLIC.models/
+
+-- (Optional: CLI debug commands)
+--  snow spcs service logs DEEPSEEK --container-name deepseek --instance-id 0 --database DEEKSEEK_DB --schema PUBLIC
