@@ -2,7 +2,7 @@
 EXECUTE_SNOWFLAKE_QUERIES_PARALLELLY
 # Idea Submitted  more than year back
 
-![alt text](idea.png)
+![alt text](Idea.jpg)
 
 # Step 1: SNOWPARK CODE TO BE DEPLOYED AS PROCEDURE (EXEC IN PYTHON WORKSHEET)
 
