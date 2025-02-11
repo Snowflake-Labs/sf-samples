@@ -64,7 +64,7 @@ compute_pool = "MY_COMPUTE_POOL"
 @remote(compute_pool, stage_name="payload_stage")
 def hello_world(name: str = "world"):
     # We recommend importing any needed modules *inside* the function definition
-    import datetime
+    from datetime import datetime
 
     print(f"{datetime.now()} Hello {name}!")
 
@@ -163,7 +163,7 @@ compute_pool = "MY_COMPUTE_POOL"
 )
 def hello_world(name: str = "world"):
     # We recommend importing any needed modules *inside* the function definition
-    import datetime
+    from datetime import datetime
 
     print(f"{datetime.now()} Hello {name}!")
 
