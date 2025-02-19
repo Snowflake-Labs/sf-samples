@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import requests
 import streamlit as st
 
-from constants import API_ENDPOINT, API_TIMEOUT, HOST
+from constants import API_ENDPOINT, API_TIMEOUT
 from utils.db import _get_session_local
 from utils.misc import is_local
 
@@ -50,12 +50,15 @@ def get_analyst_response__local(
         "messages": messages,
         "semantic_model_file": f"@{st.session_state.selected_semantic_model_path}",
     }
-
+    sf_session = _get_session_local()
+    # In some cases it will be required to replace '_' with '-' here
+    host_name = sf_session.conf.get("host")
+    token = sf_session.conf.get("rest").token
     resp = requests.post(
-        url=f"https://{HOST}{API_ENDPOINT}",
+        url=f"https://{host_name}{API_ENDPOINT}",
         json=request_body,
         headers={
-            "Authorization": f'Snowflake Token="{_get_session_local().conf.get("rest").token}"',
+            "Authorization": f'Snowflake Token="{token}"',
             "Content-Type": "application/json",
         },
     )

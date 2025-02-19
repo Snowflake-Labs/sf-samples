@@ -1,0 +1,9 @@
+ID,DEPARTMENT,USERNAME,FIRSTNAME,TITLE,LASTNAME,NAME,SYSTEMMODSTAMP
+U1,Sales,taylor.miller@company.com,Taylor,Marketing Director,Miller,Taylor Miller,2023-12-28 00:00:00.000
+U2,Finance,blake.garcia@company.com,Blake,VP of Sales,Garcia,Blake Garcia,2023-01-21 00:00:00.000
+U3,Marketing,blake.johnson@company.com,Blake,Account Executive,Johnson,Blake Johnson,2023-07-07 00:00:00.000
+U4,Marketing,jordan.johnson@company.com,Jordan,Sales Manager,Johnson,Jordan Johnson,2023-03-21 00:00:00.000
+U5,Marketing,morgan.miller@company.com,Morgan,Marketing Director,Miller,Morgan Miller,2023-09-25 00:00:00.000
+U6,Marketing,jamie.williams@company.com,Jamie,Sales Manager,Williams,Jamie Williams,2023-02-20 00:00:00.000
+U7,Marketing,casey.smith@company.com,Casey,Product Manager,Smith,Casey Smith,2023-12-15 00:00:00.000
+U8,Marketing,casey.smith@company.com,Casey,Sales Manager,Smith,Casey Smith,2023-01-31 00:00:00.000
