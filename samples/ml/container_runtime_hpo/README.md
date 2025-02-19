@@ -1,7 +1,7 @@
 # Container Runtime HPO Documentation 
 
 ## Disclaimer
-The README might become outdated compared to the latest documentation. For the most current information, please refer to [this document](https://docs.google.com/document/d/1H8CJ-GXyHlfiPo8g_MCn4YhMIZwtLTV29RyH2m52VR8/edit?usp=sharing).
+The README might become outdated. In the long run, we plan to rely on the official Snowflake documentation (currently a work in progress). Once it becomes available, we'll update the README with a link to it.
 
 ## Introduction
 
@@ -27,10 +27,10 @@ Today, this API is only available for use within a Snowflake Notebook configured
 * Train a model using Snowflake ML distributed training APIs, and scale HPO while also scaling each of the training runs
 
 
-## Core Components
+## Core Concepts
 
 
-### DatasetMap
+### Dataset Map
 
 **Purpose:**
 
@@ -52,7 +52,7 @@ dataset_map = {
 ```
 
 
-### SearchAlgorithm
+### Search Algorithm
 
 **Purpose**: \
 The SearchAlgorithm component governs the strategy used to explore the hyperparameter space. It determines how new hyperparameter configurations are selected based on previous trial outcomes.
@@ -114,7 +114,7 @@ Define your search space by mapping hyperparameter names to one of these functio
 ```
 search_space = {
     "n_estimators": tune.uniform(50, 200),
-    "max_depth": tune.uniform(3, 10),```
+    "max_depth": tune.uniform(3, 10),
     "learning_rate": tune.uniform(0.01, 0.3),
 }
 ```
@@ -150,7 +150,7 @@ tuner_config = tune.TunerConfig(
 
 
 
-### **TunerContext**
+### TunerContext
 
 **Purpose**: \
 The **TunerContext** provides trial-specific context within the training function. It bridges the gap between the HPO framework and the user's training code.
@@ -226,7 +226,7 @@ print(tuner_results.best_result)
 
 ## Step-by-Step HPO Usage Example
 
-This example illustrates a typical HPO use case by ingesting data through the [Container Runtime DataConnector API](https://docs.snowflake.com/developer-guide/snowpark-ml/reference/latest/api/data/snowflake.ml.data.data_connector.DataConnector#snowflake.ml.data.data_connector.DataConnector), then defining a training function with OSS XGBoost model within it, and defining the HPO run through the Tuner interface.
+This example illustrates a typical HPO use case by ingesting data through the [DataConnector API](https://docs.snowflake.com/developer-guide/snowpark-ml/reference/latest/api/data/snowflake.ml.data.data_connector.DataConnector#snowflake.ml.data.data_connector.DataConnector), then defining a training function with OSS XGBoost model within it, and defining the HPO run through the Tuner interface.
 
 ```
 
@@ -235,7 +235,7 @@ This example illustrates a typical HPO use case by ingesting data through the [C
 
 ## API Reference
 
-### [TBD] Will be only Snowflake API website soon. For now, please refer to [the doc](https://docs.google.com/document/d/1H8CJ-GXyHlfiPo8g_MCn4YhMIZwtLTV29RyH2m52VR8/edit?tab=t.0#bookmark=id.5ujorpjfmw7l).  
+### [TBD] Official documentation WIP.  
 
 
 
