@@ -134,7 +134,7 @@ The **TunerConfig** class is used to configure the tuning process. It specifies 
 
 **Usage:**
 
-```angular2html
+```
 from snowflake.ml.modeling import tune
 tuner_config = tune.TunerConfig(
     metric="accuracy",
@@ -225,12 +225,7 @@ print(tuner_results.best_result)
 ```
 
 ## Step-by-Step HPO Usage Example
-
-This example illustrates a typical HPO use case by ingesting data through the [DataConnector API](https://docs.snowflake.com/developer-guide/snowpark-ml/reference/latest/api/data/snowflake.ml.data.data_connector.DataConnector#snowflake.ml.data.data_connector.DataConnector), then defining a training function with OSS XGBoost model within it, and defining the HPO run through the Tuner interface.
-
-```
-
-```
+See the [HPO Notebook Example](./hpo_example.ipynb) for a full walkthrough of a HPO run.
 
 
 ## API Reference
