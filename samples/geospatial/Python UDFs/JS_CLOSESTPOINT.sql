@@ -1,3 +1,8 @@
+-- One caveat when using this function: it doesn't account for cases where the closest point is inside the polygon.
+-- It works best when finding the closest point between linestrings or non-overlapping shapes.
+-- For a proper solution that handles polygons well, it's better to use either ST_CLOSESTPOINT from Sedonasnow: https://app.snowflake.com/marketplace/listing/GZTYZF0RTY3/wherobots-ai-sedonasnow
+-- Or use Pythn UDF: 
+
 CREATE OR REPLACE FUNCTION ST_CLOSESTPOINT(
     geomA_wkt STRING,  -- The geometry on which we'll find the closest point
     geomB_wkt STRING   -- The "other" geometry, used for measuring distance
