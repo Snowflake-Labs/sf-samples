@@ -1,0 +1,14 @@
+spec:
+  container:
+  - name: fashion
+    image: /fashion/public/fashion_repository/fashion:recommender2
+    env:
+      SNOWFLAKE_WAREHOUSE: SNOWOPT_WH
+    args:
+    - "--training_table=CLICKSTREAM_TRAIN_FULL"
+    - "--training_frac=1.0"
+    - "--hpo_frac=0.01"
+    - "--n_trials=50"
+    - "--feature_cols=['GENDER', 'AGE', 'PROFESSION', 'WORK_EXPERIENCE', 'ANNUAL_INCOME', 'SPENDING_SCORE', 'FAMILY_SIZE', 'EMBEDDINGS']"
+    - "--target_col=INTERACTION"
+    - "--model_name=optuna_model_debug.sav"

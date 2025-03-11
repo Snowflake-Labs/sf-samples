@@ -1,0 +1,13 @@
+models:
+  - type: main
+    engine: snowflake_cortex
+
+rails:  
+  config:
+    sensitive_data_detection:
+      input:
+        entities:
+          - EMAIL_ADDRESS
+  input:
+    flows:
+      - detect sensitive data on input 

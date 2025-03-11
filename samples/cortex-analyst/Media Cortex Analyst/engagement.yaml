@@ -1,0 +1,134 @@
+# Name and description of the semantic model.
+name: Engagement
+description: This semantic model can be used for asking questions over engagement data.
+
+# A semantic model can contain one or more tables.
+tables:
+
+  # A logical table on top of the 'engagement' base table.
+  - name: engagement
+    description: A logical table capturing subscriber information across our streaming platform.
+
+    # The fully qualified name of the base table.
+    base_table:
+      database: llm_demo
+      schema: summit
+      table: engagement
+
+    # Dimension columns in the logical table.
+    dimensions:
+      - name: genre
+        synonyms:
+            - "genre"
+            - "category"
+        description: The genre of the content
+        expr: genre
+        data_type: TEXT
+        unique: false
+        sample_values:
+          - "Comedy"
+          - "Action"
+          - "Drama"
+      
+
+      - name: unique_id
+        synonyms:
+            - "unique_customers"
+        description: A unique id for a customer
+        expr: unique_id
+        data_type: TEXT
+        unique: true
+        sample_values:
+          - "89787e77-bb29-4b70-9665-d91a8f4892c3"
+          - "35b9145b-7931-4277-aa07-f8b12fe26d1c"
+
+      - name: series
+        synonyms:
+            - "unique_series"
+        description: A unique id for a series
+        expr: series_id
+        data_type: TEXT
+        unique: true
+        sample_values:
+          - "89787e77-bb29-4b70-9665-d91a8f4892c3"
+          - "35b9145b-7931-4277-aa07-f8b12fe26d1c"
+
+      - name: series_name
+        synonyms:
+            - "series title"
+        description: A unique name for a series
+        expr: series_title
+        data_type: TEXT
+        unique: false
+        sample_values:
+          - "Life's a Glitch"
+          - "Weekend Warriors"
+
+      - name: episode_name
+        synonyms:
+            - "name of the episode"
+            - "episode title"
+        description: A unique title for an episode
+        expr: episode_title
+        data_type: TEXT
+        unique: true
+        sample_values:
+          - "Debugging Life"
+          - "The Halloween Hijinks"
+
+      - name: episode_number
+        synonyms:
+            - "ep number"
+        description: The episode number in the season
+        expr: episode_number
+        data_type: NUMBER
+        unique: false
+        sample_values:
+          - "1"
+          - "2"
+
+      - name: season
+        synonyms:
+            - "season number"
+        description: The season number in the series
+        expr: season
+        data_type: NUMBER
+        unique: false
+        sample_values:
+          - "1"
+          - "2"
+
+      - name: country
+        synonyms:
+            - "location"
+        description: The country the content was viewed in
+        expr: country
+        data_type: TEXT
+        unique: false
+        sample_values:
+          - "US"
+          - "UK"
+          - "CA"
+
+    # Time dimension columns in the logical table.
+    time_dimensions:
+      - name: time
+        synonyms:
+            - "date"
+            - "timestamp"
+        description: The time the viewer watched the content.
+        expr: time
+        data_type: TIMESTAMP
+        unique: false
+    
+    # Measure columns in the logical table.
+    measures:
+    
+      - name: minutes_watched
+        synonyms:
+            - "time watched"
+        description: The number of minutes watched in a stream
+        expr: minutes_watched
+        data_type: NUMBER
+        default_aggregation: sum
+

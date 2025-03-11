@@ -37,6 +37,9 @@ Quickstart Section 3 - Exploring Available Roles
 -- Section 3: Step 1 - Setting our Context
 USE ROLE accountadmin;
 USE WAREHOUSE tasty_dev_wh;
+-- assign Query Tag to Session 
+ALTER SESSION SET query_tag = '{"origin":"sf_sit-is","name":"tb_zts","version":{"major":1, "minor":0},"attributes":{"is_quickstart":1, "source":"tastybytes", "vignette": "data_governance"}}';
+
 
 
 -- Section 3: Step 2 - Exploring All Roles in our Account

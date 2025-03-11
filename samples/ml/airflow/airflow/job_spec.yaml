@@ -1,0 +1,50 @@
+spec:
+  containers:
+  - name: main
+    image: /snowflake/images/snowflake_images/st_plat/runtime/x86/runtime_image/snowbooks:0.4.0
+    command:
+    - bash
+    - -c
+    - |-
+      #!/bin/bash
+
+      LOCAL_REPO_PATH="/ci-app"
+
+      # Pull GitHub repo using secret
+      # ACTION REQUIRED: Change the repository URL below to your repo!
+      git clone https://${GIT_TOKEN}@github.com/sfc-gh-dhung/test-repo.git $LOCAL_REPO_PATH
+
+      # Run train script
+      python "${LOCAL_REPO_PATH}/headless/scheduled-xgb/src/train.py" \
+        --save_mode local \
+        --output_dir /mnt/stage
+    secrets:
+    - snowflakeSecret: ML_DEMO_GIT_TOKEN
+      secretKeyRef: secret_string
+      envVarName: GIT_TOKEN
+    resources:
+      limits:
+        cpu: 6000m
+        memory: 58Gi
+      requests:
+        cpu: 6000m
+        memory: 58Gi
+    volumeMounts:
+    - mountPath: /var/log/managedservices/system/mlrs
+      name: system-logs
+    - mountPath: /var/log/managedservices/user/mlrs
+      name: user-logs
+    - mountPath: /dev/shm
+      name: dshm
+    - mountPath: /mnt/stage
+      name: stage-volume
+  volumes:
+  - name: system-logs
+    source: local
+  - name: user-logs
+    source: local
+  - name: dshm
+    size: 17Gi
+    source: memory
+  - name: stage-volume
+    source: '@ML_DEMO_STAGE'

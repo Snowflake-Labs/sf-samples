@@ -1,0 +1,632 @@
+name: sfdc_sales_demo
+tables:
+  - name: ACCOUNTS
+    description: Account information for customers or prospects, including details
+      such as name, industry, and revenue.
+    base_table:
+      database: SFDC
+      schema: SALESCLOUD
+      table: ACCOUNT
+    primary_key:
+      columns:
+        - ID
+    dimensions:
+      - name: ID
+        synonyms:
+          - '  '
+        description: Unique Identifier for each account. Do not display in results,
+          for display use NAME field
+        expr: ID
+        data_type: TEXT
+        sample_values:
+          - A1
+          - A2
+          - A3
+      - name: NAME
+        synonyms:
+          - '  '
+        description: List of company names.
+        expr: NAME
+        data_type: TEXT
+        sample_values:
+          - Acme Corp
+          - Globex Corporation
+          - Initech
+      - name: INDUSTRY
+        synonyms:
+          - '  '
+        description: The industry in which the account operates.
+        expr: INDUSTRY
+        data_type: TEXT
+        sample_values:
+          - Manufacturing
+          - Education
+          - Technology
+      - name: ACCOUNTSOURCE
+        synonyms:
+          - '  '
+        description: Source of account acquisition.
+        expr: ACCOUNTSOURCE
+        data_type: TEXT
+        sample_values:
+          - Referral
+          - Trade Show
+          - Web
+      - name: WEBSITE
+        synonyms:
+          - '  '
+        description: List of company websites.
+        expr: WEBSITE
+        data_type: TEXT
+        sample_values:
+          - www.acmecorp.com
+          - www.globexcorporation.com
+          - www.initech.com
+      - name: OWNERID
+        synonyms:
+          - '  '
+        description: Owner ID of the account, never show the field OWNERID, always
+          use USERNAME from User table.
+        expr: OWNERID
+        data_type: TEXT
+        sample_values:
+          - U3
+          - U1
+          - U7
+      - name: BILLINGCITY
+        synonyms:
+          - '  '
+        description: The city where the billing address is located.
+        expr: BILLINGCITY
+        data_type: TEXT
+        sample_values:
+          - New York
+          - Chicago
+          - Los Angeles
+      - name: BILLINGSTATE
+        synonyms:
+          - '  '
+        description: Billing State
+        expr: BILLINGSTATE
+        data_type: TEXT
+        sample_values:
+          - CA
+          - IL
+          - TX
+      - name: BILLINGCOUNTRY
+        synonyms:
+          - '  '
+        description: Country of billing origin.
+        expr: BILLINGCOUNTRY
+        data_type: TEXT
+        sample_values:
+          - UK
+          - Canada
+          - Australia
+    time_dimensions:
+      - name: LASTMODIFIEDDATE
+        synonyms:
+          - '  '
+        description: Last Modified Date
+        expr: LASTMODIFIEDDATE
+        data_type: TIMESTAMP_NTZ
+        sample_values:
+          - '2023-01-11 00:00:00'
+          - '2023-09-22 00:00:00'
+          - '2023-12-26 00:00:00'
+    measures:
+      - name: ANNUALREVENUE
+        synonyms:
+          - '  '
+        description: Annual Revenue
+        expr: ANNUALREVENUE
+        data_type: NUMBER
+        sample_values:
+          - '630903854'
+          - '425010916'
+          - '109222280'
+  - name: OPPORTUNITY
+    description: Opportunity table represents a potential sale or deal that a company
+      is pursuing with a customer, containing details such as the expected revenue,
+      forecast category, stage name, and probability of winning.
+    base_table:
+      database: SFDC
+      schema: SALESCLOUD
+      table: OPPORTUNITY
+    primary_key:
+      columns:
+        - ID
+    dimensions:
+      - name: ID
+        synonyms:
+          - '  '
+        description: Unique Identifier for Opportunities.  Do not display in results,
+          for display use NAME field
+        expr: ID
+        data_type: TEXT
+        sample_values:
+          - O1
+          - O2
+          - O3
+      - name: NAME
+        synonyms:
+          - '  '
+        description: List of potential business opportunities.
+        expr: NAME
+        data_type: TEXT
+        sample_values:
+          - Daily Planet Deal 1
+          - Globex Corporation Deal 2
+          - Initech Deal 3
+      - name: FORECASTCATEGORY
+        synonyms:
+          - '  '
+        description: Forecast Category for Opportunities
+        expr: FORECASTCATEGORY
+        data_type: TEXT
+        sample_values:
+          - Best Case
+          - Pipeline
+          - Commit
+      - name: STAGENAME
+        synonyms:
+          - stage
+          - state
+        description: Stage of Opportunity
+        expr: STAGENAME
+        data_type: TEXT
+        sample_values:
+          - Closed Lost
+          - Prospecting
+          - Negotiation
+      - name: ISCLOSED
+        synonyms:
+          - '  '
+        description: Indicates whether an opportunity is closed or not.
+        expr: ISCLOSED
+        data_type: BOOLEAN
+        sample_values:
+          - 'False'
+          - 'True'
+      - name: ISWON
+        synonyms:
+          - '  '
+        description: Indicator of whether the opportunity was won.
+        expr: ISWON
+        data_type: BOOLEAN
+        sample_values:
+          - 'False'
+          - 'True'
+      - name: LEADSOURCE
+        synonyms:
+          - '  '
+        description: The LEADSOURCE column represents the origin or source of the
+          lead, categorizing it as either a Trade Show, Phone Inquiry, or Partner
+          Referral.__
+        expr: LEADSOURCE
+        data_type: TEXT
+        sample_values:
+          - Trade Show
+          - Phone Inquiry
+          - Partner Referral
+      - name: ACCOUNTID
+        synonyms:
+          - '  '
+        description: Account ID, Do not display in results, for display use NAME field
+          from Account table.
+        expr: ACCOUNTID
+        data_type: TEXT
+        sample_values:
+          - A2
+          - A9
+          - A1
+      - name: OWNERID
+        synonyms:
+          - '  '
+        description: Opportunity Owner ID, never show the field OWNERID, always use
+          NAME from User table.
+        expr: OWNERID
+        data_type: TEXT
+        sample_values:
+          - U2
+          - U5
+          - U1
+      - name: FISCALQUARTER
+        synonyms:
+          - quarter
+        description: Fiscal Quarter
+        expr: concat(to_varchar(FISCALYEAR),'-',to_varchar(FISCALQUARTER))
+        data_type: TEXT
+        sample_values:
+          - 2023-1
+          - 2023-4
+          - 2023-2
+      - name: FISCALYEAR
+        synonyms:
+          - Fiscal Year
+        description: Fiscal Year Identifier
+        expr: to_varchar(FISCALYEAR)
+        data_type: TEXT
+        sample_values:
+          - '2023'
+    time_dimensions:
+      - name: CREATEDDATE
+        synonyms:
+          - '  '
+        description: Date of opportunity creation.
+        expr: CREATEDDATE
+        data_type: TIMESTAMP_NTZ
+        sample_values:
+          - '2023-02-05 00:00:00'
+          - '2023-05-26 00:00:00'
+          - '2023-01-24 00:00:00'
+      - name: CLOSEDATE
+        synonyms:
+          - '  '
+        description: Estimated Date of Closure
+        expr: CLOSEDATE
+        data_type: DATE
+        sample_values:
+          - '2023-12-08'
+          - '2023-08-13'
+          - '2023-12-10'
+    measures:
+      - name: PROBABILITY
+        synonyms:
+          - '  '
+        description: Probability of conversion or success.
+        expr: PROBABILITY
+        data_type: NUMBER
+        sample_values:
+          - '38'
+          - '67'
+          - '43'
+      - name: AMOUNT
+        synonyms:
+          - amount
+          - revenue
+          - deal size
+          - expected revenue
+        description: Total Opportunity Amount
+        expr: AMOUNT
+        data_type: NUMBER
+        sample_values:
+          - '1217083.19'
+          - '3104518.46'
+          - '4172563.92'
+      - name: SALESCYCLEDURATION
+        synonyms:
+          - sales cycle
+          - sales cycle duration
+          - sales cycle time
+          - sales cycle length
+        description: Duration of the sales cycle.
+        expr: datediff('days', createddate,closedate)
+        data_type: NUMBER
+  - name: USER
+    description: 'User Information Table: This table stores information about users
+      in the organization, including their department, username, first name, title,
+      last name, and system modification timestamp.'
+    base_table:
+      database: SFDC
+      schema: SALESCLOUD
+      table: USER
+    primary_key:
+      columns:
+        - ID
+    dimensions:
+      - name: ID
+        synonyms:
+          - '  '
+        description: Unique User Identifier. Do not display in results, for display
+          use NAME field.
+        expr: ID
+        data_type: TEXT
+        sample_values:
+          - U1
+          - U2
+          - U3
+      - name: DEPARTMENT
+        synonyms:
+          - '  '
+        description: Department of the user.
+        expr: DEPARTMENT
+        data_type: TEXT
+        sample_values:
+          - Sales
+          - Customer Success
+          - Engineering
+      - name: USERNAME
+        synonyms:
+          - rep email
+          - salesforce username
+        description: Email address of the user. For questions about reps use NAME
+          field instead.
+        expr: USERNAME
+        data_type: TEXT
+        sample_values:
+          - alex.miller@company.com
+          - morgan.williams@company.com
+          - taylor.miller@company.com
+      - name: FIRSTNAME
+        synonyms:
+          - '  '
+        description: First Name of Users
+        expr: FIRSTNAME
+        data_type: TEXT
+        sample_values:
+          - Alex
+          - Morgan
+          - Taylor
+      - name: TITLE
+        synonyms:
+          - '  '
+        description: Job Titles
+        expr: TITLE
+        data_type: TEXT
+        sample_values:
+          - VP of Sales
+          - Marketing Director
+          - Account Executive
+      - name: LASTNAME
+        synonyms:
+          - '  '
+        description: Last Name of Users
+        expr: LASTNAME
+        data_type: TEXT
+        sample_values:
+          - Miller
+          - Williams
+          - Davis
+      - name: NAME
+        synonyms:
+          - rep
+          - representative
+          - owner
+          - sales rep
+          - AE
+          - account executive
+        description: Names of accounts sales represenatives.
+        expr: NAME
+        data_type: TEXT
+        sample_values:
+          - Alex Miller
+          - Morgan Williams
+          - Taylor Miller
+    time_dimensions:
+      - name: SYSTEMMODSTAMP
+        synonyms:
+          - '  '
+        description: System Modification Timestamp
+        expr: SYSTEMMODSTAMP
+        data_type: TIMESTAMP_NTZ
+        sample_values:
+          - '2023-05-10 00:00:00'
+          - '2023-05-30 00:00:00'
+          - '2023-05-08 00:00:00'
+relationships:
+  - name: opportunity_to_accounts
+    left_table: OPPORTUNITY
+    right_table: ACCOUNTS
+    join_type: inner
+    relationship_type: many_to_one
+    relationship_columns:
+      - left_column: ACCOUNTID
+        right_column: ID
+  - name: opportunity_to_reps
+    left_table: OPPORTUNITY
+    right_table: USER
+    join_type: inner
+    relationship_type: many_to_one
+    relationship_columns:
+      - left_column: OWNERID
+        right_column: ID
+  - name: account_to_reps
+    left_table: ACCOUNTS
+    right_table: USER
+    join_type: inner
+    relationship_type: many_to_one
+    relationship_columns:
+      - left_column: OWNERID
+        right_column: ID
+verified_queries:
+  - name: What is the total value of opportunities in each stage of the pipeline over
+      the entire available time period?
+    question: What is the total value of opportunities in each stage of the pipeline
+      over the entire available time period?
+    sql: "WITH pipeline_data AS (\n  SELECT\n    o.stagename,\n    SUM(o.amount) AS\
+      \ total_pipeline_value\n  FROM __opportunity AS o\n  INNER JOIN __accounts AS\
+      \ a\n    ON o.accountid = a.id\n  INNER JOIN __user AS u\n    ON o.ownerid =\
+      \ u.id\n  WHERE\n    o.isclosed = FALSE\n  GROUP BY\n    o.stagename\n)\nSELECT\n\
+      \  stagename,\n  total_pipeline_value\nFROM pipeline_data\nORDER BY\n  total_pipeline_value\
+      \ DESC"
+    verified_at: '1731608574'
+    verified_by: RBLUM
+  - name: How many deals are expected to close by fiscal quarter over the entire available
+      time period?
+    question: How many deals are expected to close by fiscal quarter over the entire
+      available time period?
+    sql: "WITH pipeline_data AS (\n  SELECT\n    o.fiscalquarter,\n    COUNT(o.id)\
+      \ AS number_of_deals\n  FROM __opportunity AS o\n  INNER JOIN __accounts AS\
+      \ a\n    ON o.accountid = a.id\n  INNER JOIN __user AS u\n    ON o.ownerid =\
+      \ u.id\n  WHERE\n    o.isclosed = FALSE\n  GROUP BY\n    o.fiscalquarter\n)\n\
+      SELECT\n  fiscalquarter,\n  number_of_deals\nFROM pipeline_data\nORDER BY\n\
+      \  fiscalquarter DESC"
+    verified_at: '1731608618'
+    verified_by: RBLUM
+  - name: Are there deals in the pipeline that have been stagnant for more than 30
+      days?
+    question: Are there deals in the pipeline that have been stagnant for more than
+      30 days?
+    sql: "WITH pipeline_data AS (\n  SELECT\n    o.stagename,\n    DATE_TRUNC('MONTH',\
+      \ o.closedate) AS close_month,\n    SUM(o.amount) AS total_pipeline_value,\n\
+      \    COUNT(o.id) AS number_of_deals,\n    DATEDIFF(DAY, o.createddate, CURRENT_DATE)\
+      \ AS days_stagnant\n  FROM __opportunity AS o\n  INNER JOIN __accounts AS a\n\
+      \    ON o.accountid = a.id\n  INNER JOIN __user AS u\n    ON o.ownerid = u.id\n\
+      \  WHERE\n    o.isclosed = FALSE\n  GROUP BY\n    o.stagename,\n    DATE_TRUNC('MONTH',\
+      \ o.closedate),\n    o.createddate\n)\nSELECT\n  stagename,\n  close_month,\n\
+      \  total_pipeline_value,\n  number_of_deals,\n  days_stagnant\nFROM pipeline_data\n\
+      WHERE\n  days_stagnant > 30\nORDER BY\n  close_month DESC,\n  stagename"
+    verified_at: '1731608654'
+    verified_by: RBLUM
+  - name: Which deals have been stagnant for more than 30 days?
+    question: Which deals have been stagnant for more than 30 days?
+    sql: "WITH pipeline_data AS (\n  SELECT\n    o.name AS deal_name,\n    DATE_TRUNC('MONTH',\
+      \ o.closedate) AS close_month,\n    DATEDIFF(DAY, o.createddate, CURRENT_DATE)\
+      \ AS days_stagnant\n  FROM __opportunity AS o\n  INNER JOIN __accounts AS a\n\
+      \    ON o.accountid = a.id\n  INNER JOIN __user AS u\n    ON o.ownerid = u.id\n\
+      \  WHERE\n    o.isclosed = FALSE\n)\nSELECT\n  deal_name,\n  close_month,\n\
+      \  days_stagnant\nFROM pipeline_data\nWHERE\n  days_stagnant > 30\nORDER BY\n\
+      \  close_month DESC,\n  deal_name"
+    verified_at: '1731608785'
+    verified_by: RBLUM
+  - name: What is our win rate over the entire available time period?
+    question: What is our win rate over the entire available time period?
+    sql: "SELECT\n  (\n    SUM(CASE WHEN o.iswon = TRUE THEN 1 ELSE 0 END) * 1.0 /\
+      \ NULLIF(COUNT(o.id), 0)\n  ) AS win_rate\nFROM __opportunity AS o"
+    verified_at: '1731610379'
+    verified_by: RBLUM
+  - name: What’s the average deal size and cycle length for won opportunities over
+      the entire available time period?
+    question: What’s the average deal size and cycle length for won opportunities
+      over the entire available time period?
+    sql: "SELECT\n  AVG(o.amount) AS average_deal_size,\n  AVG(o.salescycleduration)\
+      \ AS average_cycle_length\nFROM __opportunity AS o\nWHERE\n  o.iswon = TRUE"
+    verified_at: '1731611210'
+    verified_by: RBLUM
+  - name: What are the top 10 accounts by total closed revenue over the entire available
+      time period?
+    question: What are the top 10 accounts by total closed revenue over the entire
+      available time period?
+    sql: "WITH closed_opportunities AS (\n  SELECT\n    o.accountid,\n    SUM(o.amount)\
+      \ AS total_closed_revenue\n  FROM __opportunity AS o\n  WHERE\n    o.isclosed\
+      \ = TRUE AND o.iswon = TRUE\n  GROUP BY\n    o.accountid\n), account_revenue\
+      \ AS (\n  SELECT\n    a.name AS account_name,\n    co.total_closed_revenue\n\
+      \  FROM closed_opportunities AS co\n  INNER JOIN __accounts AS a\n    ON co.accountid\
+      \ = a.id\n)\nSELECT\n  account_name,\n  total_closed_revenue\nFROM account_revenue\n\
+      ORDER BY\n  total_closed_revenue DESC NULLS LAST\nLIMIT 10"
+    verified_at: '1733172420'
+    verified_by: RBLUM
+  - name: How many new accounts were created in the current quarter?
+    question: How many new accounts were created in the current quarter?
+    sql: "SELECT\n  COUNT(*) AS new_accounts_this_quarter\nFROM __accounts\nWHERE\n\
+      \  lastmodifieddate >= DATE_TRUNC('QUARTER', CURRENT_DATE)\n  AND lastmodifieddate\
+      \ < DATE_TRUNC('QUARTER', CURRENT_DATE) + INTERVAL '1 QUARTER'"
+    verified_at: '1733172463'
+    verified_by: RBLUM
+  - name: What is the current value of the sales pipeline by stage over the entire
+      available time period?
+    question: What is the current value of the sales pipeline by stage over the entire
+      available time period?
+    sql: "WITH pipeline_data AS (\n  SELECT\n    o.stagename,\n    SUM(o.amount) AS\
+      \ total_pipeline_value\n  FROM __opportunity AS o\n  INNER JOIN __accounts AS\
+      \ a\n    ON o.accountid = a.id\n  INNER JOIN __user AS u\n    ON o.ownerid =\
+      \ u.id\n  WHERE\n    o.isclosed = FALSE\n  GROUP BY\n    o.stagename\n)\nSELECT\n\
+      \  stagename,\n  total_pipeline_value\nFROM pipeline_data\nORDER BY\n  total_pipeline_value\
+      \ DESC"
+    verified_at: '1733172642'
+    verified_by: RBLUM
+  - name: What is the average time an opportunity spends in each stage over the entire
+      available time period?
+    question: What is the average time an opportunity spends in each stage over the
+      entire available time period?
+    sql: "WITH stage_duration AS (\n  SELECT\n    o.stagename,\n    AVG(o.salescycleduration)\
+      \ AS average_time_in_stage\n  FROM __opportunity AS o\n  INNER JOIN __accounts\
+      \ AS a\n    ON o.accountid = a.id\n  INNER JOIN __user AS u\n    ON o.ownerid\
+      \ = u.id\n  GROUP BY\n    o.stagename\n)\nSELECT\n  stagename,\n  average_time_in_stage\n\
+      FROM stage_duration\nORDER BY\n  average_time_in_stage DESC"
+    verified_at: '1733172738'
+    verified_by: RBLUM
+  - name: Which opportunities are at risk of closing after their estimated close date?
+    question: Which opportunities are at risk of closing after their estimated close
+      date?
+    sql: "WITH at_risk_opportunities AS (\n  SELECT\n    o.id,\n    o.name,\n    o.closedate,\n\
+      \    o.salescycleduration\n  FROM __opportunity AS o\n  INNER JOIN __accounts\
+      \ AS a\n    ON o.accountid = a.id\n  INNER JOIN __user AS u\n    ON o.ownerid\
+      \ = u.id\n  WHERE\n    o.isclosed = FALSE AND o.closedate < CURRENT_DATE\n)\n\
+      SELECT\n  id,\n  name,\n  closedate,\n  salescycleduration\nFROM at_risk_opportunities\n\
+      ORDER BY\n  closedate DESC"
+    verified_at: '1733175395'
+    verified_by: RBLUM
+  - name: How many opportunities were closed-won this month versus last month?
+    question: How many opportunities were closed-won this month versus last month?
+    sql: "SELECT\n  COUNT(*) AS opportunities_this_month\nFROM __opportunity\nWHERE\n\
+      \  iswon = TRUE\n  AND closedate >= DATE_TRUNC('MONTH', CURRENT_DATE)\n  AND\
+      \ closedate < DATE_TRUNC('MONTH', CURRENT_DATE) + INTERVAL '1 MONTH'\nUNION\
+      \ ALL\nSELECT\n  COUNT(*) AS opportunities_last_month\nFROM __opportunity\n\
+      WHERE\n  iswon = TRUE\n  AND closedate >= DATE_TRUNC('MONTH', CURRENT_DATE -\
+      \ INTERVAL '1 MONTH')\n  AND closedate < DATE_TRUNC('MONTH', CURRENT_DATE)"
+    verified_at: '1733175426'
+    verified_by: RBLUM
+  - name: What is the average deal size by industry over the entire available time
+      period?
+    question: What is the average deal size by industry over the entire available
+      time period?
+    sql: "WITH opportunity_accounts AS (\n  SELECT\n    o.amount,\n    a.industry\n\
+      \  FROM __opportunity AS o\n  INNER JOIN __accounts AS a\n    ON o.accountid\
+      \ = a.id\n)\nSELECT\n  industry,\n  AVG(amount) AS average_deal_size\nFROM opportunity_accounts\n\
+      GROUP BY\n  industry"
+    verified_at: '1733175463'
+    verified_by: RBLUM
+  - name: How many opportunities were created this quarter compared to the previous
+      quarter?
+    question: How many opportunities were created this quarter compared to the previous
+      quarter?
+    sql: "SELECT\n  COUNT(*) AS opportunities_this_quarter\nFROM __opportunity\nWHERE\n\
+      \  createddate >= DATE_TRUNC('QUARTER', CURRENT_DATE)\n  AND createddate < DATE_TRUNC('QUARTER',\
+      \ CURRENT_DATE) + INTERVAL '1 QUARTER'\nUNION ALL\nSELECT\n  COUNT(*) AS opportunities_last_quarter\n\
+      FROM __opportunity\nWHERE\n  createddate >= DATE_TRUNC('QUARTER', CURRENT_DATE\
+      \ - INTERVAL '1 QUARTER')\n  AND createddate < DATE_TRUNC('QUARTER', CURRENT_DATE)"
+    verified_at: '1733175496'
+    verified_by: RBLUM
+  - name: What is the total revenue closed by each sales rep this month?
+    question: What is the total revenue closed by each sales rep this month?
+    sql: "WITH closed_opportunities AS (\n  SELECT\n    o.ownerid,\n    SUM(o.amount)\
+      \ AS total_closed_revenue\n  FROM __opportunity AS o\n  WHERE\n    o.isclosed\
+      \ = TRUE\n    AND o.iswon = TRUE\n    AND o.closedate >= DATE_TRUNC('MONTH',\
+      \ CURRENT_DATE)\n    AND o.closedate < DATE_TRUNC('MONTH', CURRENT_DATE) + INTERVAL\
+      \ '1 MONTH'\n  GROUP BY\n    o.ownerid\n), rep_revenue AS (\n  SELECT\n    u.name\
+      \ AS rep_name,\n    co.total_closed_revenue\n  FROM closed_opportunities AS\
+      \ co\n  INNER JOIN __user AS u\n    ON co.ownerid = u.id\n)\nSELECT\n  rep_name,\n\
+      \  total_closed_revenue\nFROM rep_revenue\nORDER BY\n  total_closed_revenue\
+      \ DESC NULLS LAST"
+    verified_at: '1733175533'
+    verified_by: RBLUM
+  - name: What is the total revenue closed by each sales rep by month over the entire
+      available time period?
+    question: What is the total revenue closed by each sales rep by month over the
+      entire available time period?
+    sql: "WITH closed_opportunities AS (\n  SELECT\n    o.ownerid,\n    DATE_TRUNC('MONTH',\
+      \ o.closedate) AS month,\n    SUM(o.amount) AS total_closed_revenue\n  FROM\
+      \ __opportunity AS o\n  WHERE\n    o.isclosed = TRUE AND o.iswon = TRUE\n  GROUP\
+      \ BY\n    o.ownerid,\n    DATE_TRUNC('MONTH', o.closedate)\n), rep_revenue AS\
+      \ (\n  SELECT\n    u.name AS rep_name,\n    co.month,\n    co.total_closed_revenue\n\
+      \  FROM closed_opportunities AS co\n  INNER JOIN __user AS u\n    ON co.ownerid\
+      \ = u.id\n)\nSELECT\n  rep_name,\n  month,\n  total_closed_revenue\nFROM rep_revenue\n\
+      ORDER BY\n  month DESC,\n  total_closed_revenue DESC NULLS LAST"
+    verified_at: '1733175568'
+    verified_by: RBLUM
+  - name: What is the average close rate for each sales rep over the entire available
+      time period?
+    question: What is the average close rate for each sales rep over the entire available
+      time period?
+    sql: "WITH closed_opportunities AS (\n  SELECT\n    o.ownerid,\n    COUNT(o.id)\
+      \ AS total_closed_opportunities,\n    SUM(CASE WHEN o.iswon = TRUE THEN 1 ELSE\
+      \ 0 END) AS total_won_opportunities\n  FROM __opportunity AS o\n  WHERE\n  \
+      \  o.isclosed = TRUE\n  GROUP BY\n    o.ownerid\n), rep_close_rate AS (\n  SELECT\n\
+      \    u.name AS rep_name,\n    (\n      CAST(total_won_opportunities AS FLOAT)\
+      \ / NULLIF(total_closed_opportunities, 0)\n    ) AS close_rate\n  FROM closed_opportunities\
+      \ AS co\n  INNER JOIN __user AS u\n    ON co.ownerid = u.id\n)\nSELECT\n  rep_name,\n\
+      \  close_rate\nFROM rep_close_rate\nORDER BY\n  close_rate DESC NULLS LAST"
+    verified_at: '1733175871'
+    verified_by: RBLUM
+  - name: Who has the highest average deal size in the team over the entire available
+      time period?
+    question: Who has the highest average deal size in the team over the entire available
+      time period?
+    sql: "WITH opportunity_users AS (\n  SELECT\n    o.amount,\n    u.name\n  FROM\
+      \ __opportunity AS o\n  INNER JOIN __user AS u\n    ON o.ownerid = u.id\n)\n\
+      SELECT\n  name,\n  AVG(amount) AS average_deal_size\nFROM opportunity_users\n\
+      GROUP BY\n  name\nORDER BY\n  average_deal_size DESC NULLS LAST\nLIMIT 1"
+    verified_at: '1733175897'
+    verified_by: RBLUM

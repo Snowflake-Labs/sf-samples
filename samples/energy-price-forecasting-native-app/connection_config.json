@@ -1,0 +1,10 @@
+{
+    "account": "account_locator"
+    ,"user": "user_name"
+    ,"password": "password"
+    ,"database": "SNOWFLAKE"
+    ,"schema": "INFORMATION_SCHEMA"
+    ,"warehouse": "COMPUTE_WH"
+    ,"role":"ACCOUNTADMIN"
+}
+

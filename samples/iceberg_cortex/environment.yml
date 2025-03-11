@@ -1,4 +1,4 @@
-name: iceberg-demo
+name: iceberg-cortex-demo
 channels:
   - conda-forge
 dependencies:
@@ -7,4 +7,5 @@ dependencies:
   - pyspark=3.5.0
   - openjdk=11.0.13
   - python=3.11.6
+  - python-dotenv
   - snowflake-snowpark-python

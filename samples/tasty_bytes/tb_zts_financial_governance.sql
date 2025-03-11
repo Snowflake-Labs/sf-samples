@@ -33,6 +33,8 @@ Quickstart Section 3  - Creating a Warehouse
 -- Section 3: Step 1 - Role and Warehouse Context
 USE ROLE tasty_admin;
 USE WAREHOUSE tasty_de_wh;
+-- assign Query Tag to Session 
+ALTER SESSION SET query_tag = '{"origin":"sf_sit-is","name":"tb_zts","version":{"major":1, "minor":0},"attributes":{"is_quickstart":1, "source":"tastybytes", "vignette": "cost_management"}}';
 
 
 -- Section 3: Step 2 - Creating and Configuring a Warehouse
