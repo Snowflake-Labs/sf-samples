@@ -48,7 +48,7 @@ class ZarrFileReader:
             yield (list(idx), float(val))
 $$;
 
--------How to test it
+------- How to try it out
 
 --- Prepare test database and test stage (extenal which contains a test package, and internal)
 CREATE OR REPLACE DATABASE zarr_test;
