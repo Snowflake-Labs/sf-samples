@@ -1,8 +1,9 @@
 # Container Runtime HPO Documentation 
 
 ## Disclaimer
-The README might become outdated. In the long run, we plan to rely on the official Snowflake documentation (currently a work in progress). Once it becomes available, we'll update the README with a link to it.
-
+- The README might become outdated. In the long run, we plan to rely on the official Snowflake documentation (currently a work in progress). Once it becomes available, we'll update the README with a link to it.
+- Grid Search functionality mentioned in the doc will be available in upcoming April, 2025 image release.
+- Multi-Node HPO support will be available in upcoming April, 2025 image release.
 ## Introduction
 
 The Snowflake ML Hyperparameter Optimization (HPO) API is a model-agnostic framework that enables efficient, parallelized hyperparameter tuning of any model using popular tuning algorithms. The HPO workload, initiated from the Notebook, executes inside Snowpark Container Services where it can execute on both CPU and GPU instances. The HPO only scales out to as many cores (CPUs or GPUs) as is available on a single node in the SPCS compute pool.
