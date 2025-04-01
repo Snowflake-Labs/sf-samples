@@ -1,0 +1,129 @@
+name: spy_report_semantic_model
+tables:
+  - name: SPY_REPORTS
+    base_table:
+      database: SPY_AGENCY
+      schema: INTEL
+      table: SPY_REPORTS
+    dimensions:
+      - name: REPORT_ID
+        expr: REPORT_ID
+        data_type: VARCHAR(16777216)
+        description: Unique identifier for a specific report.
+        sample_values:
+          - R003
+          - R001
+          - R002
+        synonyms:
+          - report_number
+          - document_id
+          - record_id
+          - file_number
+          - case_number
+          - reference_id
+      - name: AGENT_CODE
+        expr: AGENT_CODE
+        data_type: VARCHAR(16777216)
+        description: Unique identifier for the agent who submitted the report.
+        sample_values:
+          - X7A
+          - K9Q
+          - B3Z
+        synonyms:
+          - spy_id
+          - agent_identifier
+          - operative_code
+          - secret_agent_number
+          - agent_reference
+      - name: MISSION_ID
+        expr: MISSION_ID
+        data_type: VARCHAR(16777216)
+        description: Unique identifier for a specific mission or project.
+        sample_values:
+          - M003
+          - M013
+          - M001
+        synonyms:
+          - operation_id
+          - task_number
+          - assignment_code
+          - job_reference
+          - project_identifier
+          - case_number
+      - name: MISSION_OUTCOME
+        expr: MISSION_OUTCOME
+        data_type: VARCHAR(16777216)
+        description: The outcome of a spy mission, indicating whether the mission was successfully completed, compromised, or failed.
+        sample_values:
+          - Compromised
+          - Success
+          - Failed
+        synonyms:
+          - mission_result
+          - mission_status
+          - outcome_of_mission
+          - mission_success
+          - mission_failure
+          - mission_conclusion
+          - mission_resolution
+      - name: SUSPECTED_DOUBLE_AGENT
+        expr: SUSPECTED_DOUBLE_AGENT
+        data_type: BOOLEAN
+        description: Indicates whether the individual is suspected of being a double agent, meaning they may be working secretly for an opposing organization or country while pretending to work for their apparent organization or country.
+        sample_values:
+          - 'FALSE'
+          - 'TRUE'
+        synonyms:
+          - potential_mole
+          - suspected_traitor
+          - double_agent_status
+          - loyalty_suspected
+          - possible_defector
+      - name: LAST_KNOWN_LOCATION
+        expr: LAST_KNOWN_LOCATION
+        data_type: VARCHAR(16777216)
+        description: The city where the spy was last known to be operating.
+        sample_values:
+          - London
+          - Paris
+          - Berlin
+        synonyms:
+          - last_seen_location
+          - last_reported_position
+          - current_location
+          - last_known_position
+          - last_observed_place
+          - previous_location
+          - final_known_location
+      - name: FAILURE_REASON
+        expr: FAILURE_REASON
+        data_type: VARCHAR(16777216)
+        description: The reason why a spy operation or mission was unsuccessful.
+        sample_values:
+          - Intel leak
+          - Double agent interference
+          - N/A
+        synonyms:
+          - reason_for_failure
+          - cause_of_failure
+          - mission_failure_cause
+          - failure_cause
+          - reason_for_mission_failure
+          - failure_description
+    time_dimensions:
+      - expr: REPORT_ID
+        name: REPORT_ID_ORDER
+        data_type: VARCHAR(16777216)
+        sample_values:
+          - R003
+          - R001
+          - R002
+        synonyms:
+          - REPORT_ID_INCREMENTING_ACENDING_ORDER
+verified_queries:
+  - name: who was the agent in the mission and are they a double agent.
+    question: WHo was the agent on m003 and are they suspected as a double agent
+    use_as_onboarding_question: false
+    sql: SELECT agent_code, suspected_double_agent FROM spy_reports WHERE mission_id = 'M003'
+    verified_by: James Cha-Earley
+    verified_at: 1742323429
