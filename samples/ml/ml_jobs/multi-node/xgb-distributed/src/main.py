@@ -1,0 +1,123 @@
+"""
+Distributed XGBoost Training Example using multiple nodes
+"""
+
+from snowflake.ml.jobs import remote
+
+compute_pool = "E2E_CPU_POOL"
+
+@remote(compute_pool, stage_name="payload_stage", num_instances=3)
+def xgb():
+    # We recommend importing any needed modules *inside* the function definition
+    import os
+    import time
+    import ray
+    from snowflake.snowpark.context import get_active_session
+
+    # Generate a synthetic dataset for demo purposes
+    def generate_dataset_sql(db, schema, table_name, num_rows, num_cols) -> str:
+        sql_script = f"CREATE TABLE IF NOT EXISTS {db}.{schema}.{table_name} AS \n"
+        sql_script += f"SELECT \n"
+        for i in range(1, num_cols):
+            sql_script += f"uniform(0::FLOAT, 10::FLOAT, random()) AS FEATURE_{i}, \n"
+        sql_script += f"FEATURE_1 + FEATURE_1 AS TARGET_1 \n"
+        sql_script += f"FROM TABLE(generator(rowcount=>({num_rows})));"
+        return sql_script
+    
+    # Configure dataset parameters
+    num_rows = 1000 * 1000
+    num_cols = 100
+    table_name = "MULTINODE_CPU_TRAIN_DS"
+    
+    # Create the dataset in Snowflake
+    session = get_active_session()
+    session.sql(generate_dataset_sql(session.get_current_database(), session.get_current_schema(), 
+                                table_name, num_rows, num_cols)).collect()
+    
+    # Load the dataset into a dataframe
+    cpu_train_df = session.table(table_name)
+    feature_list = [f'FEATURE_{num}' for num in range(1, num_cols)]
+    INPUT_COLS = feature_list
+    LABEL_COL = "TARGET_1"
+    
+    # Import Snowflake ML XGBoost distributor and data connector
+    from snowflake.ml.modeling.distributors.xgboost import XGBEstimator, XGBScalingConfig
+    from snowflake.ml.data.data_connector import DataConnector
+    from implementations.ray_data_ingester import RayDataIngester
+
+    # Define a function to train XGBoost with different scaling configurations
+    def xgb_train(num_workers, num_cpu_per_worker):
+        print(f"Training with num_workers={num_workers}, num_cpu_per_worker={num_cpu_per_worker}")
+        
+        # XGBoost parameters
+        params = {
+            "tree_method": "hist",
+            "objective": "reg:pseudohubererror",
+            "eta": 1e-4,
+            "subsample": 0.5,
+            "max_depth": 50,
+            "max_leaves": 1000,
+            "max_bin": 63,
+        }
+        
+        # Configure Ray scaling for XGBoost
+        scaling_config = XGBScalingConfig(
+            num_workers=num_workers, 
+            num_cpu_per_worker=num_cpu_per_worker,
+            use_gpu=False
+        )
+        
+        # Create and configure the estimator
+        estimator = XGBEstimator(
+            n_estimators=100,
+            params=params,
+            scaling_config=scaling_config,
+        )
+        
+        # Create a data connector using our custom Ray ingester
+        data_connector = DataConnector.from_dataframe(
+            cpu_train_df, ingestor_class=RayDataIngester
+        )
+        
+        # Train the model
+        print("Starting training...")
+        start_time = time.time()
+        xgb_model = estimator.fit(
+            data_connector, input_cols=INPUT_COLS, label_col=LABEL_COL
+        )
+        end_time = time.time()
+        print(f"Training completed in {end_time - start_time:.2f} seconds")
+        
+        return xgb_model
+    
+    # Try different scaling configurations
+    print("Testing automatic worker allocation")
+    auto_model = xgb_train(-1, -1)  # Auto-determine workers based on cluster
+    
+    print("\nTesting explicit worker allocation (3 workers with 4 CPUs each)")
+    explicit_model_1 = xgb_train(3, 4)
+    
+    print("\nTesting explicit worker allocation (6 workers with 2 CPUs each)")
+    explicit_model_2 = xgb_train(6, 2)
+    
+    return 1
+
+
+if __name__ == "__main__":
+    # Function invocation returns a job handle (snowflake.ml.jobs.MLJob)
+    job = xgb()
+    print(f"Job submitted: {job.id}")
+    print(f"Job status: {job.status}")
+    
+    # Wait for job completion
+    final_status = job.wait()
+    print(f"Job completed with status: {final_status}")
+    
+    # Display logs from head node
+    print("--- Head Node Logs ---")
+    job.show_logs()
+    
+    # Optionally view logs from individual nodes
+    for instance_id in [0, 1, 2]:
+        print(f"\n--- Node {instance_id} Logs ---")
+        job.show_logs(instance_id=instance_id)
