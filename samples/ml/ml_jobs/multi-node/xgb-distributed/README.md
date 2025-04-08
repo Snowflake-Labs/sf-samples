@@ -23,9 +23,15 @@ The sample trains an XGBoost model on a large dataset using Ray's distributed ca
 ```sql
 CREATE COMPUTE POOL IF NOT EXISTS E2E_CPU_POOL
     MIN_NODES = 1
-    MAX_NODES = 3  -- For multi-node, ensure MAX_NODES is at least no less than num_instances
+    MAX_NODES = 3
     INSTANCE_FAMILY = CPU_X64_S;
 ```
+
+Note: `MAX_NODES` should be at least equal to `num_instances` (3 in this example).
+If `MAX_NODES` is less than `num_instances`, only `MAX_NODES` nodes will start initially, 
+and remaining nodes will only start when slots become available (when existing
+nodes shut down). This can cause new worker nodes to fail connecting to the 
+head node, potentially causing job failure.
 
 2. Run the example:
 
@@ -61,15 +67,6 @@ logs_head = job.get_logs()
 logs_instance0 = job.get_logs(instance_id=0)
 logs_instance1 = job.get_logs(instance_id=1)
 
-# Note: The head node can be any of the instances (0, 1, or 2)
-# and is determined by the Ray cluster at runtime.
-# To find the head node index, use _get_head_instance_id() method.
-# 
-# It's an internal API for current use only. In future releases
-# we will ensure the head node is always node 0 and deprecate this internal API.
-from snowflake.ml.jobs.job import _get_head_instance_id
-head_node_id = _get_head_instance_id(job._session, job.id)
-print(f"Head Node index: {head_node_id}")
 
 # Wait for completion
 job.wait()
@@ -109,7 +106,7 @@ CREATE COMPUTE POOL IF NOT EXISTS E2E_GPU_POOL
 
 ### 2. Configure Your Training Job to Use GPU
 
-When submitting your training job, modify the code scaling config in `main.py` and change the arguemnt `use_gpu` to `true`:
+When submitting your training job, modify the code scaling config in `main.py` and change the argument `use_gpu` to `true`:
 
 ```python
 # Configure Ray scaling for XGBoost

@@ -17,10 +17,11 @@ format.
 ## Setup
 
 The Runtime Job API (`snowflake.ml.jobs`) API is available in
-`snowflake-ml-python>=1.7.4`.
+`snowflake-ml-python>=1.7.4`. For multi-node capabilities, you'll need 
+`snowflake-ml-python>=1.8.2`.
 
 ```bash
-pip install snowflake-ml-python>=1.7.4
+pip install snowflake-ml-python>=1.8.2
 ```
 
 > NOTE: The Runtime Job API currently only supports Python 3.10.
@@ -233,12 +234,11 @@ def my_dag():
 my_dag()
 ```
 
-### Multi-Node Capabilities
+### Multi-Node Capabilities (PrPr)
 
-ML Jobs now supports multi-node execution, allowing you to:
-- Scale workloads across multiple compute instances via Ray
-- Process larger datasets and train more complex models
-- Monitor each node independently
+ML Jobs (from snowflake-ml-python 1.8.2) now supports multi-node execution, allowing you to:
+- Scale workloads across multiple compute instances via [Ray](https://docs.ray.io/en/latest/ray-overview/examples.html)
+- Process larger datasets and train more complex models through distributed data connectors and trainers that can efficiently handle data processing and model training across multiple nodes
 
 To use multi-node capabilities, specify the `num_instances` parameter:
 
@@ -256,7 +256,8 @@ For multi-node jobs, you can access logs from individual instances:
 ```python
 # Get logs from specific instances
 job.get_logs()  # Head node
-job.get_logs(instance_id=0)  # Node 0
+job.get_logs(instance_id=1)  # Node 1
+job.get_logs(instance_id=2)  # Node 2
 ```
 
 See the [Multi-Node Examples](./multi-node/) for detailed examples of distributed workloads.
