@@ -33,7 +33,17 @@ and remaining nodes will only start when slots become available (when existing
 nodes shut down). This can cause new worker nodes to fail connecting to the 
 head node, potentially causing job failure.
 
-2. Run the example:
+2. Enable the multi node parameter:
+
+```python
+
+from snowflake.snowpark.context import get_active_session
+
+session = get_active_session()
+session.sql("alter session set ENABLE_BATCH_JOB_SERVICES = true").collect()
+```
+
+3. Run the example:
 
 ```python
 from snowflake.ml.jobs import submit_file, submit_directory
