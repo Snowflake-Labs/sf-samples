@@ -49,7 +49,7 @@ def xgb_train(cpu_train_df, input_cols, label_col, num_workers, num_cpu_per_work
     
     # Create a data connector using our custom Ray ingester
     data_connector = DataConnector.from_dataframe(
-        cpu_train_df, ingestor_class=RayDataIngester
+        cpu_train_df
     )
     
     # Train the model
@@ -84,13 +84,7 @@ def main():
     print("Testing automatic worker allocation")
     auto_model = xgb_train(cpu_train_df, INPUT_COLS, LABEL_COL, -1, -1)  # Auto-determine workers based on cluster
     
-    print("\nTesting explicit worker allocation (3 workers with 4 CPUs each)")
-    explicit_model_1 = xgb_train(cpu_train_df, INPUT_COLS, LABEL_COL, 3, 4)
-    
-    print("\nTesting explicit worker allocation (6 workers with 2 CPUs each)")
-    explicit_model_2 = xgb_train(cpu_train_df, INPUT_COLS, LABEL_COL, 6, 2)
-    
-    return 1
+    return 0
 
 if __name__ == "__main__":
     main()
