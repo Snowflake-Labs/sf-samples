@@ -35,7 +35,7 @@ head node, potentially causing job failure.
 
 2. Enable the multi node parameter:
 
-Note: The feature is in PrPr, so the parameter ENABLE_BATCH_JOB_SERVICES might be invisible to your account. In this case, please reach out to Snowflake account admin to turn on the parameter for your account.
+Note: The feature is in PrPr. Please contact your Snowflake account admin to enable the feature on your account
 
 
 ```python
