@@ -1,0 +1,7 @@
+streamlit
+boto3
+pandas
+snowflake-snowpark-python
+langchain
+langchain-community
+langgraph
