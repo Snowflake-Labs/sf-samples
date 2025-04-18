@@ -113,6 +113,25 @@ job2 = submit_directory(
 `job1` and `job2` are job handles, see [Function Dispatch](#function-dispatch)
 for usage examples.
 
+### Retrieving Results
+
+You can retrieve the job execution result using the `MLJob.result()` API.
+The API returns the payload's return value or, if execution failed, raises an exception.
+
+> NOTE: Return values are currently only supported for function-based jobs.
+  File-based jobs will return `None` on success. Exception handling is supported
+  for all types of jobs.
+
+```python
+from snowflake.ml.jobs import get_job
+
+job = get_job('MLJOB_00000000_0000_0000_0000_000000000000')
+
+# Blocks until job completion and returns the execution result on success
+# or raises an exception on failure
+result = job.result()
+```
+
 ## Advanced Usage
 
 ### Custom Python Dependencies
