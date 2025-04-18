@@ -242,9 +242,10 @@ my_dag()
 
 ### Multi-Node Capabilities (PrPr)
 
-ML Jobs also supports multi-node execution as a private preview feature, allowing you to:
+ML Jobs also support running distributed machine learning workloads across multiple nodes, allowing you to:
 - Scale workloads across multiple compute instances via [Ray](https://docs.ray.io/en/latest/ray-overview/examples.html)
 - Process larger datasets and train more complex models through distributed data connectors and trainers that can efficiently handle data processing and model training across multiple nodes
+- Speed up training through parallelization
 
 To use multi-node capabilities, specify the `num_instances` parameter:
 
@@ -269,12 +270,11 @@ job.get_logs(instance_id=2)  # Node 2
 
 See the [Multi-Node Examples](./multi-node/) for detailed examples of distributed workloads.
 
-## Next Steps
+## Examples
 
-- See the [XGBoost Classifier Example](./single-node/xgb-loan-apps/) for a full
-  walkthrough of training and deploying an XGBoost model.
-- See the [PyTorch Classifier Example](./single-node/pytorch-cifar10/) for a full
-  walkthrough of training a PyTorch model with Weights and Biases integration
+- [XGBoost Classifier Example](./single-node/xgb-loan-apps/): Train an XGBoost model on a single node
+- [PyTorch Classifier Example](./single-node/pytorch-cifar10/): Train a PyTorch model on a single node and integrate with Weights and Biases for experiment tracking
+- [XGBoost Distributed Training](./xgb-distributed/): Train an XGBoost model using a distributed setup with multiple nodes (PrPr)
 
 ## Known Limitations
 

@@ -1,5 +1,7 @@
 # XGBoost Classifier Example
 
+> NOTE: Prefer notebooks? This tutorial is also available as a [Jupyter Notebook](../../notebooks/single_node_xgb.ipynb)!
+
 ## Setup
 
 > NOTE: The MLJob API currently only supports Python 3.10 clients.
@@ -25,17 +27,7 @@ from snowflake.ml.utils.connection_params import SnowflakeLoginOptions
 session = Session.builder.configs(SnowflakeLoginOptions()).create()
 ```
 
-## Jupyter
-
-[Headless_Runtime_Demo.ipynb](jupyter/Headless_Runtime_Demo.ipynb)
-shows an example of using Headless Container Runtimes to push function execution
-into a Container Runtime instance from a Jupyter Notebook
-
-```bash
-jupyter notebook jupyter/Headless_Runtime_Demo.ipynb 
-```
-
-## VSCode
+## How to run
 
 Payloads can also be dispatched from VSCode or any other IDE. [main.py](src/main.py)
 demonstrates how payloads can be dispatched using either a function decorator or
