@@ -1,4 +1,4 @@
-# ML Jobs (PrPr)
+# ML Jobs (PuPr)
 
 Snowflake ML Jobs enables you to run machine learning workloads inside Snowflake
 [ML Container Runtimes](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml)
@@ -7,7 +7,7 @@ from any environment. This solution allows you to:
 - Leverage GPU and high-memory CPU instances for resource-intensive tasks
 - Use your preferred development environment (VS Code, external notebooks, etc.)
 - Maintain flexibility with custom dependencies and packages
-- (Coming soon) Scale workloads across multiple nodes effortlessly
+- (PrPr) Scale workloads across multiple nodes effortlessly
 
 Whether you're looking to productionize your ML workflows or prefer working in
 your own development environment, Snowflake ML Jobs provides the same powerful
@@ -17,7 +17,6 @@ format.
 ## Setup
 
 The Runtime Job API (`snowflake.ml.jobs`) API is available in
-`snowflake-ml-python>=1.7.4`. For multi-node capabilities, you'll need 
 `snowflake-ml-python>=1.8.2`.
 
 ```bash
@@ -28,18 +27,6 @@ pip install snowflake-ml-python>=1.8.2
   Attempting to use the API with a different Python version may yield
   unexpected errors.
 
-The Runtime Job API jobs requires the `ENABLE_SNOWSERVICES_ASYNC_JOBS`
-to be enabled in your Snowflake account or session.
-
-
-```sql
--- Enable for session
-ALTER SESSION SET ENABLE_SNOWSERVICES_ASYNC_JOBS = TRUE;
-
--- Enable for account (requires ACCOUNTADMIN)
-ALTER ACCOUNT SET ENABLE_SNOWSERVICES_ASYNC_JOBS = TRUE;
-```
-
 ## Getting Started
 
 ### Prerequisites
@@ -47,7 +34,7 @@ ALTER ACCOUNT SET ENABLE_SNOWSERVICES_ASYNC_JOBS = TRUE;
 Create a compute pool if you don't already have one ready to use.
 
 ```sql
-CREATE COMPUTE POOL IF NOT EXISTS MY_COMPUTE_POOL -- Customize as desired
+CREATE COMPUTE POOL IF NOT EXISTS DEMO_POOL_CPU -- Customize as desired
     MIN_NODES = 1
     MAX_NODES = 1               -- Increase if more concurrency desired
     INSTANCE_FAMILY = CPU_X64_S -- See https://docs.snowflake.com/en/sql-reference/sql/create-compute-pool
@@ -196,7 +183,7 @@ job3 = submit_directory(
 The Runtime Job API can be used in Airflow using the
 [SnowparkOperator](https://airflow.apache.org/docs/apache-airflow-providers-snowflake/stable/operators/snowpark.html).
 
-> NOTE: Make sure `snowflake-ml-python>=1.7.4` is installed in your Airflow worker environment(s)
+> NOTE: Make sure `snowflake-ml-python>=1.8.2` is installed in your Airflow worker environment(s)
 
 ```python
 import datetime
@@ -236,7 +223,7 @@ my_dag()
 
 ### Multi-Node Capabilities (PrPr)
 
-ML Jobs (from snowflake-ml-python 1.8.2) now supports multi-node execution, allowing you to:
+ML Jobs also supports multi-node execution as a private preview feature, allowing you to:
 - Scale workloads across multiple compute instances via [Ray](https://docs.ray.io/en/latest/ray-overview/examples.html)
 - Process larger datasets and train more complex models through distributed data connectors and trainers that can efficiently handle data processing and model training across multiple nodes
 
@@ -248,6 +235,7 @@ def my_distributed_function():
     # Your distributed code here
     # Access instance-specific details via Ray
     import ray
+    ray.init(address='auto', ignore_reinit_error=True)
     print(f"Ray nodes: {ray.nodes()}")
 ```
 
@@ -272,7 +260,7 @@ See the [Multi-Node Examples](./multi-node/) for detailed examples of distribute
 ## Known Limitations
 
 1. The Headless Runtime currently only supports Python 3.10. Attempting to use 
-other Python versions may throw errors like `UnpicklingError`.
+other Python versions may throw unexpected errors like `UnpicklingError` or `TypeError`.
 1. Running a large number of jobs can result in service start failure due to
 `Number of services limit exceeded for the account`. This will be fixed in an upcoming release.
     - This prevents any kind of SPCS service from starting on the account, including Notebooks and Model Inference
