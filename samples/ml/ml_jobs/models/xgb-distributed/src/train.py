@@ -6,7 +6,6 @@ import time
 from snowflake.snowpark.context import get_active_session
 from snowflake.ml.modeling.distributors.xgboost import XGBEstimator, XGBScalingConfig
 from snowflake.ml.data.data_connector import DataConnector
-from implementations.ray_data_ingester import RayDataIngester
 
 # Generate a synthetic dataset for demo purposes
 def generate_dataset_sql(db, schema, table_name, num_rows, num_cols) -> str:
@@ -21,7 +20,7 @@ def generate_dataset_sql(db, schema, table_name, num_rows, num_cols) -> str:
 # Define a function to train XGBoost with different scaling configurations
 def xgb_train(cpu_train_df, input_cols, label_col, num_workers, num_cpu_per_worker):
     print(f"Training with num_workers={num_workers}, num_cpu_per_worker={num_cpu_per_worker}")
-    
+
     # XGBoost parameters
     params = {
         "tree_method": "hist",
@@ -32,26 +31,26 @@ def xgb_train(cpu_train_df, input_cols, label_col, num_workers, num_cpu_per_work
         "max_leaves": 1000,
         "max_bin": 63,
     }
-    
+
     # Configure Ray scaling for XGBoost
     scaling_config = XGBScalingConfig(
-        num_workers=num_workers, 
+        num_workers=num_workers,
         num_cpu_per_worker=num_cpu_per_worker,
         use_gpu=False
     )
-    
+
     # Create and configure the estimator
     estimator = XGBEstimator(
         n_estimators=100,
         params=params,
         scaling_config=scaling_config,
     )
-    
+
     # Create a data connector using our custom Ray ingester
     data_connector = DataConnector.from_dataframe(
         cpu_train_df
     )
-    
+
     # Train the model
     print("Starting training...")
     start_time = time.time()
@@ -60,7 +59,7 @@ def xgb_train(cpu_train_df, input_cols, label_col, num_workers, num_cpu_per_work
     )
     end_time = time.time()
     print(f"Training completed in {end_time - start_time:.2f} seconds")
-    
+
     return xgb_model
 
 def main():
@@ -68,23 +67,23 @@ def main():
     num_rows = 1000 * 1000
     num_cols = 100
     table_name = "MULTINODE_CPU_TRAIN_DS"
-    
+
     # Create the dataset in Snowflake
     session = get_active_session()
-    session.sql(generate_dataset_sql(session.get_current_database(), session.get_current_schema(), 
+    session.sql(generate_dataset_sql(session.get_current_database(), session.get_current_schema(),
                             table_name, num_rows, num_cols)).collect()
-    
+
     # Load the dataset into a dataframe
     cpu_train_df = session.table(table_name)
     feature_list = [f'FEATURE_{num}' for num in range(1, num_cols)]
     INPUT_COLS = feature_list
     LABEL_COL = "TARGET_1"
-    
+
     # Try different scaling configurations
     print("Testing automatic worker allocation")
     auto_model = xgb_train(cpu_train_df, INPUT_COLS, LABEL_COL, -1, -1)  # Auto-determine workers based on cluster
-    
-    return 0
+
+    return auto_model
 
 if __name__ == "__main__":
     main()
