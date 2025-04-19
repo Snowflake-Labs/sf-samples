@@ -9,7 +9,7 @@
 Install Python requirements using `pip install -r requirements.txt` from the sample directory.
 
 This sample uses synthetic data for training and evaluation. Be sure to run data
-generation using the [Jupyter notebook](#jupyter) or [prepare_data.py](src/prepare_data.py)
+generation using [prepare_data.py](src/prepare_data.py)
 before attempting to run the [VSCode](#vscode) scripts.
 
 ### Connecting to Snowflake in Python

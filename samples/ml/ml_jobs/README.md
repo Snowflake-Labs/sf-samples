@@ -275,13 +275,11 @@ job.get_logs(instance_id=1)  # Node 1
 job.get_logs(instance_id=2)  # Node 2
 ```
 
-See the [Multi-Node Examples](./multi-node/) for detailed examples of distributed workloads.
-
 ## Examples
 
-- [XGBoost Classifier Example](./single-node/xgb-loan-apps/): Train an XGBoost model on a single node
-- [PyTorch Classifier Example](./single-node/pytorch-cifar10/): Train a PyTorch model on a single node and integrate with Weights and Biases for experiment tracking
-- [XGBoost Distributed Training](./xgb-distributed/): Train an XGBoost model using a distributed setup with multiple nodes (PrPr)
+- [XGBoost Classifier Example](./models/xgb-loan-apps/): Train an XGBoost model on a single node
+- [PyTorch Classifier Example](./models/pytorch-cifar10/): Train a PyTorch model on a single node and integrate with Weights and Biases for experiment tracking
+- [XGBoost Distributed Training](./models/xgb-distributed/): Train an XGBoost model using a distributed setup with multiple nodes (PrPr)
 
 ## Known Limitations
 
