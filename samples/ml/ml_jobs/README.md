@@ -247,6 +247,13 @@ ML Jobs also support running distributed machine learning workloads across multi
 - Process larger datasets and train more complex models through distributed data connectors and trainers that can efficiently handle data processing and model training across multiple nodes
 - Speed up training through parallelization
 
+Multi-node requires the `ENABLE_BATCH_JOB_SERVICES` to be enabled.
+Contact your Snowflake account admin to enable the feature on your account.
+
+```sql
+ALTER ACCOUNT <account> SET ENABLE_BATCH_JOB_SERVICES = TRUE;
+```
+
 To use multi-node capabilities, specify the `num_instances` parameter:
 
 ```python

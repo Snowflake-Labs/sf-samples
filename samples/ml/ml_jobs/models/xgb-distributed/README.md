@@ -35,18 +35,8 @@ and remaining nodes will only start when slots become available (when existing
 nodes shut down). This can cause new worker nodes to fail connecting to the 
 head node, potentially causing job failure.
 
-2. Enable the multi node parameter:
-
-Note: The feature is in PrPr. Please contact your Snowflake account admin to enable the feature on your account
-
-
-```python
-
-from snowflake.snowpark.context import get_active_session
-
-session = get_active_session()
-session.sql("alter session set ENABLE_BATCH_JOB_SERVICES = true").collect()
-```
+2. Ensure the `ENABLE_BATCH_JOB_SERVICES` parameter is enabled on your Snowflake account.
+Contact your Snowflake account admin to enable the feature if needed.
 
 3. Run the example:
 
