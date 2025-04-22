@@ -234,9 +234,29 @@ job.get_logs(instance_id=2)  # Node 2
 
 ## Examples
 
-- [XGBoost Classifier Example](./models/xgb-loan-apps/): Train an XGBoost model on a single node
-- [PyTorch Classifier Example](./models/pytorch-cifar10/): Train a PyTorch model on a single node and integrate with Weights and Biases for experiment tracking
-- [XGBoost Distributed Training](./models/xgb-distributed/): Train an XGBoost model using a distributed setup with multiple nodes (PrPr)
+### IDE
+
+Examples showcasing how ML Jobs can be used from an IDE such as VSCode, Cursor, or PyCharm.
+
+- [xgb_classifier](./xgb_classifier) - train a simple XGBoost classifier
+- [pytorch_image_classifier](./pytorch_image_classifier) - train a simple PyTorch model for CIFAR-10
+  image classification. Also demonstrates integration with Weights and Biases for experiment tracking
+- [distributed_xgb_classifier](./distributed_xgb_classifier) - train an XGBoost model using the [Snowflake Container Runtime's distributor APIs](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml#xgboost)
+  for distributed training across multiple nodes (PrPr)
+
+### Jupyter Notebooks
+
+Examples showcasing how ML Jobs can be used from a notebook environment like Jupyter.
+
+- [xgb_classifier_nb](./xgb_classifier_nb) - train a simple XGBoost classifier
+- [distributed_xgb_classifier_nb](./distributed_xgb_classifier_nb) - train an XGBoost model using the [Snowflake Container Runtime's distributor APIs](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml#xgboost)
+  for distributed training across multiple nodes (PrPr)
+
+### Pipelines / DAGs
+
+Examples showcasing how ML Jobs can be integrated with workflow/DAG frameworks like Airflow.
+
+- [xgb_classifier_airflow](./xgb_classifier_airflow/) - orchestrate model training and evaluation using Apache Airflow
 
 ## Known Limitations
 

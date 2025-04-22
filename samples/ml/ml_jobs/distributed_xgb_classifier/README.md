@@ -2,7 +2,7 @@
 
 This example demonstrates how to train an XGBoost model using distributed computing across multiple nodes with Snowflake ML Jobs.
 
-> NOTE: Prefer notebooks? This tutorial is also available as a [Jupyter Notebook](../../notebooks/multi_node_xgb.ipynb)!
+> NOTE: Prefer notebooks? This tutorial is also available as a [Jupyter Notebook](../distributed_xgb_classifier_nb/multi_node_xgb.ipynb)!
 
 ## Overview
 

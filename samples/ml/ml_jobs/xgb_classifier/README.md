@@ -1,6 +1,6 @@
 # XGBoost Classifier Example
 
-> NOTE: Prefer notebooks? This tutorial is also available as a [Jupyter Notebook](../../notebooks/single_node_xgb.ipynb)!
+> NOTE: Prefer notebooks? This tutorial is also available as a [Jupyter Notebook](../xgb_classifier_nb/single_node_xgb.ipynb)!
 
 ## Setup
 

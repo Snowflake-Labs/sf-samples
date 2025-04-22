@@ -5,7 +5,7 @@ from airflow.decorators import dag, task
 from airflow.exceptions import AirflowException
 from snowflake.ml import jobs
 
-_PAYLOAD_SOURCE = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "models", "xgb-loan-apps", "src"))
+_PAYLOAD_SOURCE = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "xgb_classifier", "src"))
 
 @dag(
     dag_id="single_node_xgb_dag_example",
