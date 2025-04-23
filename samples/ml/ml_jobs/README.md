@@ -11,8 +11,10 @@ from any environment. This solution allows you to:
 
 Whether you're looking to productionize your ML workflows or prefer working in
 your own development environment, Snowflake ML Jobs provides the same powerful
-capabilities available in Snowflake Notebooks in a more flexible, integration-friendly
-format.
+capabilities available in Snowflake Notebooks in a more flexible,
+integration-friendly format.
+
+See the [Examples](#examples) section to find end-to-end examples of using ML Jobs.
 
 ## Setup
 
