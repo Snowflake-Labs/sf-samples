@@ -1,4 +1,4 @@
-from snowflake import snowpark
+from snowflake.snowpark import Session
 
 def generate_data(session: snowpark.Session, table_name: str, num_rows: int, overwrite: bool = False) -> list[snowpark.Row]:
     query = f"""
@@ -26,7 +26,6 @@ def generate_data(session: snowpark.Session, table_name: str, num_rows: int, ove
 
 if __name__ == "__main__":
     import argparse
-    from snowflake.ml.utils.connection_params import SnowflakeLoginOptions
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -40,5 +39,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    session = snowpark.Session.builder.configs(SnowflakeLoginOptions()).create()
+    session = Session.builder.getOrCreate()
     generate_data(session, **vars(args))

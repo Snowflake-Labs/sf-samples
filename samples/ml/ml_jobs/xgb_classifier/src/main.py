@@ -5,7 +5,6 @@ import cloudpickle as cp
 from time import perf_counter
 
 from sklearn.model_selection import train_test_split
-from snowflake.ml.utils.connection_params import SnowflakeLoginOptions
 from snowflake.ml import jobs
 from snowflake.snowpark import Session
 
@@ -16,10 +15,7 @@ COMPUTE_POOL = "DEMO_POOL_CPU"
 
 @jobs.remote(COMPUTE_POOL, stage_name="payload_stage")
 def train_model(source_data: str, save_mode: str = "local", output_dir: str = None):
-    # Initialize Snowflake session
-    # See https://docs.snowflake.com/developer-guide/snowflake-cli/connecting/configure-connections#define-connections
-    # for how to define default connections in a config.toml file
-    session = Session.builder.configs(SnowflakeLoginOptions()).create()
+    session = Session.builder.getOrCreate()
 
     # Load data
     dc = model_utils.create_data_connector(session, table_name=source_data)
@@ -111,7 +107,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # We need a Snowflake session to submit jobs
-    session = Session.builder.configs(SnowflakeLoginOptions("preprod8")).create()
+    # See https://docs.snowflake.com/developer-guide/snowflake-cli/connecting/configure-connections#define-connections
+    # for how to define default connections in a config.toml file
+    session = Session.builder.create()
 
     # Kick off training using decorated function
     job1 = train_model(**vars(args))

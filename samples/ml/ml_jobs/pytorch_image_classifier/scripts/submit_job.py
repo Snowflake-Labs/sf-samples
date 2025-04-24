@@ -53,7 +53,6 @@ def run_job(session: Session, compute_pool: str, external_access_integrations: l
 
 if __name__ == '__main__':
     import argparse
-    from snowflake.ml.utils.connection_params import SnowflakeLoginOptions
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--compute-pool", type=str, required=True)
@@ -64,7 +63,7 @@ if __name__ == '__main__':
     parser.add_argument("--block", action="store_true", help="Block until job completes")
     args, unparsed_args = parser.parse_known_args()
 
-    session = Session.builder.configs(SnowflakeLoginOptions(args.snowflake_config)).create()
+    session = Session.builder.getOrCreate()
 
     run_job(
         session=session,

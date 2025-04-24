@@ -3,7 +3,7 @@ Distributed XGBoost Training Example using multiple nodes
 """
 
 import time
-from snowflake.snowpark.context import get_active_session
+from snowflake.snowpark import Session
 from snowflake.ml.modeling.distributors.xgboost import XGBEstimator, XGBScalingConfig
 from snowflake.ml.data.data_connector import DataConnector
 
@@ -69,7 +69,7 @@ def main():
     table_name = "MULTINODE_CPU_TRAIN_DS"
 
     # Create the dataset in Snowflake
-    session = get_active_session()
+    session = Session.builder.getOrCreate()
     session.sql(generate_dataset_sql(session.get_current_database(), session.get_current_schema(),
                             table_name, num_rows, num_cols)).collect()
 

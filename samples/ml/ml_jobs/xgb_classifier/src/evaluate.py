@@ -50,7 +50,6 @@ def do_eval(session: Session, source_data: str, model_path: str) -> Dict[str, An
 
 if __name__ == "__main__":
     import argparse
-    from snowflake.ml.utils.connection_params import SnowflakeLoginOptions
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -61,5 +60,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    session = Session.builder.configs(SnowflakeLoginOptions()).create()
+    session = Session.builder.getOrCreate()
     do_eval(session, **vars(args))
