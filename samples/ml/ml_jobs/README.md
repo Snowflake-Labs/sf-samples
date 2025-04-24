@@ -1,4 +1,4 @@
-# ML Jobs (PrPr)
+# ML Jobs (PuPr)
 
 Snowflake ML Jobs enables you to run machine learning workloads inside Snowflake
 [ML Container Runtimes](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml)
@@ -7,17 +7,18 @@ from any environment. This solution allows you to:
 - Leverage GPU and high-memory CPU instances for resource-intensive tasks
 - Use your preferred development environment (VS Code, external notebooks, etc.)
 - Maintain flexibility with custom dependencies and packages
-- (Coming soon) Scale workloads across multiple nodes effortlessly
+- (PrPr) Scale workloads across multiple nodes effortlessly
 
 Whether you're looking to productionize your ML workflows or prefer working in
 your own development environment, Snowflake ML Jobs provides the same powerful
-capabilities available in Snowflake Notebooks in a more flexible, integration-friendly
-format.
+capabilities available in Snowflake Notebooks in a more flexible,
+integration-friendly format.
+
+See the [Examples](#examples) section to find end-to-end examples of using ML Jobs.
 
 ## Setup
 
 The Runtime Job API (`snowflake.ml.jobs`) API is available in
-`snowflake-ml-python>=1.7.4`. For multi-node capabilities, you'll need 
 `snowflake-ml-python>=1.8.2`.
 
 ```bash
@@ -28,18 +29,6 @@ pip install snowflake-ml-python>=1.8.2
   Attempting to use the API with a different Python version may yield
   unexpected errors.
 
-The Runtime Job API jobs requires the `ENABLE_SNOWSERVICES_ASYNC_JOBS`
-to be enabled in your Snowflake account or session.
-
-
-```sql
--- Enable for session
-ALTER SESSION SET ENABLE_SNOWSERVICES_ASYNC_JOBS = TRUE;
-
--- Enable for account (requires ACCOUNTADMIN)
-ALTER ACCOUNT SET ENABLE_SNOWSERVICES_ASYNC_JOBS = TRUE;
-```
-
 ## Getting Started
 
 ### Prerequisites
@@ -47,7 +36,7 @@ ALTER ACCOUNT SET ENABLE_SNOWSERVICES_ASYNC_JOBS = TRUE;
 Create a compute pool if you don't already have one ready to use.
 
 ```sql
-CREATE COMPUTE POOL IF NOT EXISTS MY_COMPUTE_POOL -- Customize as desired
+CREATE COMPUTE POOL IF NOT EXISTS DEMO_POOL_CPU -- Customize as desired
     MIN_NODES = 1
     MAX_NODES = 1               -- Increase if more concurrency desired
     INSTANCE_FAMILY = CPU_X64_S -- See https://docs.snowflake.com/en/sql-reference/sql/create-compute-pool
@@ -126,6 +115,25 @@ job2 = submit_directory(
 `job1` and `job2` are job handles, see [Function Dispatch](#function-dispatch)
 for usage examples.
 
+### Retrieving Results
+
+You can retrieve the job execution result using the `MLJob.result()` API.
+The API returns the payload's return value or, if execution failed, raises an exception.
+
+> NOTE: Return values are currently only supported for function-based jobs.
+  File-based jobs will return `None` on success. Exception handling is supported
+  for all types of jobs.
+
+```python
+from snowflake.ml.jobs import get_job
+
+job = get_job('MLJOB_00000000_0000_0000_0000_000000000000')
+
+# Blocks until job completion and returns the execution result on success
+# or raises an exception on failure
+result = job.result()
+```
+
 ## Advanced Usage
 
 ### Custom Python Dependencies
@@ -191,54 +199,19 @@ job3 = submit_directory(
 )
 ```
 
-### Airflow Integration
-
-The Runtime Job API can be used in Airflow using the
-[SnowparkOperator](https://airflow.apache.org/docs/apache-airflow-providers-snowflake/stable/operators/snowpark.html).
-
-> NOTE: Make sure `snowflake-ml-python>=1.7.4` is installed in your Airflow worker environment(s)
-
-```python
-import datetime
-from airflow.decorators import dag, task
-from snowflake.ml import remote, submit_file
-
-@dag(start_date=datetime.datetime(2025, 1, 1), schedule="@daily")
-def my_dag():
-    @task.snowpark()
-    def task_from_function():
-        # SnowparkOperator automatically creates a Snowpark Session
-        # which the Runtime Job API can infer from context
-        @remote("HEADLESS_JOB_POOL", stage_name="payload_stage")
-        def my_function():
-            print("Hello world")
-        job = my_function()
-        print("Job %s submitted" % job.id)
-        print("Job %s ended with status %s. Logs:\n" % (job.id, job.wait(), job.get_logs()))
-
-    @task.snowpark()
-    def task_from_file():
-        # SnowparkOperator automatically creates a Snowpark Session
-        # which the Runtime Job API can infer from context
-        job = submit_file(
-            "./my_script.py",
-            "HEADLESS_JOB_POOL",
-            stage_name="payload_stage",
-        )
-        print("Job %s submitted" % job.id)
-        print("Job %s ended with status %s. Logs:\n" % (job.id, job.wait(), job.get_logs()))
-
-    task_from_function()
-    task_from_file()
-
-my_dag()
-```
-
 ### Multi-Node Capabilities (PrPr)
 
-ML Jobs (from snowflake-ml-python 1.8.2) now supports multi-node execution, allowing you to:
+ML Jobs also support running distributed machine learning workloads across multiple nodes, allowing you to:
 - Scale workloads across multiple compute instances via [Ray](https://docs.ray.io/en/latest/ray-overview/examples.html)
 - Process larger datasets and train more complex models through distributed data connectors and trainers that can efficiently handle data processing and model training across multiple nodes
+- Speed up training through parallelization
+
+Multi-node requires the `ENABLE_BATCH_JOB_SERVICES` to be enabled.
+Contact your Snowflake account admin to enable the feature on your account.
+
+```sql
+ALTER ACCOUNT <account> SET ENABLE_BATCH_JOB_SERVICES = TRUE;
+```
 
 To use multi-node capabilities, specify the `num_instances` parameter:
 
@@ -248,6 +221,7 @@ def my_distributed_function():
     # Your distributed code here
     # Access instance-specific details via Ray
     import ray
+    ray.init(address='auto', ignore_reinit_error=True)
     print(f"Ray nodes: {ray.nodes()}")
 ```
 
@@ -260,19 +234,36 @@ job.get_logs(instance_id=1)  # Node 1
 job.get_logs(instance_id=2)  # Node 2
 ```
 
-See the [Multi-Node Examples](./multi-node/) for detailed examples of distributed workloads.
+## Examples
 
-## Next Steps
+### IDE
 
-- See the [XGBoost Classifier Example](./single-node/xgb-loan-apps/) for a full
-  walkthrough of training and deploying an XGBoost model.
-- See the [PyTorch Classifier Example](./single-node/pytorch-cifar10/) for a full
-  walkthrough of training a PyTorch model with Weights and Biases integration
+Examples showcasing how ML Jobs can be used from an IDE such as VSCode, Cursor, or PyCharm.
+
+- [xgb_classifier](./xgb_classifier) - train a simple XGBoost classifier
+- [pytorch_image_classifier](./pytorch_image_classifier) - train a simple PyTorch model for CIFAR-10
+  image classification. Also demonstrates integration with Weights and Biases for experiment tracking
+- [distributed_xgb_classifier](./distributed_xgb_classifier) - train an XGBoost model using the [Snowflake Container Runtime's distributor APIs](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml#xgboost)
+  for distributed training across multiple nodes (PrPr)
+
+### Jupyter Notebooks
+
+Examples showcasing how ML Jobs can be used from a notebook environment like Jupyter.
+
+- [xgb_classifier_nb](./xgb_classifier_nb) - train a simple XGBoost classifier
+- [distributed_xgb_classifier_nb](./distributed_xgb_classifier_nb) - train an XGBoost model using the [Snowflake Container Runtime's distributor APIs](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml#xgboost)
+  for distributed training across multiple nodes (PrPr)
+
+### Pipelines / DAGs
+
+Examples showcasing how ML Jobs can be integrated with workflow/DAG frameworks like Airflow.
+
+- [xgb_classifier_airflow](./xgb_classifier_airflow/) - orchestrate model training and evaluation using Apache Airflow
 
 ## Known Limitations
 
 1. The Headless Runtime currently only supports Python 3.10. Attempting to use 
-other Python versions may throw errors like `UnpicklingError`.
+other Python versions may throw unexpected errors like `UnpicklingError` or `TypeError`.
 1. Running a large number of jobs can result in service start failure due to
 `Number of services limit exceeded for the account`. This will be fixed in an upcoming release.
     - This prevents any kind of SPCS service from starting on the account, including Notebooks and Model Inference

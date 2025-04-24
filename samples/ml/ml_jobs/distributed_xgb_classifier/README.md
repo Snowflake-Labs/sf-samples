@@ -2,6 +2,8 @@
 
 This example demonstrates how to train an XGBoost model using distributed computing across multiple nodes with Snowflake ML Jobs.
 
+> NOTE: Prefer notebooks? This tutorial is also available as a [Jupyter Notebook](../distributed_xgb_classifier_nb/multi_node_xgb.ipynb)!
+
 ## Overview
 
 The sample trains an XGBoost model on a large dataset using Ray's distributed capabilities. It demonstrates:
@@ -33,18 +35,8 @@ and remaining nodes will only start when slots become available (when existing
 nodes shut down). This can cause new worker nodes to fail connecting to the 
 head node, potentially causing job failure.
 
-2. Enable the multi node parameter:
-
-Note: The feature is in PrPr. Please contact your Snowflake account admin to enable the feature on your account
-
-
-```python
-
-from snowflake.snowpark.context import get_active_session
-
-session = get_active_session()
-session.sql("alter session set ENABLE_BATCH_JOB_SERVICES = true").collect()
-```
+2. Ensure the `ENABLE_BATCH_JOB_SERVICES` parameter is enabled on your Snowflake account.
+Contact your Snowflake account admin to enable the feature if needed.
 
 3. Run the example:
 
@@ -53,7 +45,7 @@ from snowflake.ml.jobs import submit_file, submit_directory
 
 # Option 1: Run just the main file
 job = submit_file(
-    "path/to/main.py",
+    "src/train.py",
     "E2E_CPU_POOL",
     stage_name="multi_node_payload_stage",
     num_instances=3  # Specify multiple instances
@@ -61,9 +53,9 @@ job = submit_file(
 
 # Option 2: Run the entire directory
 job = submit_directory(
-    "path/to/xgb-distributed",
+    "src",
     "E2E_CPU_POOL",
-    entrypoint="src/main.py",
+    entrypoint="src/train.py",
     stage_name="multi_node_payload_stage",
     num_instances=3  # Specify multiple instances
 )
@@ -119,7 +111,7 @@ CREATE COMPUTE POOL IF NOT EXISTS E2E_GPU_POOL
 
 ### 2. Configure Your Training Job to Use GPU
 
-When submitting your training job, modify the code scaling config in `main.py` and change the argument `use_gpu` to `true`:
+When submitting your training job, modify the code scaling config in `train.py` and change the argument `use_gpu` to `true`:
 
 ```python
 # Configure Ray scaling for XGBoost
@@ -130,7 +122,7 @@ scaling_config = XGBScalingConfig(
 )
 ```
 
-Also change the compute pool from the old cpu one to use the gpu one in `main.py`:
+Also change the compute pool from the old cpu one to use the gpu one in `train.py`:
 
 ```python
 # compute_pool = "E2E_CPU_POOL"
