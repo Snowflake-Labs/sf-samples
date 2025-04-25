@@ -115,6 +115,32 @@ job2 = submit_directory(
 `job1` and `job2` are job handles, see [Function Dispatch](#function-dispatch)
 for usage examples.
 
+### Accessing Snowflake from an ML Job
+
+Snowpark Sessions are not serializable and thus cannot be passed into an ML Job
+as an argument. However, ML Jobs are automatically configured with a Snowpark
+Session in the job context. You can retrieve the Session instance with the following code:
+
+```python
+# From inside the job payload
+from snowflake.snowpark import Session
+session = Session.builder.getOrCreate()
+
+# Equivalent alternative
+from snowflake.snowpark.context import get_active_session
+session = get_active_session()
+```
+
+Note this should be run from *inside* the ML Job payload, i.e.
+
+```python
+@remote("MY_COMPUTE_POOL", stage_name="MY_PAYLOAD_STAGE")
+def my_ml_job():
+    from snowflake.snowpark import Session
+    session = Session.builder.getOrCreate()
+    ...
+```
+
 ### Retrieving Results
 
 You can retrieve the job execution result using the `MLJob.result()` API.
