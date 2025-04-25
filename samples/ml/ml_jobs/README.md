@@ -42,6 +42,9 @@ CREATE COMPUTE POOL IF NOT EXISTS DEMO_POOL_CPU -- Customize as desired
     INSTANCE_FAMILY = CPU_X64_S -- See https://docs.snowflake.com/en/sql-reference/sql/create-compute-pool
 ```
 
+Your account must have at least one image repository created in order to use Snowflake
+container images. See [Known Limitations](#known-limitations) for more information.
+
 ### Function Dispatch
 
 Python functions can be executed as Runtime Jobs using the `snowflake.ml.jobs.remote`
@@ -290,28 +293,30 @@ Examples showcasing how ML Jobs can be integrated with workflow/DAG frameworks l
 
 1. The Headless Runtime currently only supports Python 3.10. Attempting to use 
 other Python versions may throw unexpected errors like `UnpicklingError` or `TypeError`.
-1. Running a large number of jobs can result in service start failure due to
-`Number of services limit exceeded for the account`. This will be fixed in an upcoming release.
-    - This prevents any kind of SPCS service from starting on the account, including Notebooks and Model Inference
-    - As a temporary workaround, please avoid launching more than 200 concurrent
-    jobs and manually delete completed and failed jobs.
-      ```sql
-      SHOW JOB SERVICES LIKE 'MLJOB%';
-      DROP SERVICE <service_name>;
-      ```
-      ```python
-      from snowflake.ml.jobs import list_jobs, delete_job
-      for row in list_jobs(limit=-1).collect():
-        if row["status"] in {"DONE", "FAILED"}:
-          delete_job(row["id"])
-      ```
-1. Job logs are lost upon compute pool suspension even if the job entity itself has not been deleted.
+1. Job submission may fail with `Failed to retrieve image <image_name> from the image repository`
+if your account has not been properly configured with image registries yet.
+This can be resolved by [creating an image repository](https://docs.snowflake.com/en/sql-reference/sql/create-image-repository)
+anywhere in your account.
+1. Job logs are lost upon compute pool suspension even if the job entity itself has not been deleted,
+resulting in `job.get_logs()` failing with an exception.
 This may happen either due to manual suspension `ALTER COMPUTE POOL MY_POOL SUSPEND`
 or auto suspension on idle timeout.
     - Compute pool auto suspension can be disabled using `ALTER COMPUTE POOL MY_POOL SET AUTO_SUSPEND_SECS = 0`
     - For more information, see
       [Compute pool privileges](https://docs.snowflake.com/en/developer-guide/snowpark-container-services/working-with-compute-pool#compute-pool-privileges)
       and [Compute pool cost](https://docs.snowflake.com/en/developer-guide/snowpark-container-services/accounts-orgs-usage-views#compute-pool-cost)
+1. Job objects are not automatically cleaned up after completion. This will be fixed in a
+future release; For now, please manually clean up completed and failed jobs periodically
+    ```sql
+    SHOW JOB SERVICES LIKE 'MLJOB%';
+    DROP SERVICE <service_name>;
+    ```
+    ```python
+    from snowflake.ml.jobs import list_jobs, delete_job
+    for row in list_jobs(limit=-1).collect():
+      if row["status"] in {"DONE", "FAILED"}:
+        delete_job(row["id"])
+    ```
 1. Job payload stages (specified via `stage_name` param) are not automatically 
     cleaned up. Please manually clean up  the payload stage(s) to prevent
     excessive storage costs.
