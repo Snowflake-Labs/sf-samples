@@ -1,6 +1,6 @@
-from snowflake.snowpark import Session
+from snowflake.snowpark import Session, Row
 
-def generate_data(session: snowpark.Session, table_name: str, num_rows: int, overwrite: bool = False) -> list[snowpark.Row]:
+def generate_data(session: Session, table_name: str, num_rows: int, overwrite: bool = False) -> list[Row]:
     query = f"""
         CREATE{" OR REPLACE" if overwrite else ""} TABLE{"" if overwrite else " IF NOT EXISTS"} {table_name} AS
         SELECT 
