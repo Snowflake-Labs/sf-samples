@@ -2,7 +2,6 @@ import argparse
 import snowflake.ml.jobs as jobs
 
 from snowflake.snowpark import Session
-from snowflake.ml.utils.connection_params import SnowflakeLoginOptions
 
 def main():
     parser = argparse.ArgumentParser()
@@ -12,7 +11,7 @@ def main():
     parser.add_argument("-c", "--snowflake-config", type=str, required=False)
     args = parser.parse_args()
 
-    session = Session.builder.configs(SnowflakeLoginOptions(args.snowflake_config)).create()
+    session = Session.builder.getOrCreate()
 
     job = jobs.get_job(args.job_id, session=session)
     if args.block:

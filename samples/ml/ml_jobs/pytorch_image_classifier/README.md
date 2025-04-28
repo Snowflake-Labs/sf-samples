@@ -48,7 +48,6 @@ Scripts needed to launch model training as a job are included in the
 ```bash
 python scripts/submit_job.py -h  # View available options
 python scripts/submit_job.py -p DEMO_POOL_CPU -e pypi_eai  # Basic run
-python scripts/submit_job.py -p DEMO_POOL_CPU -e pypi_eai -c preprod8 --epochs 1  # Quick run on preprod8 for debugging
 ```
 
 The API uploads the payload from `./src/` into a Snowflake stage and generates a
@@ -66,7 +65,6 @@ You can check on the progress of the submitted job using [scripts/check_job.py](
 
 ```bash
 python scripts/check_job.py MLJOB_2CECA414_F52E_4F45_840A_9623A52DA5C4
-python scripts/check_job.py MLJOB_2CECA414_F52E_4F45_840A_9623A52DA5C4 -c preprod8  # Use preprod8 connection
 python scripts/check_job.py MLJOB_2CECA414_F52E_4F45_840A_9623A52DA5C4 --show-logs  # Print any job execution logs
 python scripts/check_job.py MLJOB_2CECA414_F52E_4F45_840A_9623A52DA5C4 --block  # Block until job completion
 ```
@@ -110,6 +108,5 @@ Include the newly configured External Access Integration and Secret when running
 python scripts/submit_job.py \
   -p DEMO_POOL_CPU \
   -e pypi_eai wandb_eai \
-  -c preprod8 \
   --wandb-secret-name wandb_secret
 ```

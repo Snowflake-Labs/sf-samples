@@ -4,17 +4,11 @@ import pickle
 from time import perf_counter
 
 from sklearn.model_selection import train_test_split
-from snowflake.ml.utils.connection_params import SnowflakeLoginOptions
 from snowflake.snowpark import Session
 
 from model_utils import create_data_connector, build_pipeline, evaluate_model, save_to_registry
 
-def do_train(source_data: str, save_mode: str = "local", output_dir: str = None):
-    # Initialize Snowflake session
-    # See https://docs.snowflake.com/developer-guide/snowflake-cli/connecting/configure-connections#define-connections
-    # for how to define default connections in a config.toml file
-    session = Session.builder.configs(SnowflakeLoginOptions()).create()
-
+def do_train(session: Session, source_data: str, save_mode: str = "local", output_dir: str = None):
     # Load data
     dc = create_data_connector(session, table_name=source_data)
     print("Loading data...", end="", flush=True)
@@ -82,9 +76,6 @@ def do_train(source_data: str, save_mode: str = "local", output_dir: str = None)
     elapsed = perf_counter() - start
     print(f" done! Elapsed={elapsed:.3f}s")
 
-    # Close Snowflake session
-    session.close()
-
 
 if __name__ == "__main__":
     import argparse
@@ -104,4 +95,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    do_train(**vars(args))
+    session = Session.builder.getOrCreate()
+    do_train(session, **vars(args))

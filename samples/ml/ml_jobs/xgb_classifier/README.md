@@ -14,17 +14,16 @@ before attempting to run the [VSCode](#vscode) scripts.
 
 ### Connecting to Snowflake in Python
 
-The scripts included in this example use the `SnowflakeLoginOptions` utility API
-from `snowflake-ml-python` to retrieve Snowflake connection settings from config
-files must be authored before use. See [Configure Connections](https://docs.snowflake.com/developer-guide/snowflake-cli/connecting/configure-connections#define-connections)
+The scripts included in this example create a Snowpark Session from your local
+configuration. See [Configure Connections](https://docs.snowflake.com/developer-guide/snowflake-cli/connecting/configure-connections#define-connections)
 for information on how to define default Snowflake connection(s) in a config.toml
 file.
 
 ```python
-from snowflake.ml.utils.connection_params import SnowflakeLoginOptions
+from snowflake.snowpark import Session
 
 # Requires valid ~/.snowflake/config.toml file
-session = Session.builder.configs(SnowflakeLoginOptions()).create()
+session = Session.builder.getOrCreate()
 ```
 
 ## How to run
@@ -43,5 +42,5 @@ via the `submit_job` API.
 ### Example
 
 ```bash
-python headless/single-node/xgb-loan-apps/src/main.py
+python src/main.py
 ```
