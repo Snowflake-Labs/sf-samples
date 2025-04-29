@@ -1,17 +1,13 @@
 # Container Runtime HPO Documentation 
 
-## Disclaimer
-- The README might become outdated. In the long run, we plan to rely on the official Snowflake documentation (currently a work in progress). Once it becomes available, we'll update the README with a link to it.
-- Grid Search functionality mentioned in the doc will be available in upcoming April, 2025 image release.
-- Multi-Node HPO support will be available in upcoming April, 2025 image release.
+
 ## Introduction
 
-The Snowflake ML Hyperparameter Optimization (HPO) API is a model-agnostic framework that enables efficient, parallelized hyperparameter tuning of any model using popular tuning algorithms. The HPO workload, initiated from the Notebook, executes inside Snowpark Container Services where it can execute on both CPU and GPU instances. The HPO only scales out to as many cores (CPUs or GPUs) as is available on a single node in the SPCS compute pool.
+The Snowflake ML Hyperparameter Optimization (HPO) API is a model-agnostic framework that enables efficient, parallelized hyperparameter tuning of any model using popular tuning algorithms. The HPO workload, initiated from the Notebook, executes inside Snowpark Container Services where it can execute on both CPU and GPU instances. The HPO scales out to as many cores (CPUs or GPUs) as are available on a single node in the SPCS compute pool. It also supports scaling across multiple nodes when needed.
+
+
 
 Benefits include:
-
-
-
 * **Easy to use**: With a single API, all the complexities of distributing the training across multiple resources are automatically handled by Snowflake
 * **Model agnostic**: Users can train with any framework or algorithm, open source or Snowflake ML APIs
 * **Flexibility to use many tuning and sampling options:** The API supports Bayesian and random search algorithms, along with various continuous and non-continuous sampling functions.
@@ -21,8 +17,6 @@ Benefits include:
 ## Getting Started
 
 Today, this API is only available for use within a Snowflake Notebook configured to use the Container Runtime. Once you [create such a notebook](https://docs.snowflake.com/user-guide/ui-snowsight/notebooks-on-spcs), you can:
-
-
 
 * Train a model using any open source package, and use this API to distributed the hyperparameter processing
 * Train a model using Snowflake ML distributed training APIs, and scale HPO while also scaling each of the training runs
