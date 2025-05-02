@@ -1,0 +1,10 @@
+1. Import notebook to snowflake account
+2. Use XSMALL Warehouse named DEV for the Notebook
+3. Install/Check following Anaconda packages
+  - matplotlib=*
+  - pandas=*
+  - scikit-learn=*
+  - seaborn=*
+  -snowflake.core Latest
+  -python 3.9.*
+  -streamlit 1.26.1
