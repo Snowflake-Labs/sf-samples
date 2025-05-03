@@ -127,10 +127,3 @@ streamlit run frontend_app.py
 - Agent-specific logs and scoring
 
 ---
-
-## Maintainer
-
-Created and maintained by [@curious-bigcat](https://github.com/curious-bigcat)
-
-Please open an issue or pull request if you’d like to contribute or have any questions.
-```
