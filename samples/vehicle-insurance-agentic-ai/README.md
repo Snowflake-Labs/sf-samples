@@ -1,31 +1,31 @@
 # Agentic Insurance Claim Processor
 
-This is an end-to-end insurance claim processing application built using agentic AI principles. It processes a driver’s license, a claim form, and a car damage photo through a structured workflow. Each step is handled by an intelligent component: document extraction using Snowflake Cortex Document AI, image and text analysis using Claude (via Amazon Bedrock), policy validation using Snowflake queries, and decision email generation using Mistral. The workflow is managed using LangGraph, simulating how a human agent would evaluate and decide on claims.
+This is an end-to-end insurance claim processing application built using agentic AI principles. It processes a driver’s license, a claim form, and a car damage photo through a structured workflow. Each step is handled by an intelligent component: document extraction using Snowflake Cortex Document AI, image and text analysis using Amazon Nova (via Amazon Bedrock), policy validation using Snowflake queries, and decision email generation using Amazon Nova. The workflow is managed using LangGraph, simulating how a human agent would evaluate and decide on claims.
 
 ---
 
 ## Features
 
 * **Extracts data** from driver's license, claim form, and car image.
-* **Uses Snowflake Cortex** for structured document field extraction.
-* **Claude performs image and text analysis** and cross-document comparison.
+* **Uses Snowflake Cortex Document AI** for structured document field extraction.
+* **Amazon Nova performs image and text analysis** and cross-document comparison.
 * **Snowflake queries** customer records for policy details using customer ID.
-* **Mistral generates professional customer-facing decision emails**.
+* **Amazon Nova generates professional customer-facing decision emails**.
 * **LangGraph manages the workflow** step-by-step with full state tracking.
 
 ---
 
 ## Tech Stack
 
-| Component            | Tool / Service                    |
-| -------------------- | --------------------------------- |
-| **Workflow Engine**  | LangGraph (LangChain)             |
-| **Document Parsing** | Snowflake Cortex Document AI      |
-| **Image + Text AI**  | Claude 3 Sonnet (via Bedrock)     |
-| **Email Generator**  | Mistral 7B Instruct (via Bedrock) |
-| **Frontend UI**      | Streamlit                         |
-| **Database**         | Snowflake                         |
-| **Language**         | Python 3.10+                      |
+| Component            | Tool / Service               |
+| -------------------- | ---------------------------- |
+| **Workflow Engine**  | LangGraph (LangChain)        |
+| **Document Parsing** | Snowflake Cortex Document AI |
+| **Image + Text AI**  | Amazon Nova (via Bedrock)    |
+| **Email Generator**  | Amazon Nova (via Bedrock)    |
+| **Frontend UI**      | Streamlit                    |
+| **Database**         | Snowflake                    |
+| **Language**         | Python 3.10+                 |
 
 ---
 
@@ -95,7 +95,7 @@ streamlit run frontend_app.py
 
 4. **Analyze Car Image**:
 
-   * Claude performs image analysis to assess car damage.
+   * Amazon Nova performs image analysis to assess car damage.
 
 5. **Cross-Document Comparison**:
 
@@ -107,7 +107,7 @@ streamlit run frontend_app.py
 
 7. **Generate Final Decision Email**:
 
-   * Mistral generates a personalized email for the customer, detailing the claim decision.
+   * Amazon Nova generates a personalized email for the customer, detailing the claim decision.
 
 ---
 
@@ -135,14 +135,3 @@ Based on the submitted documents and assessment, your claim has been accepted.
 
 Thank you for choosing our services.
 ```
-
----
-
-## Planned Enhancements
-
-* **Add PDF summary export** for easy claim documentation.
-* **Audit log** for claims to improve traceability.
-* **Docker/Streamlit Cloud deployment** support for seamless cloud integration.
-* **Agent-specific logs and scoring** for performance analysis.
-
----
