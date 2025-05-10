@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import streamlit as st
-from get_data import get_events
+from common.get_data import get_events
 from snowflake.snowpark.functions import count_distinct
-from utils import (
+from common.utils import (
     altair_time_series,
     format_sql_from_df,
     get_pandas_df,
     tile,
 )
 
-for key in ["date_range", "customers"]:
-    if key in st.session_state:
-        st.session_state[key] = st.session_state[key]
+st.session_state["customers"] = st.session_state.get("customers", [])
 
 st.set_page_config(page_title="App Performance", page_icon="📈", layout="wide")
 st.write("# 📈 App Performance ")
