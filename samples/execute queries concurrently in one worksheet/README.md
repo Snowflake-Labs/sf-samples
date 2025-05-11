@@ -271,3 +271,11 @@ CALL EXECUTE_QUERIES_PARALLEL([
 - The procedures create separate tables and insert data independently.
 
 ![Thread-Safe Session Setting](https://github.com/user-attachments/assets/65444518-25da-423a-94f6-0e3c792e5f83)
+
+# Comparison of Execution Times with Snowflake WH GEN 1 and GEN 2
+
+https://medium.com/@mahantesh-hiremath/what-happens-when-1000-queries-hit-an-x-small-snowflake-warehouse-whats-gen1-vs-gen2-sf-wh-69a532585a65
+
+![alt text](<1000 QUERIES FIRED ON X-SMAL WH.JPG>)
+
+!
