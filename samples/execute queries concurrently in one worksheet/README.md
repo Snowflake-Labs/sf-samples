@@ -1,15 +1,22 @@
-# EXECUTE_SNOWFLAKE_QUERIES_PARALLELLY
-EXECUTE_SNOWFLAKE_QUERIES_PARALLELLY
-# Idea Submitted  more than year back
+# Execute Snowflake Queries in Parallel
 
-![alt text](Idea.jpg)
+This project demonstrates how to execute multiple Snowflake queries concurrently using Snowpark and SQL procedures.
 
-# Step 1: SNOWPARK CODE TO BE DEPLOYED AS PROCEDURE (EXEC IN PYTHON WORKSHEET)
+## Overview
 
-https://www.youtube.com/watch?v=RGiB1cRMzc0
+The solution leverages Python's `ThreadPoolExecutor` for parallel execution of queries and Snowflake SQL procedures for database operations. This approach is useful for improving performance in scenarios involving multiple independent queries.
 
-![alt text](PARALLEL-Demo.gif)
+![Idea Illustration](Idea.jpg)
 
+---
+
+## Step 1: Deploy Snowpark Code as a Procedure
+
+The following Python code defines a function to execute SQL queries in parallel. Deploy this code in a Python worksheet.
+
+[Watch the Demo](https://www.youtube.com/watch?v=RGiB1cRMzc0)
+
+![Demo GIF](PARALLEL-Demo.gif)
 
 ```python
 
@@ -64,9 +71,11 @@ def execute_queries_parallel(session: snowpark.Session, queries: list):
 
 ```
 
-## CODE TO TRY (EXEC IN SQL WORKSHEET)
+---
 
-# Step 2
+## Step 2: Create SQL Procedures
+
+Define the following SQL procedures in your Snowflake environment. Each procedure performs independent operations.
 
 ```sql
 
@@ -236,7 +245,12 @@ RAISE;
     
 END;
 ```
-# Step 3
+
+---
+
+## Step 3: Execute Procedures in Parallel
+
+Use the following SQL command to execute the procedures concurrently:
 
 ```sql
 
@@ -248,7 +262,12 @@ CALL EXECUTE_QUERIES_PARALLEL([
     'CALL SP_PARALLEL_5(CURRENT_TIMESTAMP)'
     ]);
 ```
-# Note : 
-Make sure PYTHON_SNOWPARK_ENABLE_THREAD_SAFE_SESSION parameter is True. By default, it is False.
-The default is false (as seen under the default column)
-![image](https://github.com/user-attachments/assets/65444518-25da-423a-94f6-0e3c792e5f83)
+
+---
+
+## Notes
+
+- Ensure the `PYTHON_SNOWPARK_ENABLE_THREAD_SAFE_SESSION` parameter is set to `True` for thread-safe execution. By default, it is `False`.
+- The procedures create separate tables and insert data independently.
+
+![Thread-Safe Session Setting](https://github.com/user-attachments/assets/65444518-25da-423a-94f6-0e3c792e5f83)
