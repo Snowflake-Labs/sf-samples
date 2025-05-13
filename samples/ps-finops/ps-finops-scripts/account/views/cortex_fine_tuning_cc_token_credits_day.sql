@@ -1,0 +1,23 @@
+USE ROLE <% ctx.env.finops_db_admin_role%>;
+USE DATABASE <% ctx.env.finops_acct_db %>;
+USE SCHEMA <% ctx.env.finops_acct_schema %>;
+CREATE OR REPLACE VIEW CORTEX_FINE_TUNING_CC_TOKEN_CREDITS_DAY COMMENT = 'Title: Cortex fine tuning Token Credits by Cost Center per day. Description: Analyze cortex fine tuning use costs by cost center per day.'
+AS
+
+WITH WH_ID as (
+    SELECT DISTINCT WAREHOUSE_ID, WAREHOUSE_NAME
+    FROM SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY
+    WHERE START_TIME > CURRENT_DATE-60 --Go as far back as you need.
+)
+SELECT
+   DATE_TRUNC('DAY', SF.ADJUSTED_START_TIME) AS DAY,
+   COALESCE(TW.TAG_VALUE, MODEL_NAME) AS COST_CENTER,
+   SUM(TOKEN_CREDITS) AS TOKEN_CREDITS, 
+FROM SNOWFLAKE.ACCOUNT_USAGE.CORTEX_FINE_TUNING_USAGE_HISTORY SFQ 
+JOIN WH_ID ON SFQ.WAREHOUSE_ID = WH_ID.WAREHOUSE_ID
+--Warehouse tag lookup.
+LEFT JOIN SNOWFLAKE.ACCOUNT_USAGE.TAG_REFERENCES tw ON tw.object_name = WH_ID.WAREHOUSE_NAME
+  AND tw.TAG_NAME = '<% ctx.env.finops_tag_name %>'
+  AND tw.DOMAIN = 'WAREHOUSE'
+GROUP BY ALL
+;
