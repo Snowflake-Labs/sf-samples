@@ -30,6 +30,10 @@ variable "c_availability_zone" {
 
 data "aws_subnet" "vpc_subnet" {
   filter {
+    name   = "vpc-id"
+    values = [var.a_vpc_id]
+  }
+  filter {
     name = "availabilityZone"
     values = [var.c_availability_zone]
   }
@@ -87,7 +91,7 @@ resource "aws_security_group" "snowflake_pl_sg" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Allow SSH traffic from anywhere
+    cidr_blocks = ["0.0.0.0/0"] # Allow HTTPS traffic from anywhere
   }
 
   egress {

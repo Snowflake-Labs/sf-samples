@@ -63,6 +63,8 @@ resource "azurerm_network_interface" "snowflake_pl_ni" {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.snowflake_pl_subnet.id
     private_ip_address_allocation = "Dynamic"
+
+    # Public IP for allowing SSH connection to set up the machine. Remove after the setup.
     public_ip_address_id = azurerm_public_ip.snowflake_pl_public_ip.id
   }
 }
