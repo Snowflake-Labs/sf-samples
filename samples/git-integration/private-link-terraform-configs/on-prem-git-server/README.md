@@ -14,10 +14,9 @@ After running this config, customer should set up VM as a proxy service (e.g. us
 events {
 }
 stream {
-upstream git_server {
-server git_address.com:443;
-}
-
+    upstream git_server {
+        server git_address.com:443;
+    }
     server {
         listen 443;
         proxy_pass git_server;

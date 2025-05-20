@@ -7,6 +7,9 @@ terraform {
   }
 }
 
+# Remember to:
+# * download AzureCLI
+# * authenticate in AzureCLI: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/azure_cli
 provider azurerm {
   features {}
 }

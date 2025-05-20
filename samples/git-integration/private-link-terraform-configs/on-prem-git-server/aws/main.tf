@@ -8,7 +8,8 @@ terraform {
 }
 
 provider "aws" {
-  shared_credentials_files = ["#credentials-file"] #Replace with with your credentials file
+  # Replace with with your credentials file: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
+  shared_credentials_files = ["#credentials-file"]
   profile                  = "default"
   region                   = var.b_region
 }
