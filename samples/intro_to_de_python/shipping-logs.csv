@@ -1,0 +1,26 @@
+order_id,shipping_date,carrier,tracking_number,latitude,longitude,status
+1001,2023-10-16,SwiftWing Logistics,123456789,40.7128,-74.0060,Delivered
+1002,2023-10-17,MountainRoute Express,987654321,34.0522,-118.2437,Delivered
+1003,2023-10-18,AlpineSpeed Delivery,456789123,51.5074,-0.1278,Delivered
+1004,2023-10-19,PeakPath Shipping,321654987,48.8566,2.3522,Delivered
+1005,2023-10-20,SnowRunner Logistics,654321987,35.6895,139.6917,Delivered
+1006,2023-10-21,SummitLine Express,789123456,42.3601,-71.0589,Delivered
+1007,2023-10-22,SwiftWing Logistics,456789012,47.6062,-122.3321,Delivered
+1008,2023-10-23,MountainRoute Express,234567890,39.7392,-104.9903,Delivered
+1009,2023-10-24,AlpineSpeed Delivery,890123456,45.5155,-122.6789,Delivered
+1010,2023-10-25,PeakPath Shipping,567890123,43.6532,-79.3832,Delivered
+1011,2023-10-26,SnowRunner Logistics,678901234,40.0150,-105.2705,Delivered
+1012,2023-10-26,SummitLine Express,789012345,39.4817,-106.0384,Delivered
+1013,2023-10-27,SwiftWing Logistics,890123457,39.6433,-106.3736,In Transit
+1014,2023-10-28,MountainRoute Express,901234567,40.4850,-106.8317,In Transit
+1015,2023-10-29,AlpineSpeed Delivery,012345678,39.1911,-106.8175,In Transit
+1016,2023-10-30,PeakPath Shipping,123456780,37.9375,-107.8123,In Transit
+1017,2023-10-31,SnowRunner Logistics,234567891,40.0149,-105.2705,In Transit
+1018,2023-11-01,SummitLine Express,345678912,39.9088,-106.3467,In Transit
+1019,2023-11-02,SwiftWing Logistics,456789124,39.6405,-106.3742,In Transit
+1020,2023-11-03,MountainRoute Express,567891234,39.7392,-104.9903,In Transit
+1021,2023-11-04,AlpineSpeed Delivery,678912345,40.0150,-105.2705,In Transit
+1022,2023-11-05,PeakPath Shipping,789123457,39.4817,-106.0384,In Transit
+1023,2023-11-06,SnowRunner Logistics,891234567,39.6433,-106.3736,Processing
+1024,2023-11-07,SummitLine Express,912345678,40.4850,-106.8317,Processing
+1025,2023-11-08,SwiftWing Logistics,123456790,39.1911,-106.8175,Processing

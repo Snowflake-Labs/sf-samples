@@ -1,0 +1,11 @@
+name: app_environment
+channels:
+  - snowflake
+dependencies:
+  - altair=5.0.1
+  - bs4=4.12.3
+  - fpdf=1.7.2
+  - python=3.9.*
+  - snowflake-snowpark-python=
+  - streamlit=
+  - yaml=

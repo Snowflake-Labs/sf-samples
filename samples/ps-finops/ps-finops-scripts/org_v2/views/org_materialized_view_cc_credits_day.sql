@@ -1,0 +1,18 @@
+USE ROLE <% ctx.env.finops_db_admin_role%>;
+USE DATABASE <% ctx.env.finops_acct_db %>;
+USE SCHEMA <% ctx.env.finops_acct_schema %>;
+CREATE OR REPLACE VIEW org_materialized_view_cc_credits_day COMMENT = 'Title: Organization Materialized View (MV) Credit Usage by Cost Center. Description: Analyze materialized view credit costs by table name and cost center.' AS
+SELECT
+	DATE_TRUNC('DAY', MV.USAGE_DATE) AS DAY,
+	MV.ACCOUNT_NAME,
+	CONCAT_WS('-', REGION, MV.ACCOUNT_NAME) AS REGION_ACCOUNT_NAME,
+	COALESCE(TS.TAG_VALUE, TABLE_NAME) AS COST_CENTER,
+	MV.DATABASE_NAME || '.' || MV.SCHEMA_NAME || '.' || MV.TABLE_NAME AS TABLE_NAME,
+	CREDITS_USED
+FROM SNOWFLAKE.ORGANIZATION_USAGE.MATERIALIZED_VIEW_REFRESH_HISTORY MV
+LEFT JOIN SNOWFLAKE.ORGANIZATION_USAGE.TAG_REFERENCES TS ON TS.OBJECT_DATABASE = MV.DATABASE_NAME
+	AND TS.ACCOUNT_LOCATOR = MV.ACCOUNT_LOCATOR
+	AND TS.OBJECT_NAME = MV.SCHEMA_NAME
+	AND TS.TAG_NAME = '<% ctx.env.finops_tag_name %>'
+	AND TS.DOMAIN = 'SCHEMA'
+;
