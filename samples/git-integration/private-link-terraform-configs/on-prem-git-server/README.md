@@ -29,5 +29,5 @@ sudo docker run --rm -d --name my-custom-nginx-container -v $(pwd)/nginx.conf:/e
 ```
 * Test if your proxy works:
 ```
-git clone https://localhost/path-to-repo
+openssl s_client -connect localhost:443 -servername git_address.com
 ```
