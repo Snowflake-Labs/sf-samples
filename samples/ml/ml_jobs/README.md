@@ -1,4 +1,4 @@
-# ML Jobs (PuPr)
+# ML Jobs
 
 Snowflake ML Jobs enables you to run machine learning workloads inside Snowflake
 [ML Container Runtimes](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml)
@@ -7,7 +7,7 @@ from any environment. This solution allows you to:
 - Leverage GPU and high-memory CPU instances for resource-intensive tasks
 - Use your preferred development environment (VS Code, external notebooks, etc.)
 - Maintain flexibility with custom dependencies and packages
-- (PrPr) Scale workloads across multiple nodes effortlessly
+- Scale workloads across multiple nodes effortlessly
 
 Whether you're looking to productionize your ML workflows or prefer working in
 your own development environment, Snowflake ML Jobs provides the same powerful
@@ -19,10 +19,10 @@ See the [Examples](#examples) section to find end-to-end examples of using ML Jo
 ## Setup
 
 The Runtime Job API (`snowflake.ml.jobs`) API is available in
-`snowflake-ml-python>=1.8.2`.
+`snowflake-ml-python>=1.9.0`.
 
 ```bash
-pip install snowflake-ml-python>=1.8.2
+pip install snowflake-ml-python>=1.9.0
 ```
 
 > NOTE: The Runtime Job API currently only supports Python 3.10.
@@ -113,16 +113,44 @@ job2 = submit_directory(
     stage_name="payload_stage",
     args=["arg1", "arg2"],  # (Optional) args are passed to script as-is
 )
+
+# Submit a job from an existing stage and run its contained entrypoint.
+# This is  useful if your code is stored in a Snowflake stage or Git repository.
+job3 = submit_from_stage(
+    "@test_stage/path/to/repo/",
+    compute_pool,
+    entrypoint="@test_stage/path/to/repo/my_script.py",
+    stage_name="payload_stage",
+    args=["arg1", "arg2"],  # (Optional) args are passed to script as-is
+)
+
 ```
 
-`job1` and `job2` are job handles, see [Function Dispatch](#function-dispatch)
+`job1`, `job2` and `job3` are job handles, see [Function Dispatch](#function-dispatch)
 for usage examples.
 
 ### Accessing Snowflake from an ML Job
 
-Snowpark Sessions are not serializable and thus cannot be passed into an ML Job
-as an argument. However, ML Jobs are automatically configured with a Snowpark
-Session in the job context. You can retrieve the Session instance with the following code:
+
+Snowpark Sessions can be passed into an ML Job as a required argument using the `snowflake.ml.jobs.remote`
+decorator.
+
+```python
+from snowflake.ml.jobs import remote
+from snowflake import snowpark
+
+compute_pool = "MY_COMPUTE_POOL"
+@remote(compute_pool, stage_name="payload_stage")
+def hello_world(session: snowpark.Session, name: str = "world"):
+    # We recommend importing any needed modules *inside* the function definition
+    from datetime import datetime
+    if session:
+        print(f"current database: {session.get_current_session()}")
+    print(f"{datetime.now()} Hello {name}!")
+```
+
+ML Jobs are automatically configured with a Snowpark Session in the job context. 
+You can also retrieve the Session instance with the following code:
 
 ```python
 # From inside the job payload
@@ -150,7 +178,8 @@ You can retrieve the job execution result using the `MLJob.result()` API.
 The API returns the payload's return value or, if execution failed, raises an exception.
 
 > NOTE: Return values are currently only supported for function-based jobs.
-  File-based jobs will return `None` on success. Exception handling is supported
+  File-based jobs must store the return value in `__return__`, otherwise,
+  they will return `None` on success. Exception handling is supported
   for all types of jobs.
 
 ```python
@@ -161,6 +190,34 @@ job = get_job('MLJOB_00000000_0000_0000_0000_000000000000')
 # Blocks until job completion and returns the execution result on success
 # or raises an exception on failure
 result = job.result()
+```
+
+### List Jobs
+
+You can retrieve the jobs using the `jobs.list_jobs()` API.
+The API returns a list of jobs or, if execution failed, raises an exception.
+
+```python
+from snowflake.ml import jobs
+jobs.list_jobs()
+```
+
+### Cancel Jobs
+
+You can cancel job when job is pending or running using `job.cancel()` API
+```python
+from snowflake.ml.jobs import remote
+from snowflake import snowpark
+
+compute_pool = "MY_COMPUTE_POOL"
+@remote(compute_pool, stage_name="payload_stage")
+def hello_world(name: str = "world"):
+    # We recommend importing any needed modules *inside* the function definition
+    from datetime import datetime
+    print(f"{datetime.now()} Hello {name}!")
+
+job = hello_world()
+job.cancel()
 ```
 
 ## Advanced Usage
@@ -228,7 +285,7 @@ job3 = submit_directory(
 )
 ```
 
-### Multi-Node Capabilities (PrPr)
+### Multi-Node Capabilities
 
 ML Jobs also support running distributed machine learning workloads across multiple nodes, allowing you to:
 - Scale workloads across multiple compute instances via [Ray](https://docs.ray.io/en/latest/ray-overview/examples.html)
@@ -242,10 +299,10 @@ Contact your Snowflake account admin to enable the feature on your account.
 ALTER ACCOUNT <account> SET ENABLE_BATCH_JOB_SERVICES = TRUE;
 ```
 
-To use multi-node capabilities, specify the `num_instances` parameter:
+To use multi-node capabilities, specify the `target_instances` parameter:
 
 ```python
-@remote(compute_pool, stage_name="payload_stage", num_instances=3)
+@remote(compute_pool, stage_name="payload_stage", target_instances=3)
 def my_distributed_function():
     # Your distributed code here
     # Access instance-specific details via Ray
@@ -273,7 +330,7 @@ Examples showcasing how ML Jobs can be used from an IDE such as VSCode, Cursor, 
 - [pytorch_image_classifier](./pytorch_image_classifier) - train a simple PyTorch model for CIFAR-10
   image classification. Also demonstrates integration with Weights and Biases for experiment tracking
 - [distributed_xgb_classifier](./distributed_xgb_classifier) - train an XGBoost model using the [Snowflake Container Runtime's distributor APIs](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml#xgboost)
-  for distributed training across multiple nodes (PrPr)
+  for distributed training across multiple nodes 
 
 ### Jupyter Notebooks
 
@@ -281,7 +338,7 @@ Examples showcasing how ML Jobs can be used from a notebook environment like Jup
 
 - [xgb_classifier_nb](./xgb_classifier_nb) - train a simple XGBoost classifier
 - [distributed_xgb_classifier_nb](./distributed_xgb_classifier_nb) - train an XGBoost model using the [Snowflake Container Runtime's distributor APIs](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml#xgboost)
-  for distributed training across multiple nodes (PrPr)
+  for distributed training across multiple nodes 
 
 ### Pipelines / DAGs
 
@@ -307,16 +364,9 @@ or auto suspension on idle timeout.
       and [Compute pool cost](https://docs.snowflake.com/en/developer-guide/snowpark-container-services/accounts-orgs-usage-views#compute-pool-cost)
 1. Job objects are not automatically cleaned up after completion. This will be fixed in a
 future release; For now, please manually clean up completed and failed jobs periodically
-    ```sql
-    SHOW JOB SERVICES LIKE 'MLJOB%';
-    DROP SERVICE <service_name>;
-    ```
     ```python
     from snowflake.ml.jobs import list_jobs, delete_job
     for row in list_jobs(limit=-1).collect():
       if row["status"] in {"DONE", "FAILED"}:
         delete_job(row["id"])
     ```
-1. Job payload stages (specified via `stage_name` param) are not automatically 
-    cleaned up. Please manually clean up  the payload stage(s) to prevent
-    excessive storage costs.
