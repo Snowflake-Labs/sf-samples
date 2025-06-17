@@ -92,7 +92,7 @@ if __name__ == '__main__':
 ```
 
 ```python
-from snowflake.ml.jobs import submit_file, submit_directory
+from snowflake.ml.jobs import submit_file, submit_directory, submit_from_stage
 
 compute_pool = "MY_COMPUTE_POOL"
 
@@ -165,6 +165,7 @@ session = get_active_session()
 Note this should be run from *inside* the ML Job payload, i.e.
 
 ```python
+from snowflake.ml.jobs import remote
 @remote("MY_COMPUTE_POOL", stage_name="MY_PAYLOAD_STAGE")
 def my_ml_job():
     from snowflake.snowpark import Session
@@ -182,6 +183,7 @@ The API returns the payload's return value or, if execution failed, raises an ex
   they will return `None` on success. Exception handling is supported
   for all types of jobs.
 
+#### Function Dispatch
 ```python
 from snowflake.ml.jobs import get_job
 
@@ -192,6 +194,29 @@ job = get_job('MLJOB_00000000_0000_0000_0000_000000000000')
 result = job.result()
 ```
 
+#### File-based Dispatch
+```python
+# /path/to/repo/my_script.py
+def main() -> str:
+    return "Hello world"
+
+if __name__ == "__main__":
+    __return__ = main()
+
+from snowflake.ml.jobs import submit_file, submit_directory, submit_from_stage
+
+compute_pool = "MY_COMPUTE_POOL"
+
+# Upload and run a single script
+job = submit_file(
+    "/path/to/repo/my_script.py",
+    compute_pool,
+    stage_name="payload_stage",
+    args=["arg1", "--arg2_key", "arg2_value"],  # (Optional) args are passed to script as-is
+)
+
+result = job.result() # Hello world
+```
 ### List Jobs
 
 You can retrieve the jobs using the `jobs.list_jobs()` API.
@@ -200,6 +225,7 @@ The API returns a list of jobs or, if execution failed, raises an exception.
 ```python
 from snowflake.ml import jobs
 jobs.list_jobs()
+#colunms: name, status, message, database_name, schema_name, owner, compute_pool, target_instances, created_time, completed_time
 ```
 
 ### Cancel Jobs
