@@ -230,7 +230,7 @@ jobs.list_jobs()
 
 ### Cancel Jobs
 
-You can cancel job when job is pending or running using `job.cancel()` API
+You can cancel job when job is pending or running using the `job.cancel()` API
 ```python
 from snowflake.ml.jobs import remote
 from snowflake import snowpark
@@ -380,14 +380,7 @@ other Python versions may throw unexpected errors like `UnpicklingError` or `Typ
 if your account has not been properly configured with image registries yet.
 This can be resolved by [creating an image repository](https://docs.snowflake.com/en/sql-reference/sql/create-image-repository)
 anywhere in your account.
-1. Job logs are lost upon compute pool suspension even if the job entity itself has not been deleted,
-resulting in `job.get_logs()` failing with an exception.
-This may happen either due to manual suspension `ALTER COMPUTE POOL MY_POOL SUSPEND`
-or auto suspension on idle timeout.
-    - Compute pool auto suspension can be disabled using `ALTER COMPUTE POOL MY_POOL SET AUTO_SUSPEND_SECS = 0`
-    - For more information, see
-      [Compute pool privileges](https://docs.snowflake.com/en/developer-guide/snowpark-container-services/working-with-compute-pool#compute-pool-privileges)
-      and [Compute pool cost](https://docs.snowflake.com/en/developer-guide/snowpark-container-services/accounts-orgs-usage-views#compute-pool-cost)
+1. Job logs may be subject to delays and may not be immediately available if compute pool suspension or the job entity itself has been deleted
 1. Job objects are not automatically cleaned up after completion. This will be fixed in a
 future release; For now, please manually clean up completed and failed jobs periodically
     ```python
