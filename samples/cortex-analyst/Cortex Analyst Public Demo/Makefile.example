@@ -1,0 +1,10 @@
+run:
+	@yaml_content="$$(cat cfg.yaml)"; \
+	SNOWFLAKE_ACCOUNT_PRIVATE_KEY_FILE=tmp/rsa_key.p8 \
+	SNOWFLAKE_ACCOUNT= \
+	SNOWFLAKE_ACCOUNT_LOCATOR= \
+	SNOWFLAKE_USER= \
+	SNOWFLAKE_WAREHOUSE= \
+	SNOWFLAKE_PUBLIC_KEY_FP= \
+		go run ./ cortex-analyst-demo \
+		 --config "$$yaml_content"

@@ -1,0 +1,8 @@
+models:
+  - name: NBA
+    path: "@HOL2_DB.HOL2_SCHEMA.SEMANTIC_MODEL/revenue_timeseries.yaml"
+    description: "A semantic model around NBA games, teams, and line scores by quarter. Does not include player information. Only for games up to the 2023 season."
+    suggested_questions:
+      - "What was the Lakers' average points per game at home vs. away in the 2018 Regular season?"
+      - "How many games did the Lakers win and lose each of the past 10 years?"
+      - "What happened the last 5 times the Lakers played the Warriors?"

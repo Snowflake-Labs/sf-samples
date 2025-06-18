@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+/* Custom overrides for Prism.js */
+:not(pre) > code[class*="language-"],
+pre[class*="language-"] {
+  background: #1a1a1a;
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.token.keyword {
+  color: #569cd6;
+}
+
+.token.function {
+  color: #dcdcaa;
+}
+
+.token.string {
+  color: #ce9178;
+}
+
+.token.number {
+  color: #b5cea8;
+}
