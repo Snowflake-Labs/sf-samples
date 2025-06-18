@@ -7,7 +7,7 @@ from any environment. This solution allows you to:
 - Leverage GPU and high-memory CPU instances for resource-intensive tasks
 - Use your preferred development environment (VS Code, external notebooks, etc.)
 - Maintain flexibility with custom dependencies and packages
-- Scale workloads across multiple nodes effortlessly
+- (Pupr) Scale workloads across multiple nodes effortlessly
 
 Whether you're looking to productionize your ML workflows or prefer working in
 your own development environment, Snowflake ML Jobs provides the same powerful
@@ -132,8 +132,9 @@ for usage examples.
 ### Accessing Snowflake from an ML Job
 
 
-Snowpark Sessions can be passed into an ML Job as a required argument using the `snowflake.ml.jobs.remote`
-decorator.
+Snowpark Sessions can be passed into an ML Job as an argument using the `snowflake.ml.jobs.remote` decorator.
+> Note: The session argument must either be required or default to None;  Passing a default session instance (e.g., `session=Session()`) is not supported.
+
 
 ```python
 from snowflake.ml.jobs import remote
@@ -178,8 +179,7 @@ def my_ml_job():
 You can retrieve the job execution result using the `MLJob.result()` API.
 The API returns the payload's return value or, if execution failed, raises an exception.
 
-> NOTE: Return values are currently only supported for function-based jobs.
-  File-based jobs must store the return value in `__return__`, otherwise,
+> NOTE: File-based jobs may store the return value in `__return__`, otherwise,
   they will return `None` on success. Exception handling is supported
   for all types of jobs.
 
@@ -202,7 +202,9 @@ def main() -> str:
 
 if __name__ == "__main__":
     __return__ = main()
+```
 
+```python
 from snowflake.ml.jobs import submit_file, submit_directory, submit_from_stage
 
 compute_pool = "MY_COMPUTE_POOL"
@@ -220,17 +222,18 @@ result = job.result() # Hello world
 ### List Jobs
 
 You can retrieve the jobs using the `jobs.list_jobs()` API.
-The API returns a list of jobs or, if execution failed, raises an exception.
+The API returns a pandas DataFrames containing name, status, message, database_name, schema_name, owner, compute_pool, target_instances, created_time, completed_time
+or, if execution failed, raises an exception.
 
 ```python
 from snowflake.ml import jobs
 jobs.list_jobs()
-#colunms: name, status, message, database_name, schema_name, owner, compute_pool, target_instances, created_time, completed_time
+#columns: name, status, message, database_name, schema_name, owner, compute_pool, target_instances, created_time, completed_time
 ```
 
 ### Cancel Jobs
 
-You can cancel job when job is pending or running using the `job.cancel()` API
+You can cancel an active job using the `job.cancel()` API
 ```python
 from snowflake.ml.jobs import remote
 from snowflake import snowpark
@@ -380,12 +383,7 @@ other Python versions may throw unexpected errors like `UnpicklingError` or `Typ
 if your account has not been properly configured with image registries yet.
 This can be resolved by [creating an image repository](https://docs.snowflake.com/en/sql-reference/sql/create-image-repository)
 anywhere in your account.
-1. Job logs may be subject to delays and may not be immediately available if compute pool suspension or the job entity itself has been deleted
-1. Job objects are not automatically cleaned up after completion. This will be fixed in a
-future release; For now, please manually clean up completed and failed jobs periodically
-    ```python
-    from snowflake.ml.jobs import list_jobs, delete_job
-    for row in list_jobs(limit=-1).collect():
-      if row["status"] in {"DONE", "FAILED"}:
-        delete_job(row["id"])
-    ```
+1. Job logs may be subject to delays and may not be immediately available if compute pool has been suspended or the job entity itself has been deleted
+1. Job payload stages (specified via `stage_name` param) are not automatically 
+    cleaned up. Please manually clean up  the payload stage(s) to prevent
+    excessive storage costs.
