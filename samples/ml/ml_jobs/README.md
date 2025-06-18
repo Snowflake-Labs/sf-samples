@@ -7,7 +7,7 @@ from any environment. This solution allows you to:
 - Leverage GPU and high-memory CPU instances for resource-intensive tasks
 - Use your preferred development environment (VS Code, external notebooks, etc.)
 - Maintain flexibility with custom dependencies and packages
-- (Pupr) Scale workloads across multiple nodes effortlessly
+- (PuPr) Scale workloads across multiple nodes effortlessly
 
 Whether you're looking to productionize your ML workflows or prefer working in
 your own development environment, Snowflake ML Jobs provides the same powerful
@@ -166,7 +166,6 @@ session = get_active_session()
 Note this should be run from *inside* the ML Job payload, i.e.
 
 ```python
-from snowflake.ml.jobs import remote
 @remote("MY_COMPUTE_POOL", stage_name="MY_PAYLOAD_STAGE")
 def my_ml_job():
     from snowflake.snowpark import Session
@@ -314,7 +313,7 @@ job3 = submit_directory(
 )
 ```
 
-### Multi-Node Capabilities
+### Multi-Node Capabilities (PuPr)
 
 ML Jobs also support running distributed machine learning workloads across multiple nodes, allowing you to:
 - Scale workloads across multiple compute instances via [Ray](https://docs.ray.io/en/latest/ray-overview/examples.html)
