@@ -132,8 +132,12 @@ for usage examples.
 ### Accessing Snowflake from an ML Job
 
 
+ML Jobs are automatically configured with a Snowpark Session in the job context. 
+
+
+
 Snowpark Sessions can be passed into an ML Job as an argument using the `snowflake.ml.jobs.remote` decorator.
-> Note: The session argument must either be required or default to None;  Passing a default session instance (e.g., `session=Session()`) is not supported.
+> Note: The session argument must either be required or default to None;  Passing a default session instance (e.g., `session=session) is not supported.
 
 
 ```python
@@ -149,8 +153,6 @@ def hello_world(session: snowpark.Session, name: str = "world"):
         print(f"current database: {session.get_current_session()}")
     print(f"{datetime.now()} Hello {name}!")
 ```
-
-ML Jobs are automatically configured with a Snowpark Session in the job context. 
 You can also retrieve the Session instance with the following code:
 
 ```python
@@ -383,6 +385,13 @@ if your account has not been properly configured with image registries yet.
 This can be resolved by [creating an image repository](https://docs.snowflake.com/en/sql-reference/sql/create-image-repository)
 anywhere in your account.
 1. Job logs may be subject to delays and may not be immediately available if compute pool has been suspended or the job entity itself has been deleted
-1. Job payload stages (specified via `stage_name` param) are not automatically 
-    cleaned up. Please manually clean up  the payload stage(s) to prevent
-    excessive storage costs.
+1. Job payload stages (configured via the `stage_name` parameter) are not automatically cleaned up. Please manually clean up using either the `delete_job()` API or SQL commands. While the job itself will be deleted automatically after TTL, the associated stages still require manual cleanup.
+     ```sql
+    REMOVE <stage_path>
+    ```
+    ```python
+    from snowflake.ml.jobs import list_jobs, delete_job
+    for row in list_jobs(limit=-1).collect():
+      if row["status"] in {"DONE", "FAILED"}:
+        delete_job(row["id"])
+    ```
