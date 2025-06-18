@@ -131,10 +131,7 @@ for usage examples.
 
 ### Accessing Snowflake from an ML Job
 
-
 ML Jobs are automatically configured with a Snowpark Session in the job context. 
-
-
 
 Snowpark Sessions can be passed into an ML Job as an argument using the `snowflake.ml.jobs.remote` decorator.
 > Note: The session argument must either be required or default to None;  Passing a default session instance (e.g., `session=session) is not supported.
