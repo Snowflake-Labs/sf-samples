@@ -1,1 +1,1 @@
-snowflake-ml-python>=1.8.2
+snowflake-ml-python>=1.9.0
