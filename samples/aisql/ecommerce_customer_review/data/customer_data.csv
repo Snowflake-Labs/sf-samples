@@ -1,0 +1,1001 @@
+CUSTOMER_ID,CUSTOMER_SEGMENT,JOIN_DATE,LIFETIME_VALUE,PREVIOUS_PURCHASES,AGE_RANGE,GENDER,PREFERRED_CATEGORY
+CUST-00001,Mainstream,2022-11-28,1447.83,14,25-34,Non-binary,Electronics
+CUST-00002,Mainstream,2022-08-24,1228.52,5,55-64,Male,Electronics
+CUST-00003,Mainstream,2023-03-09,370.81,16,65+,Prefer not to say,Electronics
+CUST-00004,Premium,2022-09-04,4465.26,12,65+,Prefer not to say,Beauty Products
+CUST-00005,Luxury,2023-06-02,5385.29,18,25-34,Female,Toys
+CUST-00006,Premium,2023-01-15,3394.30,19,65+,Female,Clothing
+CUST-00007,Budget,2023-05-28,137.39,1,18-24,Non-binary,Kitchen Appliances
+CUST-00008,Budget,2023-10-19,21.88,17,45-54,Male,Beauty Products
+CUST-00009,Budget,2022-06-24,275.22,6,25-34,Female,Electronics
+CUST-00010,Budget,2022-07-17,273.14,17,25-34,Prefer not to say,Kitchen Appliances
+CUST-00011,Budget,2023-11-15,28.55,3,65+,Female,Beauty Products
+CUST-00012,Mainstream,2022-04-21,1021.67,8,45-54,Prefer not to say,Clothing
+CUST-00013,Luxury,2022-07-04,14202.56,11,45-54,Non-binary,Clothing
+CUST-00014,Budget,2023-07-07,118.19,7,55-64,Male,Electronics
+CUST-00015,Mainstream,2023-03-03,1787.51,9,45-54,Female,Electronics
+CUST-00016,Mainstream,2022-06-18,815.67,5,35-44,Non-binary,Kitchen Appliances
+CUST-00017,Premium,2022-03-10,3059.74,11,25-34,Male,Electronics
+CUST-00018,Premium,2023-02-18,4366.38,19,25-34,Female,Beauty Products
+CUST-00019,Mainstream,2022-03-22,462.33,1,35-44,Female,Clothing
+CUST-00020,Premium,2022-08-26,5371.66,5,65+,Non-binary,Electronics
+CUST-00021,Mainstream,2023-02-04,769.54,8,55-64,Prefer not to say,Kitchen Appliances
+CUST-00022,Luxury,2022-09-14,9548.27,16,45-54,Female,Beauty Products
+CUST-00023,Mainstream,2023-07-31,323.61,19,18-24,Non-binary,Kitchen Appliances
+CUST-00024,Mainstream,2023-07-29,434.37,17,45-54,Male,Toys
+CUST-00025,Budget,2023-09-05,103.01,6,35-44,Male,Toys
+CUST-00026,Budget,2022-05-04,261.67,3,55-64,Non-binary,Clothing
+CUST-00027,Mainstream,2022-01-12,953.07,20,25-34,Female,Toys
+CUST-00028,Mainstream,2023-07-07,518.22,11,35-44,Prefer not to say,Toys
+CUST-00029,Premium,2022-01-04,4355.34,16,18-24,Non-binary,Kitchen Appliances
+CUST-00030,Budget,2023-10-21,85.61,9,25-34,Female,Clothing
+CUST-00031,Premium,2023-03-03,2142.42,16,35-44,Female,Electronics
+CUST-00032,Luxury,2022-04-25,11486.32,14,55-64,Male,Electronics
+CUST-00033,Mainstream,2022-06-15,695.20,8,55-64,Male,Electronics
+CUST-00034,Mainstream,2023-10-26,261.19,7,55-64,Female,Kitchen Appliances
+CUST-00035,Premium,2023-10-05,1051.37,10,55-64,Female,Electronics
+CUST-00036,Mainstream,2022-11-23,1783.45,2,18-24,Non-binary,Beauty Products
+CUST-00037,Mainstream,2023-11-02,255.17,5,45-54,Male,Kitchen Appliances
+CUST-00038,Mainstream,2023-11-11,102.48,5,25-34,Male,Toys
+CUST-00039,Premium,2022-12-17,3039.41,14,45-54,Prefer not to say,Toys
+CUST-00040,Mainstream,2022-02-20,1346.75,14,35-44,Male,Toys
+CUST-00041,Budget,2022-02-07,202.67,17,45-54,Prefer not to say,Kitchen Appliances
+CUST-00042,Budget,2023-05-03,128.22,16,45-54,Prefer not to say,Electronics
+CUST-00043,Mainstream,2022-10-30,2128.38,7,18-24,Prefer not to say,Beauty Products
+CUST-00044,Mainstream,2023-11-13,140.07,16,55-64,Male,Electronics
+CUST-00045,Premium,2023-07-02,2373.35,19,25-34,Non-binary,Kitchen Appliances
+CUST-00046,Premium,2023-06-11,2039.18,15,45-54,Female,Beauty Products
+CUST-00047,Mainstream,2022-09-08,1145.76,19,18-24,Female,Beauty Products
+CUST-00048,Mainstream,2022-02-26,1140.48,16,25-34,Female,Electronics
+CUST-00049,Mainstream,2022-02-26,1228.06,16,25-34,Non-binary,Clothing
+CUST-00050,Budget,2023-04-24,96.15,9,25-34,Non-binary,Clothing
+CUST-00051,Mainstream,2023-10-01,362.89,2,35-44,Male,Beauty Products
+CUST-00052,Mainstream,2023-06-05,719.67,17,45-54,Prefer not to say,Kitchen Appliances
+CUST-00053,Budget,2022-11-05,303.76,16,55-64,Female,Toys
+CUST-00054,Premium,2022-01-06,2085.23,2,65+,Male,Kitchen Appliances
+CUST-00055,Mainstream,2022-09-16,1403.33,18,25-34,Non-binary,Kitchen Appliances
+CUST-00056,Mainstream,2022-08-11,1398.43,2,45-54,Female,Clothing
+CUST-00057,Budget,2023-05-20,135.61,13,65+,Non-binary,Toys
+CUST-00058,Budget,2022-08-09,391.90,5,45-54,Prefer not to say,Electronics
+CUST-00059,Premium,2022-08-22,2093.48,1,55-64,Prefer not to say,Kitchen Appliances
+CUST-00060,Budget,2022-04-24,376.14,6,25-34,Female,Clothing
+CUST-00061,Mainstream,2023-12-16,25.57,16,35-44,Prefer not to say,Clothing
+CUST-00062,Mainstream,2022-12-28,1770.82,17,18-24,Female,Toys
+CUST-00063,Mainstream,2023-02-14,1213.91,11,65+,Prefer not to say,Electronics
+CUST-00064,Mainstream,2022-12-13,1043.28,18,18-24,Prefer not to say,Beauty Products
+CUST-00065,Luxury,2022-06-27,11132.50,18,18-24,Non-binary,Kitchen Appliances
+CUST-00066,Premium,2022-05-15,3197.32,6,35-44,Prefer not to say,Electronics
+CUST-00067,Mainstream,2023-06-23,864.62,13,45-54,Female,Clothing
+CUST-00068,Mainstream,2023-04-21,493.29,14,18-24,Prefer not to say,Clothing
+CUST-00069,Mainstream,2023-01-15,1512.70,12,55-64,Male,Clothing
+CUST-00070,Budget,2022-12-30,214.97,18,35-44,Male,Toys
+CUST-00071,Mainstream,2023-08-25,412.05,2,45-54,Female,Clothing
+CUST-00072,Premium,2022-03-15,4287.70,4,45-54,Non-binary,Electronics
+CUST-00073,Mainstream,2023-05-15,1393.14,9,18-24,Male,Beauty Products
+CUST-00074,Mainstream,2022-12-08,1507.48,14,45-54,Non-binary,Electronics
+CUST-00075,Premium,2022-09-27,2393.52,3,65+,Male,Kitchen Appliances
+CUST-00076,Mainstream,2022-06-24,1623.98,20,55-64,Female,Beauty Products
+CUST-00077,Mainstream,2022-02-11,1519.14,9,55-64,Male,Toys
+CUST-00078,Mainstream,2023-09-13,359.53,16,25-34,Prefer not to say,Beauty Products
+CUST-00079,Budget,2022-10-08,478.56,5,45-54,Male,Clothing
+CUST-00080,Mainstream,2022-08-30,855.70,14,18-24,Female,Electronics
+CUST-00081,Mainstream,2022-09-09,1091.76,14,18-24,Female,Beauty Products
+CUST-00082,Mainstream,2023-02-25,1157.59,12,18-24,Male,Clothing
+CUST-00083,Mainstream,2022-03-19,1533.24,11,45-54,Male,Toys
+CUST-00084,Mainstream,2022-06-14,561.59,3,45-54,Non-binary,Electronics
+CUST-00085,Premium,2023-01-29,2406.27,15,18-24,Non-binary,Electronics
+CUST-00086,Mainstream,2023-11-07,151.39,13,55-64,Male,Clothing
+CUST-00087,Luxury,2023-12-22,365.72,12,18-24,Prefer not to say,Clothing
+CUST-00088,Budget,2022-08-31,95.73,14,55-64,Female,Toys
+CUST-00089,Mainstream,2023-03-14,1140.76,16,65+,Prefer not to say,Beauty Products
+CUST-00090,Mainstream,2023-02-15,1382.47,11,35-44,Male,Kitchen Appliances
+CUST-00091,Budget,2022-12-19,348.44,6,25-34,Female,Clothing
+CUST-00092,Mainstream,2022-07-10,1053.79,7,55-64,Female,Toys
+CUST-00093,Budget,2023-03-23,414.28,11,65+,Female,Beauty Products
+CUST-00094,Mainstream,2023-01-26,1304.85,7,25-34,Male,Toys
+CUST-00095,Premium,2022-11-16,2436.54,16,55-64,Female,Beauty Products
+CUST-00096,Mainstream,2023-01-12,1626.34,10,45-54,Prefer not to say,Beauty Products
+CUST-00097,Budget,2023-12-06,18.23,4,35-44,Non-binary,Kitchen Appliances
+CUST-00098,Mainstream,2023-08-07,713.89,16,55-64,Non-binary,Clothing
+CUST-00099,Luxury,2022-06-11,6877.34,4,35-44,Non-binary,Beauty Products
+CUST-00100,Mainstream,2023-09-21,327.91,12,45-54,Female,Clothing
+CUST-00101,Mainstream,2023-12-24,11.59,17,45-54,Female,Clothing
+CUST-00102,Mainstream,2022-03-15,1804.88,4,25-34,Non-binary,Toys
+CUST-00103,Mainstream,2022-03-06,796.33,15,18-24,Non-binary,Electronics
+CUST-00104,Mainstream,2023-08-24,578.51,20,35-44,Female,Toys
+CUST-00105,Budget,2023-10-23,66.28,16,45-54,Male,Beauty Products
+CUST-00106,Premium,2023-12-04,161.04,1,55-64,Non-binary,Toys
+CUST-00107,Mainstream,2022-06-08,2319.26,12,35-44,Female,Kitchen Appliances
+CUST-00108,Luxury,2023-09-29,1231.19,4,25-34,Non-binary,Electronics
+CUST-00109,Premium,2022-09-08,4213.87,17,55-64,Female,Beauty Products
+CUST-00110,Budget,2023-09-21,93.14,4,35-44,Prefer not to say,Clothing
+CUST-00111,Budget,2022-05-24,317.32,6,55-64,Male,Kitchen Appliances
+CUST-00112,Premium,2022-07-19,3341.64,7,18-24,Male,Electronics
+CUST-00113,Mainstream,2023-11-21,195.69,15,65+,Non-binary,Kitchen Appliances
+CUST-00114,Luxury,2023-02-03,12475.22,18,18-24,Non-binary,Toys
+CUST-00115,Luxury,2023-05-13,11113.90,2,35-44,Female,Kitchen Appliances
+CUST-00116,Mainstream,2022-07-30,1354.44,3,55-64,Prefer not to say,Clothing
+CUST-00117,Luxury,2023-06-13,4804.94,14,65+,Male,Beauty Products
+CUST-00118,Luxury,2022-03-23,11874.90,7,25-34,Non-binary,Clothing
+CUST-00119,Mainstream,2023-01-02,653.28,16,45-54,Male,Toys
+CUST-00120,Luxury,2023-08-22,5047.38,17,18-24,Prefer not to say,Electronics
+CUST-00121,Budget,2022-02-10,244.52,15,55-64,Prefer not to say,Toys
+CUST-00122,Budget,2022-02-13,450.60,16,18-24,Non-binary,Toys
+CUST-00123,Mainstream,2022-02-22,619.98,9,35-44,Male,Toys
+CUST-00124,Mainstream,2023-09-04,527.77,1,45-54,Non-binary,Clothing
+CUST-00125,Premium,2022-06-23,2919.09,13,35-44,Male,Kitchen Appliances
+CUST-00126,Budget,2023-12-26,3.38,3,55-64,Female,Beauty Products
+CUST-00127,Premium,2023-04-29,3242.67,15,25-34,Male,Beauty Products
+CUST-00128,Mainstream,2023-08-08,343.72,19,45-54,Male,Electronics
+CUST-00129,Mainstream,2022-01-23,674.96,15,55-64,Prefer not to say,Toys
+CUST-00130,Mainstream,2023-04-19,434.03,17,25-34,Prefer not to say,Beauty Products
+CUST-00131,Mainstream,2023-06-12,348.93,8,65+,Male,Electronics
+CUST-00132,Premium,2022-04-09,2540.43,2,55-64,Prefer not to say,Electronics
+CUST-00133,Premium,2023-06-04,1275.38,1,25-34,Female,Beauty Products
+CUST-00134,Premium,2023-08-04,1729.60,2,45-54,Male,Kitchen Appliances
+CUST-00135,Premium,2022-01-24,5060.62,8,45-54,Non-binary,Electronics
+CUST-00136,Mainstream,2022-09-13,511.64,18,45-54,Non-binary,Beauty Products
+CUST-00137,Luxury,2022-11-03,10399.82,6,35-44,Male,Clothing
+CUST-00138,Mainstream,2022-10-08,1233.13,19,35-44,Female,Clothing
+CUST-00139,Mainstream,2023-12-03,153.03,17,65+,Female,Kitchen Appliances
+CUST-00140,Mainstream,2022-09-04,500.06,4,25-34,Prefer not to say,Clothing
+CUST-00141,Mainstream,2022-02-20,1084.22,8,45-54,Female,Kitchen Appliances
+CUST-00142,Mainstream,2023-09-18,372.18,6,45-54,Prefer not to say,Electronics
+CUST-00143,Mainstream,2023-06-06,749.74,11,25-34,Prefer not to say,Toys
+CUST-00144,Budget,2022-02-17,226.01,12,45-54,Prefer not to say,Toys
+CUST-00145,Premium,2023-12-07,150.43,1,55-64,Female,Electronics
+CUST-00146,Mainstream,2023-07-04,285.98,11,55-64,Female,Toys
+CUST-00147,Luxury,2022-11-13,7802.54,5,18-24,Male,Kitchen Appliances
+CUST-00148,Luxury,2023-02-25,4346.75,1,55-64,Non-binary,Clothing
+CUST-00149,Mainstream,2023-10-28,404.68,3,18-24,Prefer not to say,Toys
+CUST-00150,Premium,2022-09-28,3346.19,6,45-54,Female,Clothing
+CUST-00151,Luxury,2023-12-12,681.29,11,35-44,Male,Toys
+CUST-00152,Budget,2022-07-10,549.04,17,65+,Female,Electronics
+CUST-00153,Mainstream,2023-09-24,313.80,14,55-64,Non-binary,Electronics
+CUST-00154,Premium,2022-03-29,3679.44,8,45-54,Non-binary,Beauty Products
+CUST-00155,Luxury,2023-08-08,3393.07,8,65+,Male,Clothing
+CUST-00156,Mainstream,2023-02-25,771.12,3,25-34,Prefer not to say,Electronics
+CUST-00157,Mainstream,2022-04-08,1014.60,12,18-24,Male,Kitchen Appliances
+CUST-00158,Budget,2023-08-28,68.41,11,65+,Female,Beauty Products
+CUST-00159,Budget,2022-12-11,136.76,2,18-24,Non-binary,Electronics
+CUST-00160,Mainstream,2022-04-10,1942.60,3,25-34,Female,Toys
+CUST-00161,Budget,2023-12-07,9.84,19,65+,Non-binary,Electronics
+CUST-00162,Premium,2022-12-30,3211.05,10,65+,Prefer not to say,Kitchen Appliances
+CUST-00163,Premium,2023-11-09,323.51,19,45-54,Male,Electronics
+CUST-00164,Mainstream,2023-09-09,635.34,17,35-44,Prefer not to say,Beauty Products
+CUST-00165,Premium,2022-11-19,3221.93,9,18-24,Non-binary,Electronics
+CUST-00166,Mainstream,2023-11-07,229.54,16,25-34,Non-binary,Electronics
+CUST-00167,Mainstream,2022-05-02,972.13,18,55-64,Male,Kitchen Appliances
+CUST-00168,Mainstream,2023-10-09,207.19,2,65+,Female,Kitchen Appliances
+CUST-00169,Luxury,2022-12-09,4633.89,13,35-44,Non-binary,Clothing
+CUST-00170,Mainstream,2022-01-12,2052.60,16,65+,Female,Electronics
+CUST-00171,Premium,2023-08-07,1908.22,10,35-44,Non-binary,Electronics
+CUST-00172,Mainstream,2022-04-01,1491.82,16,18-24,Non-binary,Clothing
+CUST-00173,Premium,2022-09-05,2579.43,11,65+,Female,Toys
+CUST-00174,Premium,2022-08-11,2676.55,16,25-34,Male,Beauty Products
+CUST-00175,Premium,2022-07-16,4496.15,5,55-64,Male,Clothing
+CUST-00176,Premium,2022-12-27,4918.37,14,45-54,Prefer not to say,Beauty Products
+CUST-00177,Mainstream,2023-03-30,1471.72,15,25-34,Non-binary,Beauty Products
+CUST-00178,Luxury,2023-10-24,1501.16,19,25-34,Non-binary,Kitchen Appliances
+CUST-00179,Premium,2023-11-21,466.35,10,25-34,Non-binary,Kitchen Appliances
+CUST-00180,Mainstream,2023-06-25,701.05,14,65+,Prefer not to say,Toys
+CUST-00181,Budget,2022-08-02,226.62,5,35-44,Female,Toys
+CUST-00182,Premium,2023-04-03,2697.48,12,35-44,Non-binary,Beauty Products
+CUST-00183,Budget,2023-11-02,60.52,10,65+,Non-binary,Beauty Products
+CUST-00184,Mainstream,2023-10-26,295.62,2,25-34,Prefer not to say,Beauty Products
+CUST-00185,Mainstream,2022-10-14,1941.23,16,65+,Prefer not to say,Toys
+CUST-00186,Mainstream,2023-03-03,1623.18,8,65+,Prefer not to say,Kitchen Appliances
+CUST-00187,Mainstream,2023-05-01,1232.75,9,65+,Male,Beauty Products
+CUST-00188,Mainstream,2023-01-02,1419.31,11,25-34,Female,Clothing
+CUST-00189,Budget,2023-04-13,162.21,8,45-54,Male,Clothing
+CUST-00190,Mainstream,2022-12-02,1702.68,13,18-24,Female,Beauty Products
+CUST-00191,Budget,2023-10-29,24.08,9,35-44,Prefer not to say,Beauty Products
+CUST-00192,Premium,2023-05-09,2604.69,14,45-54,Non-binary,Kitchen Appliances
+CUST-00193,Mainstream,2023-08-12,461.88,14,65+,Prefer not to say,Beauty Products
+CUST-00194,Mainstream,2022-04-30,803.81,9,35-44,Prefer not to say,Electronics
+CUST-00195,Premium,2023-06-25,1943.55,13,35-44,Prefer not to say,Clothing
+CUST-00196,Luxury,2023-12-30,27.24,11,25-34,Female,Electronics
+CUST-00197,Luxury,2023-08-17,3700.67,10,25-34,Male,Toys
+CUST-00198,Mainstream,2023-07-07,355.48,11,25-34,Male,Electronics
+CUST-00199,Mainstream,2022-09-16,1638.89,12,18-24,Female,Clothing
+CUST-00200,Mainstream,2023-08-20,471.81,20,25-34,Male,Beauty Products
+CUST-00201,Luxury,2022-02-07,12848.60,1,35-44,Non-binary,Beauty Products
+CUST-00202,Budget,2023-05-03,191.06,3,45-54,Prefer not to say,Clothing
+CUST-00203,Luxury,2023-06-01,5946.25,11,55-64,Non-binary,Toys
+CUST-00204,Mainstream,2023-07-12,1054.86,3,45-54,Non-binary,Toys
+CUST-00205,Premium,2022-01-05,3942.71,14,45-54,Female,Toys
+CUST-00206,Mainstream,2022-04-16,1059.06,13,35-44,Non-binary,Kitchen Appliances
+CUST-00207,Budget,2022-11-28,276.33,6,65+,Female,Electronics
+CUST-00208,Mainstream,2022-09-15,1315.51,3,65+,Female,Electronics
+CUST-00209,Mainstream,2023-12-15,41.90,6,55-64,Non-binary,Toys
+CUST-00210,Budget,2023-06-30,196.33,13,18-24,Female,Clothing
+CUST-00211,Budget,2023-03-17,186.66,13,55-64,Female,Electronics
+CUST-00212,Mainstream,2023-08-19,661.62,18,45-54,Male,Clothing
+CUST-00213,Mainstream,2022-03-05,894.45,10,45-54,Male,Beauty Products
+CUST-00214,Premium,2022-11-08,2635.84,11,55-64,Male,Beauty Products
+CUST-00215,Mainstream,2023-07-12,930.78,2,55-64,Prefer not to say,Beauty Products
+CUST-00216,Mainstream,2023-06-04,939.41,10,35-44,Female,Clothing
+CUST-00217,Mainstream,2022-01-22,1440.46,12,45-54,Male,Kitchen Appliances
+CUST-00218,Mainstream,2023-08-13,394.86,2,35-44,Prefer not to say,Electronics
+CUST-00219,Mainstream,2023-02-28,1372.31,14,45-54,Non-binary,Toys
+CUST-00220,Mainstream,2022-10-12,712.72,5,35-44,Prefer not to say,Beauty Products
+CUST-00221,Premium,2023-03-30,3151.78,1,65+,Non-binary,Beauty Products
+CUST-00222,Mainstream,2022-11-24,1540.89,20,35-44,Female,Toys
+CUST-00223,Premium,2022-04-10,3096.44,5,25-34,Female,Kitchen Appliances
+CUST-00224,Mainstream,2023-12-15,49.16,4,25-34,Male,Toys
+CUST-00225,Mainstream,2022-02-06,627.23,1,45-54,Female,Clothing
+CUST-00226,Budget,2023-09-09,80.43,18,35-44,Female,Toys
+CUST-00227,Mainstream,2022-11-22,1801.76,10,35-44,Prefer not to say,Clothing
+CUST-00228,Budget,2022-04-03,141.84,4,25-34,Prefer not to say,Beauty Products
+CUST-00229,Mainstream,2022-10-22,868.46,19,45-54,Non-binary,Toys
+CUST-00230,Premium,2022-08-08,3284.91,7,18-24,Male,Toys
+CUST-00231,Budget,2022-03-22,540.07,10,45-54,Female,Kitchen Appliances
+CUST-00232,Premium,2022-10-15,3171.31,5,18-24,Female,Clothing
+CUST-00233,Mainstream,2023-07-10,333.09,9,18-24,Female,Kitchen Appliances
+CUST-00234,Budget,2023-07-31,89.48,7,55-64,Female,Beauty Products
+CUST-00235,Budget,2022-07-29,270.03,5,65+,Prefer not to say,Toys
+CUST-00236,Premium,2022-02-11,3221.48,14,65+,Female,Kitchen Appliances
+CUST-00237,Mainstream,2022-07-04,1124.81,11,18-24,Male,Beauty Products
+CUST-00238,Luxury,2023-08-14,2828.21,11,25-34,Male,Electronics
+CUST-00239,Luxury,2023-09-26,3999.91,9,25-34,Non-binary,Kitchen Appliances
+CUST-00240,Premium,2023-02-01,1848.04,5,18-24,Prefer not to say,Electronics
+CUST-00241,Mainstream,2022-10-23,1123.75,11,18-24,Non-binary,Electronics
+CUST-00242,Budget,2023-10-29,18.19,7,45-54,Non-binary,Beauty Products
+CUST-00243,Mainstream,2022-03-17,1416.55,20,18-24,Female,Toys
+CUST-00244,Budget,2023-02-21,145.80,7,55-64,Male,Beauty Products
+CUST-00245,Budget,2023-05-30,146.74,15,18-24,Female,Kitchen Appliances
+CUST-00246,Premium,2023-10-03,1077.72,7,45-54,Prefer not to say,Beauty Products
+CUST-00247,Premium,2023-06-09,1780.86,7,18-24,Male,Toys
+CUST-00248,Budget,2023-06-09,246.59,4,25-34,Female,Kitchen Appliances
+CUST-00249,Premium,2023-10-28,519.40,6,35-44,Male,Kitchen Appliances
+CUST-00250,Budget,2023-06-05,68.51,7,55-64,Female,Kitchen Appliances
+CUST-00251,Mainstream,2023-01-06,610.92,17,65+,Prefer not to say,Clothing
+CUST-00252,Mainstream,2022-11-08,645.15,5,25-34,Prefer not to say,Beauty Products
+CUST-00253,Budget,2022-06-23,286.18,7,45-54,Prefer not to say,Toys
+CUST-00254,Budget,2023-03-13,234.80,1,45-54,Male,Beauty Products
+CUST-00255,Budget,2022-04-30,263.99,14,65+,Prefer not to say,Toys
+CUST-00256,Mainstream,2022-06-21,1695.05,16,55-64,Male,Toys
+CUST-00257,Premium,2023-07-04,1163.11,16,35-44,Female,Beauty Products
+CUST-00258,Premium,2022-04-02,4477.77,2,25-34,Prefer not to say,Electronics
+CUST-00259,Luxury,2022-08-18,16661.53,4,45-54,Female,Clothing
+CUST-00260,Mainstream,2023-05-21,397.59,1,25-34,Prefer not to say,Toys
+CUST-00261,Luxury,2023-09-06,3726.39,11,65+,Female,Electronics
+CUST-00262,Budget,2023-02-01,269.92,20,25-34,Prefer not to say,Beauty Products
+CUST-00263,Luxury,2023-01-16,11959.43,5,65+,Male,Toys
+CUST-00264,Budget,2022-08-27,387.79,16,65+,Non-binary,Clothing
+CUST-00265,Premium,2022-07-13,3404.54,12,18-24,Male,Electronics
+CUST-00266,Premium,2022-11-28,2192.16,8,55-64,Prefer not to say,Clothing
+CUST-00267,Luxury,2023-03-23,8154.09,19,25-34,Prefer not to say,Toys
+CUST-00268,Mainstream,2022-07-07,1459.63,16,45-54,Female,Clothing
+CUST-00269,Premium,2023-04-13,3421.57,16,55-64,Non-binary,Beauty Products
+CUST-00270,Budget,2023-08-22,143.37,10,25-34,Prefer not to say,Electronics
+CUST-00271,Mainstream,2023-11-28,135.96,2,55-64,Female,Kitchen Appliances
+CUST-00272,Luxury,2023-09-15,3247.22,7,65+,Male,Kitchen Appliances
+CUST-00273,Mainstream,2022-11-22,1390.88,3,45-54,Male,Electronics
+CUST-00274,Mainstream,2022-01-17,2014.50,2,35-44,Male,Beauty Products
+CUST-00275,Budget,2023-07-28,132.36,9,55-64,Prefer not to say,Toys
+CUST-00276,Luxury,2023-08-19,2172.73,16,35-44,Female,Kitchen Appliances
+CUST-00277,Budget,2022-07-16,84.85,12,55-64,Male,Clothing
+CUST-00278,Mainstream,2023-10-08,322.68,4,25-34,Female,Kitchen Appliances
+CUST-00279,Mainstream,2023-06-01,428.01,9,65+,Male,Beauty Products
+CUST-00280,Premium,2022-09-23,3870.70,19,35-44,Female,Beauty Products
+CUST-00281,Mainstream,2022-03-15,1906.36,20,35-44,Prefer not to say,Toys
+CUST-00282,Mainstream,2022-03-27,854.98,13,18-24,Female,Kitchen Appliances
+CUST-00283,Budget,2023-03-30,128.62,10,55-64,Male,Toys
+CUST-00284,Mainstream,2022-12-13,559.56,4,65+,Female,Kitchen Appliances
+CUST-00285,Premium,2022-07-31,5607.40,15,18-24,Female,Clothing
+CUST-00286,Premium,2023-11-25,289.21,14,45-54,Prefer not to say,Toys
+CUST-00287,Mainstream,2023-09-19,449.18,15,45-54,Female,Electronics
+CUST-00288,Luxury,2022-03-10,9436.45,10,35-44,Female,Beauty Products
+CUST-00289,Mainstream,2023-09-16,360.29,10,35-44,Female,Beauty Products
+CUST-00290,Budget,2022-12-31,569.89,18,18-24,Female,Kitchen Appliances
+CUST-00291,Mainstream,2023-06-09,712.97,16,25-34,Female,Electronics
+CUST-00292,Premium,2022-11-10,3564.97,11,35-44,Non-binary,Clothing
+CUST-00293,Budget,2022-09-06,337.84,8,35-44,Prefer not to say,Kitchen Appliances
+CUST-00294,Mainstream,2022-12-08,1040.92,16,18-24,Male,Toys
+CUST-00295,Mainstream,2022-12-05,834.65,7,45-54,Female,Kitchen Appliances
+CUST-00296,Luxury,2022-08-24,16252.51,15,55-64,Non-binary,Kitchen Appliances
+CUST-00297,Mainstream,2023-10-04,392.48,13,65+,Male,Beauty Products
+CUST-00298,Premium,2022-02-08,4171.87,6,55-64,Non-binary,Electronics
+CUST-00299,Mainstream,2023-07-16,493.69,19,45-54,Male,Clothing
+CUST-00300,Luxury,2023-01-19,5757.98,10,18-24,Female,Electronics
+CUST-00301,Mainstream,2022-10-07,1436.00,16,18-24,Female,Electronics
+CUST-00302,Premium,2023-02-05,3869.29,1,45-54,Prefer not to say,Toys
+CUST-00303,Mainstream,2023-09-02,260.68,20,65+,Male,Electronics
+CUST-00304,Premium,2022-11-27,1883.41,18,55-64,Male,Clothing
+CUST-00305,Mainstream,2022-09-17,610.71,16,25-34,Prefer not to say,Kitchen Appliances
+CUST-00306,Premium,2023-01-14,4859.72,20,65+,Prefer not to say,Clothing
+CUST-00307,Premium,2023-07-04,2379.11,20,45-54,Prefer not to say,Kitchen Appliances
+CUST-00308,Mainstream,2022-10-25,1895.65,2,45-54,Male,Clothing
+CUST-00309,Premium,2022-11-21,3982.70,11,25-34,Prefer not to say,Toys
+CUST-00310,Mainstream,2022-02-06,1462.63,11,18-24,Male,Beauty Products
+CUST-00311,Budget,2022-08-12,435.51,11,45-54,Non-binary,Electronics
+CUST-00312,Mainstream,2022-02-10,1474.81,10,55-64,Female,Electronics
+CUST-00313,Premium,2023-03-08,2487.73,14,25-34,Female,Clothing
+CUST-00314,Premium,2023-05-18,3627.11,4,45-54,Prefer not to say,Clothing
+CUST-00315,Mainstream,2023-09-11,221.04,12,65+,Male,Clothing
+CUST-00316,Premium,2022-06-15,3524.34,4,25-34,Female,Clothing
+CUST-00317,Mainstream,2022-07-24,830.19,17,65+,Non-binary,Clothing
+CUST-00318,Mainstream,2022-02-17,874.12,14,65+,Male,Beauty Products
+CUST-00319,Mainstream,2023-09-09,325.57,5,18-24,Female,Clothing
+CUST-00320,Mainstream,2023-03-29,1265.26,13,35-44,Prefer not to say,Toys
+CUST-00321,Mainstream,2022-09-12,1538.93,3,35-44,Non-binary,Beauty Products
+CUST-00322,Mainstream,2022-12-05,1180.61,18,45-54,Female,Electronics
+CUST-00323,Mainstream,2023-04-22,845.35,16,55-64,Prefer not to say,Beauty Products
+CUST-00324,Mainstream,2022-08-19,1581.60,20,35-44,Non-binary,Beauty Products
+CUST-00325,Luxury,2022-11-04,10964.94,10,55-64,Prefer not to say,Toys
+CUST-00326,Mainstream,2022-04-11,992.05,7,45-54,Female,Beauty Products
+CUST-00327,Mainstream,2022-10-18,2074.52,6,35-44,Male,Electronics
+CUST-00328,Mainstream,2023-11-19,124.25,17,65+,Female,Kitchen Appliances
+CUST-00329,Budget,2022-07-11,208.11,2,25-34,Non-binary,Clothing
+CUST-00330,Premium,2023-09-07,790.43,20,35-44,Female,Beauty Products
+CUST-00331,Mainstream,2023-10-23,137.27,6,65+,Male,Toys
+CUST-00332,Luxury,2022-07-23,5842.67,16,65+,Male,Toys
+CUST-00333,Premium,2023-04-24,1848.80,20,55-64,Prefer not to say,Toys
+CUST-00334,Budget,2022-03-05,389.17,1,25-34,Non-binary,Kitchen Appliances
+CUST-00335,Luxury,2022-01-08,13529.66,1,18-24,Female,Toys
+CUST-00336,Premium,2022-08-26,2273.05,16,45-54,Prefer not to say,Toys
+CUST-00337,Premium,2022-02-04,2654.22,20,25-34,Prefer not to say,Clothing
+CUST-00338,Budget,2022-07-28,209.50,13,25-34,Female,Beauty Products
+CUST-00339,Mainstream,2023-09-25,351.83,4,25-34,Prefer not to say,Toys
+CUST-00340,Premium,2023-06-26,2887.22,10,35-44,Female,Toys
+CUST-00341,Budget,2022-11-09,139.65,2,45-54,Male,Kitchen Appliances
+CUST-00342,Budget,2023-01-06,360.36,13,45-54,Female,Electronics
+CUST-00343,Mainstream,2023-10-09,108.31,3,25-34,Non-binary,Kitchen Appliances
+CUST-00344,Budget,2022-06-18,288.58,10,65+,Prefer not to say,Beauty Products
+CUST-00345,Budget,2022-11-25,195.68,12,55-64,Female,Beauty Products
+CUST-00346,Mainstream,2023-10-09,125.72,5,25-34,Female,Clothing
+CUST-00347,Mainstream,2023-01-15,613.02,3,45-54,Female,Beauty Products
+CUST-00348,Budget,2022-07-13,546.51,20,18-24,Female,Electronics
+CUST-00349,Premium,2023-12-02,374.26,10,18-24,Male,Kitchen Appliances
+CUST-00350,Mainstream,2022-08-19,622.43,10,18-24,Non-binary,Beauty Products
+CUST-00351,Premium,2022-09-02,2073.33,5,65+,Non-binary,Kitchen Appliances
+CUST-00352,Budget,2022-05-27,436.29,6,65+,Male,Electronics
+CUST-00353,Premium,2022-08-31,2688.07,18,55-64,Male,Clothing
+CUST-00354,Mainstream,2023-04-22,1118.30,7,65+,Non-binary,Toys
+CUST-00355,Mainstream,2023-12-11,51.27,13,35-44,Prefer not to say,Toys
+CUST-00356,Premium,2022-01-31,4714.60,10,25-34,Female,Kitchen Appliances
+CUST-00357,Luxury,2023-04-18,4842.80,2,25-34,Prefer not to say,Electronics
+CUST-00358,Mainstream,2022-12-29,893.62,5,65+,Non-binary,Kitchen Appliances
+CUST-00359,Mainstream,2022-02-28,822.67,16,35-44,Prefer not to say,Kitchen Appliances
+CUST-00360,Mainstream,2023-11-25,206.52,14,55-64,Female,Clothing
+CUST-00361,Mainstream,2022-04-21,817.68,10,25-34,Non-binary,Beauty Products
+CUST-00362,Luxury,2023-12-31,0.00,3,25-34,Prefer not to say,Beauty Products
+CUST-00363,Mainstream,2023-03-31,1197.81,14,25-34,Female,Toys
+CUST-00364,Mainstream,2022-03-16,1000.58,11,35-44,Male,Kitchen Appliances
+CUST-00365,Mainstream,2023-04-09,883.85,16,45-54,Female,Clothing
+CUST-00366,Mainstream,2022-02-04,1085.81,14,25-34,Non-binary,Kitchen Appliances
+CUST-00367,Mainstream,2023-09-25,557.51,17,45-54,Non-binary,Beauty Products
+CUST-00368,Mainstream,2023-04-18,964.30,16,65+,Prefer not to say,Clothing
+CUST-00369,Budget,2022-01-22,433.72,7,35-44,Female,Clothing
+CUST-00370,Premium,2022-04-28,2410.74,16,65+,Female,Electronics
+CUST-00371,Mainstream,2023-04-19,833.85,13,55-64,Prefer not to say,Kitchen Appliances
+CUST-00372,Premium,2023-06-11,2485.37,12,18-24,Female,Toys
+CUST-00373,Mainstream,2023-11-30,181.15,19,55-64,Prefer not to say,Toys
+CUST-00374,Budget,2022-02-24,119.17,12,45-54,Non-binary,Kitchen Appliances
+CUST-00375,Mainstream,2023-11-18,265.32,6,45-54,Female,Beauty Products
+CUST-00376,Budget,2022-09-23,231.89,2,18-24,Non-binary,Clothing
+CUST-00377,Budget,2022-03-03,219.65,18,45-54,Non-binary,Electronics
+CUST-00378,Budget,2022-08-28,129.78,17,65+,Male,Electronics
+CUST-00379,Luxury,2023-01-17,10463.78,19,45-54,Male,Clothing
+CUST-00380,Mainstream,2023-03-17,1149.06,1,55-64,Female,Clothing
+CUST-00381,Mainstream,2023-08-26,608.17,10,35-44,Male,Clothing
+CUST-00382,Mainstream,2022-06-12,1679.83,17,25-34,Non-binary,Beauty Products
+CUST-00383,Premium,2023-08-05,929.83,1,55-64,Prefer not to say,Toys
+CUST-00384,Budget,2023-05-28,126.22,18,55-64,Non-binary,Clothing
+CUST-00385,Premium,2022-08-04,2037.97,8,18-24,Prefer not to say,Kitchen Appliances
+CUST-00386,Mainstream,2022-06-16,841.98,8,55-64,Prefer not to say,Clothing
+CUST-00387,Premium,2023-01-16,2903.61,2,65+,Prefer not to say,Toys
+CUST-00388,Mainstream,2022-08-26,898.99,18,25-34,Female,Kitchen Appliances
+CUST-00389,Budget,2023-08-19,104.66,4,25-34,Male,Toys
+CUST-00390,Mainstream,2022-09-20,639.38,6,35-44,Non-binary,Electronics
+CUST-00391,Budget,2022-10-04,177.22,11,65+,Female,Kitchen Appliances
+CUST-00392,Premium,2022-03-03,4007.91,15,55-64,Female,Beauty Products
+CUST-00393,Mainstream,2023-03-09,1089.24,7,25-34,Non-binary,Beauty Products
+CUST-00394,Premium,2023-10-02,1064.28,11,45-54,Prefer not to say,Toys
+CUST-00395,Mainstream,2022-11-30,1036.40,5,55-64,Male,Electronics
+CUST-00396,Budget,2022-10-27,385.39,6,45-54,Prefer not to say,Kitchen Appliances
+CUST-00397,Premium,2023-05-27,1473.82,16,35-44,Non-binary,Clothing
+CUST-00398,Mainstream,2022-08-08,737.66,13,35-44,Female,Kitchen Appliances
+CUST-00399,Luxury,2022-04-24,8976.49,6,55-64,Non-binary,Toys
+CUST-00400,Budget,2022-02-09,159.08,6,65+,Prefer not to say,Beauty Products
+CUST-00401,Mainstream,2023-11-19,168.74,12,55-64,Male,Toys
+CUST-00402,Mainstream,2023-02-14,1485.68,15,35-44,Prefer not to say,Electronics
+CUST-00403,Mainstream,2022-09-13,996.25,6,35-44,Male,Beauty Products
+CUST-00404,Budget,2023-12-05,14.78,4,35-44,Female,Beauty Products
+CUST-00405,Luxury,2022-03-24,9719.51,13,55-64,Female,Beauty Products
+CUST-00406,Mainstream,2022-10-14,1016.21,16,45-54,Male,Toys
+CUST-00407,Mainstream,2022-10-29,1034.67,20,55-64,Male,Kitchen Appliances
+CUST-00408,Premium,2023-05-24,1888.24,3,45-54,Male,Electronics
+CUST-00409,Budget,2023-08-14,169.03,8,45-54,Male,Clothing
+CUST-00410,Mainstream,2023-07-22,549.38,6,35-44,Non-binary,Electronics
+CUST-00411,Luxury,2022-05-29,12948.60,6,18-24,Female,Kitchen Appliances
+CUST-00412,Premium,2023-07-10,2143.02,3,45-54,Female,Beauty Products
+CUST-00413,Mainstream,2023-05-04,1054.90,5,25-34,Non-binary,Electronics
+CUST-00414,Premium,2023-09-20,1028.16,10,65+,Male,Clothing
+CUST-00415,Mainstream,2022-08-23,1458.31,8,65+,Female,Beauty Products
+CUST-00416,Premium,2022-01-23,3391.97,14,45-54,Female,Electronics
+CUST-00417,Budget,2023-03-07,195.74,4,65+,Female,Electronics
+CUST-00418,Budget,2022-01-12,135.36,11,65+,Male,Toys
+CUST-00419,Mainstream,2022-11-11,532.23,9,25-34,Prefer not to say,Clothing
+CUST-00420,Mainstream,2022-08-15,1865.19,16,25-34,Non-binary,Toys
+CUST-00421,Mainstream,2023-01-24,796.19,9,55-64,Prefer not to say,Clothing
+CUST-00422,Mainstream,2022-05-22,573.01,2,65+,Male,Toys
+CUST-00423,Budget,2022-07-19,430.89,4,25-34,Prefer not to say,Electronics
+CUST-00424,Mainstream,2022-04-08,1758.03,6,25-34,Male,Beauty Products
+CUST-00425,Budget,2023-04-02,208.06,6,55-64,Female,Electronics
+CUST-00426,Mainstream,2023-07-01,759.74,7,65+,Male,Kitchen Appliances
+CUST-00427,Luxury,2022-05-15,7903.14,14,35-44,Female,Toys
+CUST-00428,Mainstream,2022-08-04,1280.05,7,55-64,Female,Clothing
+CUST-00429,Premium,2023-07-13,2200.13,9,45-54,Non-binary,Clothing
+CUST-00430,Mainstream,2023-12-11,42.80,4,25-34,Prefer not to say,Beauty Products
+CUST-00431,Premium,2023-12-08,318.78,17,25-34,Male,Kitchen Appliances
+CUST-00432,Mainstream,2023-01-10,1679.15,12,18-24,Prefer not to say,Clothing
+CUST-00433,Mainstream,2023-02-19,1069.62,10,18-24,Male,Kitchen Appliances
+CUST-00434,Budget,2023-03-21,267.58,8,65+,Male,Toys
+CUST-00435,Budget,2023-08-03,139.41,14,65+,Male,Toys
+CUST-00436,Mainstream,2022-03-14,591.95,5,35-44,Male,Electronics
+CUST-00437,Luxury,2023-06-28,5905.90,18,45-54,Non-binary,Kitchen Appliances
+CUST-00438,Mainstream,2022-02-11,829.14,7,25-34,Prefer not to say,Toys
+CUST-00439,Mainstream,2023-12-22,35.18,17,35-44,Male,Kitchen Appliances
+CUST-00440,Mainstream,2023-09-09,318.85,1,65+,Prefer not to say,Toys
+CUST-00441,Budget,2023-03-29,218.47,11,45-54,Non-binary,Clothing
+CUST-00442,Budget,2022-04-30,388.63,8,45-54,Male,Kitchen Appliances
+CUST-00443,Mainstream,2022-04-22,581.32,15,45-54,Prefer not to say,Toys
+CUST-00444,Luxury,2023-06-20,8559.34,16,35-44,Non-binary,Electronics
+CUST-00445,Budget,2022-12-09,289.97,4,18-24,Female,Toys
+CUST-00446,Mainstream,2023-03-23,719.91,5,35-44,Prefer not to say,Clothing
+CUST-00447,Mainstream,2022-11-15,443.57,19,65+,Female,Beauty Products
+CUST-00448,Mainstream,2023-02-21,699.18,16,65+,Prefer not to say,Electronics
+CUST-00449,Budget,2023-06-16,179.66,19,55-64,Prefer not to say,Kitchen Appliances
+CUST-00450,Budget,2023-03-08,419.76,6,35-44,Prefer not to say,Beauty Products
+CUST-00451,Budget,2023-06-20,133.73,10,45-54,Non-binary,Kitchen Appliances
+CUST-00452,Budget,2023-10-12,67.65,8,25-34,Male,Beauty Products
+CUST-00453,Budget,2023-02-20,238.01,19,25-34,Prefer not to say,Clothing
+CUST-00454,Budget,2022-09-15,458.30,6,55-64,Female,Beauty Products
+CUST-00455,Luxury,2023-12-08,295.39,7,18-24,Prefer not to say,Kitchen Appliances
+CUST-00456,Luxury,2022-02-26,11501.60,9,18-24,Non-binary,Kitchen Appliances
+CUST-00457,Mainstream,2023-09-02,572.86,2,45-54,Female,Kitchen Appliances
+CUST-00458,Premium,2023-04-29,1381.97,9,65+,Male,Electronics
+CUST-00459,Premium,2023-08-07,1234.49,16,65+,Non-binary,Beauty Products
+CUST-00460,Mainstream,2022-07-13,1283.08,14,25-34,Non-binary,Toys
+CUST-00461,Mainstream,2023-04-22,523.33,18,55-64,Prefer not to say,Beauty Products
+CUST-00462,Mainstream,2022-08-20,859.29,1,45-54,Male,Clothing
+CUST-00463,Mainstream,2023-02-19,1848.80,1,25-34,Prefer not to say,Beauty Products
+CUST-00464,Premium,2023-02-12,2699.29,1,18-24,Male,Toys
+CUST-00465,Budget,2022-01-13,484.89,3,18-24,Female,Beauty Products
+CUST-00466,Mainstream,2022-12-05,1502.28,20,55-64,Non-binary,Clothing
+CUST-00467,Budget,2023-05-24,62.10,11,65+,Female,Beauty Products
+CUST-00468,Luxury,2023-01-07,8213.48,4,25-34,Prefer not to say,Clothing
+CUST-00469,Luxury,2022-09-18,14362.20,20,55-64,Female,Kitchen Appliances
+CUST-00470,Budget,2023-04-07,200.13,8,45-54,Non-binary,Toys
+CUST-00471,Budget,2023-02-20,241.05,9,55-64,Female,Beauty Products
+CUST-00472,Mainstream,2023-06-30,411.76,8,35-44,Male,Kitchen Appliances
+CUST-00473,Premium,2022-12-17,4283.07,17,65+,Male,Electronics
+CUST-00474,Premium,2023-12-06,276.45,6,18-24,Male,Beauty Products
+CUST-00475,Budget,2023-09-23,57.34,6,25-34,Female,Beauty Products
+CUST-00476,Budget,2023-05-05,349.81,19,35-44,Prefer not to say,Electronics
+CUST-00477,Budget,2022-12-01,424.17,9,55-64,Male,Clothing
+CUST-00478,Budget,2022-05-04,294.16,1,55-64,Female,Toys
+CUST-00479,Luxury,2022-09-21,15858.26,19,45-54,Prefer not to say,Electronics
+CUST-00480,Premium,2022-02-09,3789.83,10,18-24,Female,Toys
+CUST-00481,Budget,2022-02-10,326.90,15,25-34,Prefer not to say,Clothing
+CUST-00482,Luxury,2023-08-22,3894.89,1,65+,Prefer not to say,Clothing
+CUST-00483,Mainstream,2023-04-28,1408.77,4,65+,Non-binary,Kitchen Appliances
+CUST-00484,Budget,2022-12-09,250.98,2,35-44,Male,Kitchen Appliances
+CUST-00485,Mainstream,2022-01-23,2194.09,18,65+,Prefer not to say,Electronics
+CUST-00486,Premium,2022-12-23,3358.51,17,25-34,Female,Electronics
+CUST-00487,Mainstream,2022-05-19,1102.80,7,55-64,Prefer not to say,Clothing
+CUST-00488,Budget,2022-01-21,330.34,1,18-24,Prefer not to say,Beauty Products
+CUST-00489,Premium,2023-10-14,824.94,8,65+,Non-binary,Kitchen Appliances
+CUST-00490,Mainstream,2023-07-02,951.58,17,25-34,Non-binary,Electronics
+CUST-00491,Mainstream,2022-02-01,689.57,12,25-34,Non-binary,Clothing
+CUST-00492,Mainstream,2022-08-10,1337.74,5,25-34,Non-binary,Electronics
+CUST-00493,Premium,2022-03-20,2506.72,2,55-64,Prefer not to say,Beauty Products
+CUST-00494,Budget,2022-03-12,458.76,1,25-34,Non-binary,Toys
+CUST-00495,Premium,2022-10-15,3894.66,15,35-44,Prefer not to say,Clothing
+CUST-00496,Mainstream,2023-07-15,316.99,9,18-24,Non-binary,Kitchen Appliances
+CUST-00497,Budget,2023-02-10,464.51,6,18-24,Female,Electronics
+CUST-00498,Luxury,2023-10-04,2612.72,20,45-54,Male,Electronics
+CUST-00499,Mainstream,2022-11-13,1772.07,17,18-24,Prefer not to say,Clothing
+CUST-00500,Mainstream,2023-02-10,1205.90,3,18-24,Non-binary,Electronics
+CUST-00501,Premium,2023-12-01,174.85,3,65+,Prefer not to say,Kitchen Appliances
+CUST-00502,Premium,2022-03-26,4526.39,11,18-24,Male,Kitchen Appliances
+CUST-00503,Premium,2022-02-13,2662.79,10,35-44,Non-binary,Clothing
+CUST-00504,Mainstream,2023-06-02,882.90,20,65+,Female,Toys
+CUST-00505,Mainstream,2023-01-09,1539.09,2,35-44,Female,Kitchen Appliances
+CUST-00506,Budget,2023-03-11,136.32,16,25-34,Prefer not to say,Toys
+CUST-00507,Budget,2023-05-11,223.70,12,65+,Female,Clothing
+CUST-00508,Premium,2023-10-17,664.28,11,25-34,Female,Toys
+CUST-00509,Budget,2022-04-09,312.76,1,55-64,Male,Kitchen Appliances
+CUST-00510,Mainstream,2023-06-04,978.23,13,35-44,Non-binary,Kitchen Appliances
+CUST-00511,Budget,2023-09-06,144.36,20,45-54,Female,Clothing
+CUST-00512,Budget,2023-10-15,22.86,8,25-34,Non-binary,Toys
+CUST-00513,Mainstream,2022-03-31,1512.13,9,35-44,Female,Beauty Products
+CUST-00514,Premium,2022-03-15,3473.13,20,65+,Non-binary,Beauty Products
+CUST-00515,Luxury,2023-12-17,226.32,18,65+,Prefer not to say,Beauty Products
+CUST-00516,Budget,2022-10-07,553.20,14,45-54,Male,Beauty Products
+CUST-00517,Premium,2023-01-18,3951.50,6,18-24,Female,Kitchen Appliances
+CUST-00518,Premium,2022-10-09,4049.29,9,45-54,Prefer not to say,Electronics
+CUST-00519,Budget,2022-12-27,202.86,18,45-54,Prefer not to say,Clothing
+CUST-00520,Mainstream,2022-01-26,463.60,5,18-24,Non-binary,Clothing
+CUST-00521,Budget,2022-03-12,324.88,4,65+,Female,Beauty Products
+CUST-00522,Premium,2022-01-01,3126.97,4,65+,Male,Clothing
+CUST-00523,Mainstream,2022-10-24,2089.05,17,65+,Non-binary,Kitchen Appliances
+CUST-00524,Mainstream,2022-03-01,1348.47,7,55-64,Male,Beauty Products
+CUST-00525,Mainstream,2023-05-08,483.02,17,35-44,Non-binary,Kitchen Appliances
+CUST-00526,Premium,2022-09-26,4836.74,11,45-54,Non-binary,Clothing
+CUST-00527,Mainstream,2022-10-20,1257.49,13,18-24,Male,Electronics
+CUST-00528,Premium,2023-10-09,614.80,7,35-44,Female,Toys
+CUST-00529,Premium,2022-01-24,3761.71,5,25-34,Non-binary,Beauty Products
+CUST-00530,Budget,2022-03-23,151.42,6,65+,Prefer not to say,Beauty Products
+CUST-00531,Premium,2023-01-22,4482.83,11,18-24,Male,Electronics
+CUST-00532,Premium,2023-05-07,1878.16,13,45-54,Male,Clothing
+CUST-00533,Budget,2022-06-23,223.68,3,35-44,Male,Beauty Products
+CUST-00534,Luxury,2022-04-22,8616.44,5,25-34,Non-binary,Beauty Products
+CUST-00535,Premium,2023-10-30,650.07,16,35-44,Non-binary,Electronics
+CUST-00536,Luxury,2022-10-21,6689.07,14,18-24,Male,Kitchen Appliances
+CUST-00537,Mainstream,2023-10-21,268.45,20,25-34,Male,Kitchen Appliances
+CUST-00538,Mainstream,2023-04-18,1541.32,1,18-24,Prefer not to say,Electronics
+CUST-00539,Mainstream,2023-08-31,343.85,11,25-34,Male,Clothing
+CUST-00540,Budget,2023-03-31,267.14,7,45-54,Non-binary,Beauty Products
+CUST-00541,Mainstream,2022-07-04,976.97,9,18-24,Female,Beauty Products
+CUST-00542,Mainstream,2022-09-20,1822.40,17,35-44,Female,Clothing
+CUST-00543,Mainstream,2022-01-06,1632.64,18,55-64,Female,Toys
+CUST-00544,Mainstream,2023-12-02,124.35,17,25-34,Non-binary,Kitchen Appliances
+CUST-00545,Budget,2023-07-14,62.23,2,55-64,Male,Kitchen Appliances
+CUST-00546,Budget,2023-10-17,63.12,1,18-24,Female,Clothing
+CUST-00547,Mainstream,2022-08-05,1713.52,2,55-64,Female,Toys
+CUST-00548,Budget,2022-05-12,315.44,7,35-44,Female,Beauty Products
+CUST-00549,Mainstream,2022-05-11,1391.13,18,35-44,Non-binary,Beauty Products
+CUST-00550,Mainstream,2022-03-12,594.80,3,25-34,Prefer not to say,Clothing
+CUST-00551,Mainstream,2023-03-30,754.87,17,35-44,Male,Clothing
+CUST-00552,Mainstream,2022-02-09,870.90,17,18-24,Prefer not to say,Kitchen Appliances
+CUST-00553,Mainstream,2023-06-06,464.64,10,25-34,Prefer not to say,Electronics
+CUST-00554,Mainstream,2023-08-02,444.23,15,45-54,Male,Electronics
+CUST-00555,Premium,2022-11-13,4070.20,7,65+,Male,Electronics
+CUST-00556,Budget,2022-12-16,382.10,14,55-64,Male,Kitchen Appliances
+CUST-00557,Budget,2022-03-19,253.16,15,45-54,Male,Clothing
+CUST-00558,Mainstream,2022-01-22,1522.10,5,25-34,Male,Beauty Products
+CUST-00559,Mainstream,2023-11-17,225.62,15,55-64,Prefer not to say,Kitchen Appliances
+CUST-00560,Mainstream,2023-06-29,676.32,5,35-44,Female,Beauty Products
+CUST-00561,Mainstream,2023-03-14,1491.72,1,35-44,Non-binary,Beauty Products
+CUST-00562,Mainstream,2022-08-01,912.52,8,18-24,Prefer not to say,Electronics
+CUST-00563,Luxury,2023-08-27,5249.29,7,45-54,Female,Clothing
+CUST-00564,Luxury,2023-06-19,2721.22,13,18-24,Female,Clothing
+CUST-00565,Premium,2023-08-29,814.00,15,35-44,Male,Toys
+CUST-00566,Mainstream,2023-12-27,6.33,3,25-34,Female,Clothing
+CUST-00567,Budget,2022-02-19,375.90,4,18-24,Non-binary,Clothing
+CUST-00568,Mainstream,2023-12-02,82.18,19,45-54,Prefer not to say,Clothing
+CUST-00569,Budget,2023-05-04,266.36,6,45-54,Non-binary,Electronics
+CUST-00570,Luxury,2023-04-07,9954.47,11,65+,Male,Toys
+CUST-00571,Budget,2022-10-28,483.35,8,45-54,Female,Toys
+CUST-00572,Mainstream,2023-02-07,1437.38,16,18-24,Male,Beauty Products
+CUST-00573,Mainstream,2022-07-06,1415.83,17,35-44,Prefer not to say,Toys
+CUST-00574,Mainstream,2023-07-30,391.61,11,45-54,Prefer not to say,Kitchen Appliances
+CUST-00575,Mainstream,2023-01-06,1232.48,5,45-54,Prefer not to say,Kitchen Appliances
+CUST-00576,Luxury,2022-03-22,5379.64,10,55-64,Non-binary,Clothing
+CUST-00577,Mainstream,2023-08-29,589.52,12,45-54,Prefer not to say,Electronics
+CUST-00578,Budget,2022-07-22,142.99,12,25-34,Male,Clothing
+CUST-00579,Budget,2023-10-12,100.88,13,65+,Prefer not to say,Clothing
+CUST-00580,Premium,2022-07-16,2158.01,10,45-54,Female,Kitchen Appliances
+CUST-00581,Mainstream,2023-02-10,1650.72,20,35-44,Female,Clothing
+CUST-00582,Premium,2023-04-11,2146.46,6,55-64,Prefer not to say,Electronics
+CUST-00583,Budget,2022-11-22,284.27,12,25-34,Male,Clothing
+CUST-00584,Mainstream,2023-04-03,1003.55,1,45-54,Prefer not to say,Clothing
+CUST-00585,Luxury,2023-03-16,5448.13,5,65+,Male,Toys
+CUST-00586,Mainstream,2022-10-31,1405.11,2,45-54,Non-binary,Clothing
+CUST-00587,Mainstream,2023-01-27,560.63,17,35-44,Non-binary,Clothing
+CUST-00588,Budget,2022-10-26,156.49,6,45-54,Non-binary,Kitchen Appliances
+CUST-00589,Budget,2023-05-12,234.63,9,35-44,Female,Beauty Products
+CUST-00590,Budget,2022-03-30,110.27,7,35-44,Non-binary,Clothing
+CUST-00591,Premium,2023-05-01,1595.66,20,65+,Male,Kitchen Appliances
+CUST-00592,Premium,2022-11-09,2555.24,6,25-34,Male,Electronics
+CUST-00593,Mainstream,2023-10-10,149.70,13,25-34,Prefer not to say,Clothing
+CUST-00594,Budget,2023-03-30,229.97,5,45-54,Prefer not to say,Toys
+CUST-00595,Mainstream,2023-11-11,122.41,13,55-64,Male,Clothing
+CUST-00596,Mainstream,2022-11-25,1030.95,14,35-44,Male,Electronics
+CUST-00597,Mainstream,2022-02-01,1410.09,7,25-34,Non-binary,Toys
+CUST-00598,Mainstream,2022-01-12,1342.40,17,25-34,Non-binary,Clothing
+CUST-00599,Mainstream,2023-08-04,372.30,8,25-34,Female,Toys
+CUST-00600,Mainstream,2022-03-02,1317.13,3,18-24,Non-binary,Electronics
+CUST-00601,Mainstream,2022-05-10,533.16,10,65+,Female,Electronics
+CUST-00602,Mainstream,2022-04-04,483.21,17,25-34,Male,Beauty Products
+CUST-00603,Mainstream,2022-04-18,1286.32,15,65+,Prefer not to say,Beauty Products
+CUST-00604,Premium,2022-05-05,3369.79,4,45-54,Non-binary,Clothing
+CUST-00605,Mainstream,2022-06-10,1405.23,16,45-54,Male,Electronics
+CUST-00606,Budget,2023-04-18,364.99,19,25-34,Prefer not to say,Electronics
+CUST-00607,Luxury,2023-03-31,5735.84,5,65+,Prefer not to say,Electronics
+CUST-00608,Premium,2023-05-15,2431.67,19,45-54,Non-binary,Beauty Products
+CUST-00609,Budget,2023-11-17,38.94,17,35-44,Prefer not to say,Beauty Products
+CUST-00610,Budget,2022-12-02,279.86,19,45-54,Male,Beauty Products
+CUST-00611,Mainstream,2022-07-15,1310.52,15,18-24,Prefer not to say,Electronics
+CUST-00612,Mainstream,2023-12-07,95.89,11,65+,Prefer not to say,Beauty Products
+CUST-00613,Mainstream,2022-08-29,1282.66,19,55-64,Prefer not to say,Clothing
+CUST-00614,Mainstream,2022-04-01,1706.19,8,35-44,Male,Clothing
+CUST-00615,Budget,2022-05-16,509.01,9,18-24,Male,Kitchen Appliances
+CUST-00616,Mainstream,2023-01-13,617.51,17,45-54,Prefer not to say,Beauty Products
+CUST-00617,Mainstream,2022-05-26,669.40,3,55-64,Female,Toys
+CUST-00618,Mainstream,2022-05-22,1307.52,4,55-64,Female,Beauty Products
+CUST-00619,Mainstream,2022-04-19,2192.35,20,65+,Male,Beauty Products
+CUST-00620,Mainstream,2023-05-17,494.80,17,25-34,Prefer not to say,Electronics
+CUST-00621,Luxury,2023-06-08,6646.96,1,45-54,Non-binary,Beauty Products
+CUST-00622,Luxury,2023-10-09,3236.47,18,65+,Non-binary,Beauty Products
+CUST-00623,Budget,2022-12-24,193.44,16,35-44,Female,Clothing
+CUST-00624,Mainstream,2023-02-15,1635.79,14,65+,Prefer not to say,Clothing
+CUST-00625,Budget,2023-04-16,175.60,7,65+,Prefer not to say,Toys
+CUST-00626,Mainstream,2022-11-04,1380.81,18,18-24,Female,Electronics
+CUST-00627,Premium,2022-04-13,2783.33,12,35-44,Prefer not to say,Clothing
+CUST-00628,Mainstream,2022-08-04,748.53,8,35-44,Female,Toys
+CUST-00629,Mainstream,2022-09-25,905.46,13,45-54,Male,Toys
+CUST-00630,Premium,2023-11-05,432.19,14,45-54,Female,Clothing
+CUST-00631,Mainstream,2022-11-14,984.96,19,65+,Female,Beauty Products
+CUST-00632,Budget,2023-03-07,72.26,7,18-24,Male,Electronics
+CUST-00633,Mainstream,2023-03-13,1006.60,2,65+,Prefer not to say,Beauty Products
+CUST-00634,Budget,2022-03-03,349.60,14,65+,Male,Clothing
+CUST-00635,Luxury,2023-07-16,5517.71,16,18-24,Prefer not to say,Electronics
+CUST-00636,Premium,2022-09-29,4153.08,3,45-54,Male,Clothing
+CUST-00637,Mainstream,2022-11-08,1153.19,16,45-54,Male,Toys
+CUST-00638,Mainstream,2023-12-03,110.14,8,35-44,Non-binary,Electronics
+CUST-00639,Mainstream,2022-12-26,470.35,19,18-24,Male,Clothing
+CUST-00640,Budget,2023-08-24,113.29,5,35-44,Female,Beauty Products
+CUST-00641,Mainstream,2022-09-27,1035.97,7,65+,Prefer not to say,Toys
+CUST-00642,Mainstream,2022-05-20,484.79,5,45-54,Prefer not to say,Electronics
+CUST-00643,Mainstream,2023-09-23,552.07,20,25-34,Non-binary,Electronics
+CUST-00644,Mainstream,2023-02-13,1086.33,14,55-64,Female,Clothing
+CUST-00645,Mainstream,2023-08-12,504.14,1,65+,Male,Kitchen Appliances
+CUST-00646,Premium,2023-05-12,2258.90,5,55-64,Non-binary,Toys
+CUST-00647,Budget,2022-05-06,97.59,3,35-44,Prefer not to say,Clothing
+CUST-00648,Mainstream,2023-08-23,622.08,3,45-54,Non-binary,Toys
+CUST-00649,Premium,2023-07-29,2387.66,17,35-44,Non-binary,Clothing
+CUST-00650,Mainstream,2022-06-09,1964.09,8,55-64,Female,Beauty Products
+CUST-00651,Budget,2023-06-10,162.95,14,25-34,Male,Beauty Products
+CUST-00652,Budget,2022-11-11,349.82,7,35-44,Prefer not to say,Clothing
+CUST-00653,Budget,2023-04-15,335.13,16,45-54,Non-binary,Electronics
+CUST-00654,Budget,2023-05-17,306.63,13,65+,Non-binary,Toys
+CUST-00655,Budget,2023-12-17,9.84,14,25-34,Female,Clothing
+CUST-00656,Budget,2023-01-22,143.34,18,18-24,Female,Clothing
+CUST-00657,Budget,2023-12-14,19.49,17,18-24,Male,Beauty Products
+CUST-00658,Mainstream,2023-06-09,430.58,5,35-44,Prefer not to say,Electronics
+CUST-00659,Mainstream,2023-05-27,669.10,4,25-34,Non-binary,Beauty Products
+CUST-00660,Mainstream,2022-12-06,597.67,10,55-64,Female,Toys
+CUST-00661,Budget,2022-01-28,515.70,7,55-64,Male,Toys
+CUST-00662,Luxury,2022-07-05,15413.44,6,45-54,Non-binary,Kitchen Appliances
+CUST-00663,Mainstream,2022-11-25,1054.79,20,45-54,Prefer not to say,Kitchen Appliances
+CUST-00664,Premium,2022-03-30,2821.82,11,18-24,Prefer not to say,Electronics
+CUST-00665,Mainstream,2022-08-09,1843.02,8,45-54,Non-binary,Clothing
+CUST-00666,Luxury,2022-03-07,11689.75,14,45-54,Prefer not to say,Electronics
+CUST-00667,Budget,2022-03-12,468.71,6,35-44,Male,Clothing
+CUST-00668,Budget,2023-06-17,53.02,10,35-44,Non-binary,Toys
+CUST-00669,Mainstream,2022-03-27,990.64,20,65+,Female,Electronics
+CUST-00670,Premium,2023-03-03,3962.30,11,35-44,Male,Toys
+CUST-00671,Budget,2022-02-02,357.99,1,55-64,Non-binary,Beauty Products
+CUST-00672,Mainstream,2023-04-20,887.09,2,45-54,Male,Toys
+CUST-00673,Budget,2023-07-16,164.57,16,18-24,Non-binary,Kitchen Appliances
+CUST-00674,Mainstream,2022-07-04,881.20,20,45-54,Female,Clothing
+CUST-00675,Budget,2022-07-26,491.06,8,25-34,Male,Clothing
+CUST-00676,Premium,2023-09-05,1425.93,1,18-24,Prefer not to say,Electronics
+CUST-00677,Mainstream,2023-07-03,644.34,18,18-24,Male,Toys
+CUST-00678,Premium,2023-09-27,1303.04,5,35-44,Non-binary,Clothing
+CUST-00679,Mainstream,2022-10-03,864.60,8,55-64,Male,Electronics
+CUST-00680,Mainstream,2022-09-07,813.12,15,65+,Non-binary,Beauty Products
+CUST-00681,Mainstream,2022-08-06,1182.16,13,25-34,Prefer not to say,Electronics
+CUST-00682,Luxury,2023-06-27,8709.31,17,65+,Prefer not to say,Kitchen Appliances
+CUST-00683,Mainstream,2022-05-30,778.74,6,25-34,Male,Clothing
+CUST-00684,Mainstream,2022-05-20,1656.23,18,55-64,Prefer not to say,Toys
+CUST-00685,Mainstream,2022-04-29,1550.54,18,65+,Female,Beauty Products
+CUST-00686,Mainstream,2022-04-19,600.35,4,55-64,Female,Beauty Products
+CUST-00687,Premium,2022-10-08,3224.64,9,55-64,Non-binary,Beauty Products
+CUST-00688,Luxury,2023-10-10,2073.02,1,65+,Non-binary,Toys
+CUST-00689,Mainstream,2022-02-28,794.40,2,35-44,Female,Electronics
+CUST-00690,Mainstream,2022-05-22,1177.69,16,35-44,Male,Toys
+CUST-00691,Premium,2023-10-02,970.76,15,35-44,Non-binary,Electronics
+CUST-00692,Mainstream,2023-07-29,408.58,10,35-44,Non-binary,Toys
+CUST-00693,Mainstream,2023-07-17,623.61,15,65+,Male,Electronics
+CUST-00694,Mainstream,2022-12-19,1737.06,16,65+,Male,Clothing
+CUST-00695,Mainstream,2022-02-08,1146.52,17,18-24,Non-binary,Beauty Products
+CUST-00696,Budget,2022-08-29,391.47,13,35-44,Male,Electronics
+CUST-00697,Budget,2023-02-07,209.66,6,55-64,Male,Clothing
+CUST-00698,Luxury,2023-06-04,4529.10,16,65+,Male,Kitchen Appliances
+CUST-00699,Mainstream,2023-04-22,1183.32,7,35-44,Prefer not to say,Kitchen Appliances
+CUST-00700,Mainstream,2022-03-12,470.11,7,55-64,Male,Beauty Products
+CUST-00701,Premium,2023-06-02,1480.97,5,65+,Male,Toys
+CUST-00702,Premium,2022-06-30,5047.40,10,18-24,Non-binary,Clothing
+CUST-00703,Premium,2022-08-02,3078.03,11,18-24,Non-binary,Clothing
+CUST-00704,Premium,2022-09-19,2738.13,8,25-34,Female,Electronics
+CUST-00705,Mainstream,2023-05-29,773.83,18,35-44,Female,Clothing
+CUST-00706,Mainstream,2022-04-14,1341.81,1,35-44,Female,Toys
+CUST-00707,Luxury,2022-08-29,8718.29,10,35-44,Female,Clothing
+CUST-00708,Budget,2023-01-30,223.11,9,55-64,Female,Electronics
+CUST-00709,Mainstream,2022-06-30,1557.15,12,55-64,Male,Toys
+CUST-00710,Mainstream,2022-02-02,804.60,12,65+,Non-binary,Toys
+CUST-00711,Premium,2023-04-12,1661.31,3,25-34,Prefer not to say,Clothing
+CUST-00712,Mainstream,2022-03-29,516.36,2,65+,Prefer not to say,Kitchen Appliances
+CUST-00713,Premium,2023-02-16,4147.13,14,35-44,Female,Beauty Products
+CUST-00714,Mainstream,2023-04-16,1011.68,16,18-24,Prefer not to say,Kitchen Appliances
+CUST-00715,Mainstream,2023-12-28,16.75,15,45-54,Male,Toys
+CUST-00716,Mainstream,2023-10-04,401.51,11,65+,Male,Clothing
+CUST-00717,Premium,2023-11-02,334.23,16,45-54,Female,Clothing
+CUST-00718,Mainstream,2022-04-20,671.52,10,55-64,Non-binary,Electronics
+CUST-00719,Budget,2023-01-27,303.78,6,45-54,Male,Clothing
+CUST-00720,Mainstream,2022-08-08,2157.19,13,45-54,Male,Toys
+CUST-00721,Mainstream,2022-12-15,1705.24,7,65+,Male,Toys
+CUST-00722,Mainstream,2023-10-26,112.47,13,35-44,Non-binary,Clothing
+CUST-00723,Mainstream,2022-10-26,1773.48,13,25-34,Female,Kitchen Appliances
+CUST-00724,Premium,2022-11-30,3933.48,16,45-54,Prefer not to say,Beauty Products
+CUST-00725,Budget,2022-12-21,208.45,10,65+,Prefer not to say,Toys
+CUST-00726,Premium,2023-01-01,3839.67,12,25-34,Prefer not to say,Electronics
+CUST-00727,Mainstream,2022-11-01,1515.98,4,35-44,Female,Toys
+CUST-00728,Luxury,2023-05-11,7186.67,3,45-54,Female,Kitchen Appliances
+CUST-00729,Budget,2022-12-28,173.54,11,25-34,Male,Clothing
+CUST-00730,Budget,2022-09-18,155.34,10,35-44,Non-binary,Toys
+CUST-00731,Premium,2023-09-02,1431.57,11,18-24,Female,Kitchen Appliances
+CUST-00732,Budget,2022-08-28,127.79,4,18-24,Prefer not to say,Kitchen Appliances
+CUST-00733,Premium,2023-01-07,4845.53,10,35-44,Male,Electronics
+CUST-00734,Mainstream,2022-03-09,537.34,11,45-54,Male,Beauty Products
+CUST-00735,Premium,2023-09-22,867.09,19,65+,Prefer not to say,Kitchen Appliances
+CUST-00736,Mainstream,2023-05-26,1081.38,13,35-44,Male,Electronics
+CUST-00737,Budget,2022-08-02,469.54,8,65+,Prefer not to say,Clothing
+CUST-00738,Mainstream,2022-12-25,1202.29,9,65+,Female,Clothing
+CUST-00739,Mainstream,2023-02-15,886.78,4,55-64,Female,Beauty Products
+CUST-00740,Mainstream,2022-06-28,936.18,6,65+,Prefer not to say,Kitchen Appliances
+CUST-00741,Premium,2023-06-15,2438.20,13,18-24,Non-binary,Beauty Products
+CUST-00742,Budget,2022-12-01,375.69,11,45-54,Male,Beauty Products
+CUST-00743,Premium,2022-11-04,2192.15,7,18-24,Prefer not to say,Beauty Products
+CUST-00744,Premium,2023-03-19,2030.61,1,65+,Prefer not to say,Toys
+CUST-00745,Mainstream,2022-10-26,1006.28,14,45-54,Female,Kitchen Appliances
+CUST-00746,Budget,2023-07-25,169.59,3,18-24,Non-binary,Clothing
+CUST-00747,Mainstream,2022-05-24,791.76,17,65+,Prefer not to say,Electronics
+CUST-00748,Budget,2022-12-25,277.01,2,25-34,Male,Clothing
+CUST-00749,Luxury,2023-07-23,2571.51,4,35-44,Non-binary,Beauty Products
+CUST-00750,Premium,2023-09-15,883.10,4,45-54,Prefer not to say,Clothing
+CUST-00751,Luxury,2023-08-08,2436.84,11,35-44,Female,Clothing
+CUST-00752,Mainstream,2023-11-05,183.44,5,45-54,Male,Kitchen Appliances
+CUST-00753,Luxury,2022-07-10,15659.14,8,18-24,Female,Electronics
+CUST-00754,Premium,2023-10-27,600.33,17,45-54,Non-binary,Toys
+CUST-00755,Mainstream,2023-12-28,6.99,1,25-34,Non-binary,Kitchen Appliances
+CUST-00756,Mainstream,2023-08-23,282.00,7,35-44,Non-binary,Clothing
+CUST-00757,Budget,2022-09-21,203.17,7,55-64,Non-binary,Kitchen Appliances
+CUST-00758,Premium,2022-01-21,3450.44,7,35-44,Prefer not to say,Beauty Products
+CUST-00759,Mainstream,2023-09-27,379.95,11,18-24,Female,Kitchen Appliances
+CUST-00760,Budget,2022-03-04,265.69,10,35-44,Male,Clothing
+CUST-00761,Mainstream,2022-01-29,1407.93,2,35-44,Non-binary,Electronics
+CUST-00762,Premium,2023-11-27,284.76,16,65+,Female,Electronics
+CUST-00763,Mainstream,2022-12-04,1262.80,6,55-64,Female,Clothing
+CUST-00764,Mainstream,2023-02-11,950.47,8,65+,Non-binary,Beauty Products
+CUST-00765,Premium,2022-07-24,3193.59,3,45-54,Non-binary,Clothing
+CUST-00766,Mainstream,2022-10-16,1468.93,12,55-64,Prefer not to say,Kitchen Appliances
+CUST-00767,Mainstream,2023-09-04,511.72,6,35-44,Male,Beauty Products
+CUST-00768,Mainstream,2022-09-07,1147.98,17,55-64,Male,Clothing
+CUST-00769,Budget,2022-10-10,157.41,10,25-34,Male,Beauty Products
+CUST-00770,Budget,2023-07-01,169.75,9,18-24,Male,Kitchen Appliances
+CUST-00771,Mainstream,2023-11-14,226.88,16,45-54,Female,Electronics
+CUST-00772,Mainstream,2023-09-02,207.16,10,55-64,Female,Kitchen Appliances
+CUST-00773,Budget,2022-10-06,294.89,15,45-54,Non-binary,Clothing
+CUST-00774,Premium,2022-05-20,3738.10,10,25-34,Male,Electronics
+CUST-00775,Budget,2022-08-03,431.95,10,18-24,Male,Clothing
+CUST-00776,Premium,2023-02-07,2383.46,7,35-44,Male,Clothing
+CUST-00777,Mainstream,2023-07-26,424.74,1,35-44,Female,Clothing
+CUST-00778,Mainstream,2022-08-12,951.40,11,65+,Non-binary,Beauty Products
+CUST-00779,Mainstream,2022-01-05,1248.04,15,45-54,Female,Beauty Products
+CUST-00780,Budget,2023-02-27,245.55,9,55-64,Female,Kitchen Appliances
+CUST-00781,Mainstream,2023-09-19,382.89,2,18-24,Male,Toys
+CUST-00782,Budget,2023-01-08,194.89,6,55-64,Male,Electronics
+CUST-00783,Premium,2023-02-26,3409.89,17,18-24,Prefer not to say,Toys
+CUST-00784,Mainstream,2022-12-23,835.79,19,45-54,Male,Beauty Products
+CUST-00785,Budget,2023-01-27,114.65,3,45-54,Prefer not to say,Clothing
+CUST-00786,Premium,2023-08-12,1870.18,2,25-34,Prefer not to say,Clothing
+CUST-00787,Budget,2023-10-19,37.33,13,45-54,Prefer not to say,Clothing
+CUST-00788,Mainstream,2023-02-18,650.30,11,25-34,Female,Beauty Products
+CUST-00789,Mainstream,2022-07-06,770.61,17,25-34,Prefer not to say,Clothing
+CUST-00790,Mainstream,2022-02-06,1082.98,17,35-44,Non-binary,Beauty Products
+CUST-00791,Luxury,2022-02-08,13679.38,9,35-44,Prefer not to say,Beauty Products
+CUST-00792,Budget,2022-05-28,175.28,10,55-64,Prefer not to say,Electronics
+CUST-00793,Budget,2022-01-12,494.31,20,45-54,Female,Electronics
+CUST-00794,Luxury,2022-02-26,12991.76,12,18-24,Male,Toys
+CUST-00795,Mainstream,2022-07-21,1044.30,10,45-54,Non-binary,Kitchen Appliances
+CUST-00796,Mainstream,2023-02-24,839.81,5,55-64,Non-binary,Kitchen Appliances
+CUST-00797,Mainstream,2022-05-26,1600.19,4,45-54,Male,Toys
+CUST-00798,Budget,2022-04-12,318.12,11,35-44,Female,Electronics
+CUST-00799,Premium,2023-03-31,1855.60,17,55-64,Male,Toys
+CUST-00800,Budget,2022-11-20,99.74,4,45-54,Non-binary,Kitchen Appliances
+CUST-00801,Mainstream,2023-02-27,1211.02,15,65+,Female,Toys
+CUST-00802,Mainstream,2022-03-17,1667.11,13,18-24,Female,Toys
+CUST-00803,Premium,2023-05-28,1226.56,5,65+,Male,Clothing
+CUST-00804,Mainstream,2023-06-26,442.12,1,65+,Female,Electronics
+CUST-00805,Budget,2023-06-24,108.05,10,55-64,Female,Electronics
+CUST-00806,Luxury,2023-05-13,6629.86,6,25-34,Prefer not to say,Beauty Products
+CUST-00807,Mainstream,2022-06-07,709.95,4,55-64,Male,Clothing
+CUST-00808,Mainstream,2022-05-27,711.73,12,25-34,Male,Toys
+CUST-00809,Budget,2023-04-24,234.39,3,35-44,Prefer not to say,Toys
+CUST-00810,Mainstream,2023-09-26,182.01,13,55-64,Male,Beauty Products
+CUST-00811,Mainstream,2023-11-09,107.76,12,55-64,Male,Electronics
+CUST-00812,Premium,2022-04-08,3425.20,16,25-34,Female,Kitchen Appliances
+CUST-00813,Luxury,2023-09-04,4176.24,15,25-34,Male,Clothing
+CUST-00814,Mainstream,2022-11-06,1781.78,17,55-64,Female,Electronics
+CUST-00815,Mainstream,2023-07-31,616.88,17,18-24,Female,Toys
+CUST-00816,Budget,2022-05-04,412.30,12,25-34,Non-binary,Electronics
+CUST-00817,Budget,2023-08-06,66.69,16,25-34,Male,Clothing
+CUST-00818,Budget,2022-04-08,412.35,4,25-34,Male,Toys
+CUST-00819,Mainstream,2022-05-27,925.30,12,45-54,Male,Clothing
+CUST-00820,Mainstream,2023-06-15,1018.66,10,18-24,Male,Beauty Products
+CUST-00821,Mainstream,2022-10-03,1344.99,12,45-54,Female,Electronics
+CUST-00822,Budget,2022-09-25,137.84,12,25-34,Prefer not to say,Clothing
+CUST-00823,Mainstream,2023-05-06,871.49,1,18-24,Non-binary,Toys
+CUST-00824,Budget,2022-08-24,288.79,17,25-34,Male,Beauty Products
+CUST-00825,Mainstream,2023-12-26,21.77,20,55-64,Female,Kitchen Appliances
+CUST-00826,Premium,2022-04-15,2364.07,20,65+,Non-binary,Electronics
+CUST-00827,Mainstream,2022-04-20,1724.93,5,35-44,Female,Clothing
+CUST-00828,Premium,2022-08-29,2832.34,10,25-34,Non-binary,Toys
+CUST-00829,Premium,2023-12-02,162.41,8,25-34,Female,Beauty Products
+CUST-00830,Budget,2023-04-18,287.72,7,35-44,Non-binary,Clothing
+CUST-00831,Mainstream,2022-08-18,1076.49,2,55-64,Prefer not to say,Clothing
+CUST-00832,Budget,2023-09-13,45.90,12,25-34,Non-binary,Clothing
+CUST-00833,Budget,2022-03-24,485.00,2,35-44,Prefer not to say,Toys
+CUST-00834,Premium,2023-04-15,1884.58,14,45-54,Male,Clothing
+CUST-00835,Luxury,2023-01-09,9964.03,1,18-24,Non-binary,Kitchen Appliances
+CUST-00836,Budget,2022-09-26,112.36,9,35-44,Female,Electronics
+CUST-00837,Budget,2022-04-15,174.50,16,25-34,Female,Kitchen Appliances
+CUST-00838,Mainstream,2023-08-29,239.31,19,65+,Prefer not to say,Kitchen Appliances
+CUST-00839,Budget,2023-11-18,34.80,10,18-24,Female,Clothing
+CUST-00840,Premium,2023-04-06,2809.48,19,55-64,Non-binary,Beauty Products
+CUST-00841,Mainstream,2022-12-14,1588.26,19,45-54,Male,Toys
+CUST-00842,Budget,2023-02-06,342.65,17,55-64,Male,Electronics
+CUST-00843,Budget,2023-06-28,202.40,14,25-34,Male,Beauty Products
+CUST-00844,Luxury,2023-08-29,3251.89,15,18-24,Male,Kitchen Appliances
+CUST-00845,Budget,2022-10-08,255.57,20,35-44,Male,Clothing
+CUST-00846,Premium,2022-11-29,4176.35,16,35-44,Female,Clothing
+CUST-00847,Budget,2023-03-17,316.42,12,18-24,Non-binary,Toys
+CUST-00848,Premium,2022-03-09,3150.21,9,55-64,Prefer not to say,Kitchen Appliances
+CUST-00849,Budget,2023-03-09,112.62,18,35-44,Male,Clothing
+CUST-00850,Luxury,2023-10-28,1030.60,17,35-44,Prefer not to say,Clothing
+CUST-00851,Mainstream,2023-11-25,77.39,5,35-44,Prefer not to say,Clothing
+CUST-00852,Budget,2023-12-07,8.60,1,35-44,Female,Electronics
+CUST-00853,Mainstream,2023-09-17,640.12,20,35-44,Non-binary,Kitchen Appliances
+CUST-00854,Budget,2022-01-15,445.31,13,65+,Prefer not to say,Kitchen Appliances
+CUST-00855,Mainstream,2022-04-23,462.39,20,65+,Non-binary,Beauty Products
+CUST-00856,Mainstream,2023-01-06,1541.09,3,55-64,Non-binary,Toys
+CUST-00857,Mainstream,2022-09-14,1515.59,7,65+,Prefer not to say,Clothing
+CUST-00858,Luxury,2022-10-06,11324.40,20,35-44,Male,Beauty Products
+CUST-00859,Premium,2022-05-04,3259.84,3,65+,Male,Beauty Products
+CUST-00860,Mainstream,2023-01-15,970.61,20,55-64,Female,Kitchen Appliances
+CUST-00861,Budget,2023-01-14,428.15,20,18-24,Prefer not to say,Toys
+CUST-00862,Premium,2022-05-20,2868.67,5,35-44,Female,Beauty Products
+CUST-00863,Budget,2022-11-20,463.45,3,18-24,Non-binary,Electronics
+CUST-00864,Mainstream,2022-03-04,659.10,16,65+,Male,Toys
+CUST-00865,Premium,2022-04-04,2044.94,14,45-54,Female,Clothing
+CUST-00866,Premium,2022-12-30,4394.00,16,35-44,Female,Kitchen Appliances
+CUST-00867,Premium,2022-01-28,2865.39,13,25-34,Non-binary,Kitchen Appliances
+CUST-00868,Budget,2023-06-25,201.52,2,18-24,Non-binary,Clothing
+CUST-00869,Mainstream,2023-12-10,107.69,12,45-54,Prefer not to say,Beauty Products
+CUST-00870,Budget,2023-02-17,203.45,2,55-64,Male,Clothing
+CUST-00871,Luxury,2022-05-28,13200.55,8,25-34,Prefer not to say,Electronics
+CUST-00872,Premium,2023-03-16,3490.23,7,65+,Non-binary,Beauty Products
+CUST-00873,Budget,2023-11-13,61.00,14,65+,Prefer not to say,Clothing
+CUST-00874,Luxury,2022-03-23,11236.92,8,65+,Male,Clothing
+CUST-00875,Luxury,2022-07-18,5709.51,7,45-54,Female,Kitchen Appliances
+CUST-00876,Budget,2023-03-01,431.45,16,35-44,Prefer not to say,Toys
+CUST-00877,Luxury,2022-11-16,10248.83,7,45-54,Female,Beauty Products
+CUST-00878,Premium,2022-09-06,2802.68,15,45-54,Female,Toys
+CUST-00879,Premium,2022-11-25,3666.49,6,65+,Prefer not to say,Beauty Products
+CUST-00880,Mainstream,2022-11-22,1107.11,12,65+,Non-binary,Toys
+CUST-00881,Premium,2022-02-04,3561.07,14,18-24,Non-binary,Electronics
+CUST-00882,Budget,2022-04-16,375.39,20,18-24,Male,Electronics
+CUST-00883,Luxury,2023-01-24,7209.65,12,35-44,Female,Kitchen Appliances
+CUST-00884,Mainstream,2023-11-24,191.79,5,35-44,Non-binary,Toys
+CUST-00885,Mainstream,2023-06-24,836.99,8,35-44,Female,Kitchen Appliances
+CUST-00886,Mainstream,2022-06-11,1452.62,17,55-64,Prefer not to say,Clothing
+CUST-00887,Budget,2022-05-28,233.14,9,18-24,Non-binary,Kitchen Appliances
+CUST-00888,Budget,2022-09-13,169.89,10,35-44,Prefer not to say,Beauty Products
+CUST-00889,Mainstream,2022-12-23,786.99,2,35-44,Non-binary,Kitchen Appliances
+CUST-00890,Budget,2023-03-27,148.72,5,18-24,Female,Kitchen Appliances
+CUST-00891,Mainstream,2023-01-07,1794.72,7,35-44,Male,Electronics
+CUST-00892,Mainstream,2022-05-29,1009.67,18,35-44,Prefer not to say,Beauty Products
+CUST-00893,Mainstream,2023-12-25,20.20,7,35-44,Non-binary,Kitchen Appliances
+CUST-00894,Budget,2023-04-18,290.42,11,55-64,Male,Toys
+CUST-00895,Budget,2022-06-24,469.39,9,45-54,Male,Kitchen Appliances
+CUST-00896,Luxury,2023-11-06,2370.00,6,55-64,Prefer not to say,Clothing
+CUST-00897,Budget,2022-01-21,256.92,16,18-24,Prefer not to say,Electronics
+CUST-00898,Premium,2023-07-06,1183.03,6,65+,Non-binary,Electronics
+CUST-00899,Premium,2023-09-21,1482.98,14,18-24,Male,Kitchen Appliances
+CUST-00900,Luxury,2023-12-29,82.67,7,35-44,Prefer not to say,Toys
+CUST-00901,Mainstream,2022-06-17,1816.17,6,25-34,Prefer not to say,Toys
+CUST-00902,Budget,2022-02-09,143.18,13,65+,Non-binary,Clothing
+CUST-00903,Mainstream,2023-12-13,41.71,8,25-34,Prefer not to say,Toys
+CUST-00904,Mainstream,2023-01-27,1733.22,13,55-64,Non-binary,Kitchen Appliances
+CUST-00905,Premium,2023-02-21,2194.68,20,25-34,Non-binary,Kitchen Appliances
+CUST-00906,Mainstream,2022-08-06,588.81,18,35-44,Female,Clothing
+CUST-00907,Mainstream,2023-12-24,40.70,11,35-44,Non-binary,Electronics
+CUST-00908,Mainstream,2023-03-08,963.21,7,55-64,Non-binary,Kitchen Appliances
+CUST-00909,Mainstream,2022-01-05,689.60,1,35-44,Non-binary,Clothing
+CUST-00910,Premium,2022-06-22,3819.85,1,25-34,Male,Electronics
+CUST-00911,Mainstream,2022-09-23,586.45,2,45-54,Male,Electronics
+CUST-00912,Mainstream,2023-01-29,1447.37,5,25-34,Non-binary,Clothing
+CUST-00913,Mainstream,2022-10-22,1574.63,3,45-54,Female,Clothing
+CUST-00914,Premium,2022-07-26,2289.24,4,65+,Non-binary,Kitchen Appliances
+CUST-00915,Mainstream,2022-06-03,1797.52,6,35-44,Male,Clothing
+CUST-00916,Luxury,2022-02-05,9264.69,4,18-24,Female,Electronics
+CUST-00917,Budget,2023-10-20,22.18,6,35-44,Non-binary,Toys
+CUST-00918,Premium,2023-02-05,4518.19,8,55-64,Non-binary,Clothing
+CUST-00919,Luxury,2022-06-07,11006.88,2,65+,Prefer not to say,Toys
+CUST-00920,Mainstream,2022-08-26,1031.58,14,18-24,Female,Kitchen Appliances
+CUST-00921,Budget,2023-06-25,193.14,6,45-54,Non-binary,Beauty Products
+CUST-00922,Mainstream,2022-12-21,951.69,2,35-44,Male,Electronics
+CUST-00923,Luxury,2023-11-25,984.11,11,35-44,Prefer not to say,Toys
+CUST-00924,Premium,2023-11-04,441.08,8,65+,Prefer not to say,Clothing
+CUST-00925,Mainstream,2022-06-09,626.73,14,35-44,Non-binary,Beauty Products
+CUST-00926,Budget,2023-03-30,201.91,12,55-64,Non-binary,Toys
+CUST-00927,Premium,2022-08-09,2996.95,14,35-44,Prefer not to say,Toys
+CUST-00928,Mainstream,2022-12-01,1522.74,8,55-64,Male,Kitchen Appliances
+CUST-00929,Premium,2022-09-19,3051.70,3,65+,Prefer not to say,Clothing
+CUST-00930,Luxury,2023-01-14,12814.02,5,18-24,Prefer not to say,Kitchen Appliances
+CUST-00931,Luxury,2022-08-21,9160.98,7,25-34,Male,Kitchen Appliances
+CUST-00932,Budget,2022-11-09,435.96,18,65+,Male,Electronics
+CUST-00933,Budget,2023-06-30,232.98,14,18-24,Male,Toys
+CUST-00934,Mainstream,2022-05-01,618.24,8,18-24,Non-binary,Toys
+CUST-00935,Budget,2023-05-23,267.98,2,25-34,Non-binary,Clothing
+CUST-00936,Mainstream,2022-08-23,1624.45,19,25-34,Male,Kitchen Appliances
+CUST-00937,Budget,2022-03-02,221.87,12,25-34,Female,Beauty Products
+CUST-00938,Premium,2022-12-27,3200.08,8,65+,Female,Kitchen Appliances
+CUST-00939,Mainstream,2023-03-22,1178.22,14,18-24,Male,Clothing
+CUST-00940,Luxury,2023-08-04,4909.41,10,35-44,Prefer not to say,Electronics
+CUST-00941,Luxury,2022-10-13,12654.98,4,45-54,Female,Electronics
+CUST-00942,Budget,2023-09-25,87.99,11,25-34,Prefer not to say,Beauty Products
+CUST-00943,Budget,2022-01-10,264.85,12,18-24,Male,Beauty Products
+CUST-00944,Mainstream,2023-03-03,966.75,18,25-34,Male,Beauty Products
+CUST-00945,Mainstream,2022-05-10,1626.13,6,25-34,Male,Electronics
+CUST-00946,Luxury,2022-07-10,6911.12,9,18-24,Prefer not to say,Electronics
+CUST-00947,Premium,2023-12-01,177.98,7,25-34,Female,Electronics
+CUST-00948,Mainstream,2022-03-21,1239.15,20,65+,Prefer not to say,Electronics
+CUST-00949,Budget,2022-11-07,503.41,12,45-54,Male,Clothing
+CUST-00950,Mainstream,2022-05-23,919.41,15,65+,Female,Toys
+CUST-00951,Mainstream,2023-04-20,1249.59,2,35-44,Male,Clothing
+CUST-00952,Mainstream,2022-12-27,1080.65,18,18-24,Female,Toys
+CUST-00953,Budget,2023-06-21,280.99,5,35-44,Non-binary,Electronics
+CUST-00954,Budget,2022-03-24,97.79,13,55-64,Prefer not to say,Electronics
+CUST-00955,Premium,2023-10-09,793.90,5,65+,Male,Beauty Products
+CUST-00956,Luxury,2023-03-05,10644.88,10,65+,Male,Electronics
+CUST-00957,Budget,2023-01-27,411.92,5,18-24,Prefer not to say,Kitchen Appliances
+CUST-00958,Mainstream,2022-08-22,1414.76,16,65+,Male,Beauty Products
+CUST-00959,Mainstream,2022-11-05,2112.26,12,25-34,Prefer not to say,Kitchen Appliances
+CUST-00960,Luxury,2023-09-07,2173.64,18,65+,Female,Electronics
+CUST-00961,Budget,2022-11-30,323.68,13,65+,Prefer not to say,Electronics
+CUST-00962,Mainstream,2023-08-30,431.45,11,18-24,Non-binary,Kitchen Appliances
+CUST-00963,Budget,2022-10-04,233.73,10,18-24,Non-binary,Clothing
+CUST-00964,Premium,2023-01-09,2255.46,20,55-64,Female,Clothing
+CUST-00965,Mainstream,2023-07-21,746.25,17,18-24,Non-binary,Kitchen Appliances
+CUST-00966,Mainstream,2023-11-03,259.71,1,18-24,Male,Toys
+CUST-00967,Mainstream,2022-04-16,1711.95,8,25-34,Prefer not to say,Kitchen Appliances
+CUST-00968,Mainstream,2023-05-24,606.89,4,35-44,Female,Clothing
+CUST-00969,Premium,2022-03-04,2753.33,19,55-64,Prefer not to say,Toys
+CUST-00970,Mainstream,2022-02-19,1170.83,20,35-44,Male,Electronics
+CUST-00971,Luxury,2022-08-15,4586.44,13,25-34,Prefer not to say,Toys
+CUST-00972,Mainstream,2022-01-27,2304.54,5,65+,Non-binary,Clothing
+CUST-00973,Mainstream,2023-08-28,194.41,8,35-44,Male,Toys
+CUST-00974,Budget,2022-07-09,464.26,13,55-64,Female,Toys
+CUST-00975,Luxury,2023-04-30,5936.91,13,65+,Male,Beauty Products
+CUST-00976,Premium,2022-04-29,4970.20,16,35-44,Female,Electronics
+CUST-00977,Mainstream,2023-01-11,703.01,6,45-54,Prefer not to say,Beauty Products
+CUST-00978,Mainstream,2023-02-14,864.81,10,45-54,Prefer not to say,Clothing
+CUST-00979,Budget,2022-07-21,217.52,2,35-44,Non-binary,Clothing
+CUST-00980,Mainstream,2023-08-24,427.58,14,65+,Prefer not to say,Toys
+CUST-00981,Mainstream,2023-12-25,14.24,11,55-64,Male,Kitchen Appliances
+CUST-00982,Mainstream,2023-12-27,14.27,3,45-54,Female,Beauty Products
+CUST-00983,Mainstream,2023-08-28,341.50,15,25-34,Female,Kitchen Appliances
+CUST-00984,Mainstream,2023-03-05,996.31,17,18-24,Non-binary,Clothing
+CUST-00985,Mainstream,2022-06-21,1630.55,16,18-24,Male,Kitchen Appliances
+CUST-00986,Premium,2022-06-09,2353.81,6,18-24,Non-binary,Beauty Products
+CUST-00987,Mainstream,2023-01-22,1505.80,6,45-54,Female,Beauty Products
+CUST-00988,Mainstream,2023-04-14,418.53,16,35-44,Non-binary,Clothing
+CUST-00989,Budget,2023-09-02,56.16,11,45-54,Male,Toys
+CUST-00990,Luxury,2022-08-23,13168.52,9,45-54,Male,Beauty Products
+CUST-00991,Mainstream,2023-01-15,1623.01,19,35-44,Female,Kitchen Appliances
+CUST-00992,Mainstream,2022-10-07,1536.38,10,18-24,Prefer not to say,Kitchen Appliances
+CUST-00993,Budget,2023-07-01,259.17,10,25-34,Female,Kitchen Appliances
+CUST-00994,Premium,2022-06-26,4149.38,6,25-34,Non-binary,Kitchen Appliances
+CUST-00995,Mainstream,2023-07-07,663.77,7,35-44,Male,Beauty Products
+CUST-00996,Premium,2022-01-03,2654.84,3,18-24,Male,Kitchen Appliances
+CUST-00997,Budget,2023-06-23,76.48,12,55-64,Male,Beauty Products
+CUST-00998,Mainstream,2022-04-28,895.03,3,65+,Female,Electronics
+CUST-00999,Budget,2022-06-23,306.26,11,25-34,Male,Toys
+CUST-01000,Mainstream,2022-06-19,609.38,7,65+,Non-binary,Toys
