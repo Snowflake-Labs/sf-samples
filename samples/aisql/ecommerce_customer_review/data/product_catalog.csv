@@ -1,0 +1,201 @@
+PRODUCT_ID,PRODUCT_NAME,CATEGORY,SUBCATEGORY,MANUFACTURER,PRICE,RELEASE_DATE,REVIEW_COUNT
+PROD-00001,ImagineIt Essential Action Figures,Toys,Action Figures,ImagineIt,27.17,2023-09-22,30
+PROD-00002,KidWonders Standard Board Games,Toys,Board Games,KidWonders,14.05,2023-12-11,23
+PROD-00003,StyleWave Modern Men's,Clothing,Men's,StyleWave,33.96,2023-12-17,24
+PROD-00004,GlowUp Essential Haircare,Beauty Products,Haircare,GlowUp,32.38,2022-07-20,20
+PROD-00005,HomeHelper Professional Mixers,Kitchen Appliances,Mixers,HomeHelper,243.13,2022-03-05,28
+PROD-00006,CookCraft Essential Coffee Makers,Kitchen Appliances,Coffee Makers,CookCraft,159.45,2022-04-04,28
+PROD-00007,GlowUp Advanced Skincare,Beauty Products,Skincare,GlowUp,18.94,2023-02-04,23
+PROD-00008,BeautyBlend Essential Fragrances,Beauty Products,Fragrances,BeautyBlend,38.68,2023-06-12,25
+PROD-00009,BrightMinds Advanced Educational,Toys,Educational,BrightMinds,28.20,2022-09-29,29
+PROD-00010,HomeHelper Standard Toasters,Kitchen Appliances,Toasters,HomeHelper,155.63,2023-03-06,22
+PROD-00011,PureGlow Deluxe Oral Care,Beauty Products,Oral Care,PureGlow,69.53,2023-01-19,21
+PROD-00012,LuxeBeauty Deluxe Haircare,Beauty Products,Haircare,LuxeBeauty,27.27,2022-11-03,31
+PROD-00013,HomeHelper Standard Toasters,Kitchen Appliances,Toasters,HomeHelper,314.10,2023-07-18,28
+PROD-00014,KidWonders Standard Building Sets,Toys,Building Sets,KidWonders,52.51,2022-12-28,23
+PROD-00015,BrightMinds Essential Board Games,Toys,Board Games,BrightMinds,37.07,2022-04-29,19
+PROD-00016,FunFactory Deluxe Outdoor,Toys,Outdoor,FunFactory,48.46,2023-09-07,21
+PROD-00017,CulinaryTech Standard Toasters,Kitchen Appliances,Toasters,CulinaryTech,177.97,2023-12-20,28
+PROD-00018,DigitalDream Tablets Ultra Alpha8,Electronics,Tablets,DigitalDream,994.63,2022-06-08,18
+PROD-00019,ChefChoice Essential Air Fryers,Kitchen Appliances,Air Fryers,ChefChoice,102.51,2023-05-16,26
+PROD-00020,PlayMaster Deluxe Board Games,Toys,Board Games,PlayMaster,24.45,2022-02-09,26
+PROD-00021,FashionFusion Relaxed Women's,Clothing,Women's,FashionFusion,34.14,2022-11-08,34
+PROD-00022,StyleWave Classic Accessories,Clothing,Accessories,StyleWave,101.37,2023-08-30,28
+PROD-00023,KitchenKing Standard Mixers,Kitchen Appliances,Mixers,KitchenKing,184.33,2022-11-19,18
+PROD-00024,ImagineIt Standard Board Games,Toys,Board Games,ImagineIt,52.44,2023-10-15,29
+PROD-00025,ChefChoice Deluxe Air Fryers,Kitchen Appliances,Air Fryers,ChefChoice,139.24,2022-07-20,16
+PROD-00026,ComfortBlend Slim Accessories,Clothing,Accessories,ComfortBlend,20.14,2022-01-18,26
+PROD-00027,LuxeBeauty Professional Fragrances,Beauty Products,Fragrances,LuxeBeauty,24.35,2022-03-24,22
+PROD-00028,ComfortBlend Classic Men's,Clothing,Men's,ComfortBlend,77.41,2023-04-14,25
+PROD-00029,GadgetGuru Laptops Premium X11,Electronics,Laptops,GadgetGuru,433.41,2023-04-30,23
+PROD-00030,GlowUp Standard Makeup,Beauty Products,Makeup,GlowUp,24.57,2023-02-20,24
+PROD-00031,KitchenKing Advanced Toasters,Kitchen Appliances,Toasters,KitchenKing,250.74,2023-06-14,27
+PROD-00032,GadgetGuru Headphones Ultra Neo12,Electronics,Headphones,GadgetGuru,814.81,2023-01-11,24
+PROD-00033,FashionFusion Modern Women's,Clothing,Women's,FashionFusion,52.02,2022-09-10,26
+PROD-00034,CookCraft Essential Air Fryers,Kitchen Appliances,Air Fryers,CookCraft,130.81,2023-07-27,17
+PROD-00035,LuxeBeauty Professional Makeup,Beauty Products,Makeup,LuxeBeauty,54.65,2022-05-10,22
+PROD-00036,FunFactory Professional Outdoor,Toys,Outdoor,FunFactory,22.93,2022-10-02,29
+PROD-00037,CookCraft Essential Mixers,Kitchen Appliances,Mixers,CookCraft,245.30,2023-11-21,17
+PROD-00038,InnovateX Headphones Max Z9,Electronics,Headphones,InnovateX,500.84,2022-01-13,37
+PROD-00039,BrightMinds Deluxe Outdoor,Toys,Outdoor,BrightMinds,38.65,2023-10-29,30
+PROD-00040,PureGlow Professional Oral Care,Beauty Products,Oral Care,PureGlow,32.55,2022-06-27,23
+PROD-00041,HomeHelper Essential Mixers,Kitchen Appliances,Mixers,HomeHelper,258.89,2022-09-02,27
+PROD-00042,ChefChoice Standard Mixers,Kitchen Appliances,Mixers,ChefChoice,133.10,2022-08-23,32
+PROD-00043,ImagineIt Essential Outdoor,Toys,Outdoor,ImagineIt,57.10,2022-04-24,24
+PROD-00044,GadgetGuru Laptops Ultra Prime15,Electronics,Laptops,GadgetGuru,1159.17,2022-02-15,29
+PROD-00045,InnovateX Laptops Ultra Neo15,Electronics,Laptops,InnovateX,722.75,2023-12-24,30
+PROD-00046,NaturalEssence Standard Makeup,Beauty Products,Makeup,NaturalEssence,76.30,2022-03-03,24
+PROD-00047,BrightMinds Advanced Outdoor,Toys,Outdoor,BrightMinds,23.70,2023-08-16,24
+PROD-00048,ChefChoice Deluxe Mixers,Kitchen Appliances,Mixers,ChefChoice,128.65,2022-03-12,30
+PROD-00049,UrbanThreads Classic Accessories,Clothing,Accessories,UrbanThreads,69.31,2023-03-05,29
+PROD-00050,PureGlow Professional Oral Care,Beauty Products,Oral Care,PureGlow,17.36,2022-10-02,30
+PROD-00051,DigitalDream Smartphones Elite Z11,Electronics,Smartphones,DigitalDream,251.20,2023-06-24,23
+PROD-00052,GadgetGuru Laptops Pro Prime13,Electronics,Laptops,GadgetGuru,322.15,2023-10-10,27
+PROD-00053,GadgetGuru Headphones Pro X4,Electronics,Headphones,GadgetGuru,1140.33,2022-10-24,28
+PROD-00054,CulinaryTech Professional Coffee Makers,Kitchen Appliances,Coffee Makers,CulinaryTech,271.48,2023-06-20,29
+PROD-00055,ComfortBlend Relaxed Children's,Clothing,Children's,ComfortBlend,22.07,2023-08-16,25
+PROD-00056,StyleWave Relaxed Men's,Clothing,Men's,StyleWave,49.42,2023-07-03,22
+PROD-00057,PlayMaster Standard Board Games,Toys,Board Games,PlayMaster,36.05,2023-04-02,31
+PROD-00058,GadgetGuru Cameras Pro X6,Electronics,Cameras,GadgetGuru,1140.89,2023-09-08,19
+PROD-00059,BeautyBlend Essential Makeup,Beauty Products,Makeup,BeautyBlend,64.54,2022-05-12,27
+PROD-00060,DigitalDream Laptops Ultra Prime2,Electronics,Laptops,DigitalDream,221.86,2023-11-09,22
+PROD-00061,BeautyBlend Essential Makeup,Beauty Products,Makeup,BeautyBlend,20.47,2023-11-02,23
+PROD-00062,ChefChoice Deluxe Toasters,Kitchen Appliances,Toasters,ChefChoice,241.16,2023-08-16,24
+PROD-00063,HomeHelper Professional Coffee Makers,Kitchen Appliances,Coffee Makers,HomeHelper,267.26,2023-10-03,29
+PROD-00064,BeautyBlend Advanced Fragrances,Beauty Products,Fragrances,BeautyBlend,28.12,2023-11-04,23
+PROD-00065,ComfortBlend Athletic Men's,Clothing,Men's,ComfortBlend,100.72,2023-05-08,23
+PROD-00066,ThreadWorks Athletic Sportswear,Clothing,Sportswear,ThreadWorks,44.36,2023-12-30,21
+PROD-00067,KidWonders Standard Outdoor,Toys,Outdoor,KidWonders,20.94,2022-04-08,28
+PROD-00068,KidWonders Standard Outdoor,Toys,Outdoor,KidWonders,56.81,2022-07-13,21
+PROD-00069,FunFactory Advanced Action Figures,Toys,Action Figures,FunFactory,24.38,2022-01-19,22
+PROD-00070,FashionFusion Slim Accessories,Clothing,Accessories,FashionFusion,23.63,2023-08-10,23
+PROD-00071,NaturalEssence Essential Fragrances,Beauty Products,Fragrances,NaturalEssence,28.07,2022-01-13,20
+PROD-00072,ElectroMax Smartphones Elite Z7,Electronics,Smartphones,ElectroMax,1159.44,2022-12-28,11
+PROD-00073,UrbanThreads Athletic Children's,Clothing,Children's,UrbanThreads,32.25,2022-08-31,28
+PROD-00074,PlayMaster Standard Action Figures,Toys,Action Figures,PlayMaster,19.12,2023-07-13,26
+PROD-00075,UrbanThreads Modern Accessories,Clothing,Accessories,UrbanThreads,99.86,2022-03-12,22
+PROD-00076,BeautyBlend Essential Makeup,Beauty Products,Makeup,BeautyBlend,80.27,2023-09-30,21
+PROD-00077,InnovateX Laptops Ultra Z8,Electronics,Laptops,InnovateX,1202.67,2023-09-18,29
+PROD-00078,ChefChoice Professional Blenders,Kitchen Appliances,Blenders,ChefChoice,157.84,2022-05-04,23
+PROD-00079,InnovateX Smartphones Ultra Alpha3,Electronics,Smartphones,InnovateX,356.03,2023-04-01,17
+PROD-00080,BeautyBlend Deluxe Makeup,Beauty Products,Makeup,BeautyBlend,32.21,2022-09-06,24
+PROD-00081,BrightMinds Professional Outdoor,Toys,Outdoor,BrightMinds,52.24,2023-09-03,18
+PROD-00082,HomeHelper Advanced Toasters,Kitchen Appliances,Toasters,HomeHelper,235.37,2023-03-24,23
+PROD-00083,HomeHelper Essential Toasters,Kitchen Appliances,Toasters,HomeHelper,230.10,2022-02-18,31
+PROD-00084,DigitalDream Cameras Ultra X7,Electronics,Cameras,DigitalDream,956.68,2022-04-13,32
+PROD-00085,BeautyBlend Advanced Oral Care,Beauty Products,Oral Care,BeautyBlend,54.53,2023-02-13,22
+PROD-00086,ElectroMax Headphones Elite Alpha5,Electronics,Headphones,ElectroMax,850.37,2022-01-16,20
+PROD-00087,LuxeBeauty Advanced Skincare,Beauty Products,Skincare,LuxeBeauty,29.86,2022-07-16,18
+PROD-00088,PureGlow Standard Oral Care,Beauty Products,Oral Care,PureGlow,20.11,2023-02-01,29
+PROD-00089,GlowUp Deluxe Haircare,Beauty Products,Haircare,GlowUp,43.47,2022-09-06,22
+PROD-00090,NaturalEssence Advanced Oral Care,Beauty Products,Oral Care,NaturalEssence,25.98,2022-12-18,23
+PROD-00091,PlayMaster Deluxe Board Games,Toys,Board Games,PlayMaster,13.48,2023-06-07,28
+PROD-00092,ChefChoice Essential Air Fryers,Kitchen Appliances,Air Fryers,ChefChoice,86.31,2022-01-08,33
+PROD-00093,ElectroMax Smartphones Ultra Prime14,Electronics,Smartphones,ElectroMax,855.32,2022-08-25,25
+PROD-00094,GlowUp Professional Oral Care,Beauty Products,Oral Care,GlowUp,83.96,2023-10-03,21
+PROD-00095,ElectroMax Cameras Premium Alpha14,Electronics,Cameras,ElectroMax,903.53,2022-12-04,18
+PROD-00096,PureGlow Standard Fragrances,Beauty Products,Fragrances,PureGlow,72.14,2022-09-17,27
+PROD-00097,ChefChoice Advanced Coffee Makers,Kitchen Appliances,Coffee Makers,ChefChoice,199.45,2023-03-28,31
+PROD-00098,ChefChoice Advanced Coffee Makers,Kitchen Appliances,Coffee Makers,ChefChoice,65.02,2022-11-19,30
+PROD-00099,ThreadWorks Classic Accessories,Clothing,Accessories,ThreadWorks,29.79,2023-12-12,23
+PROD-00100,ElectroMax Laptops Pro Prime9,Electronics,Laptops,ElectroMax,573.76,2023-07-02,17
+PROD-00101,KitchenKing Essential Mixers,Kitchen Appliances,Mixers,KitchenKing,285.19,2022-04-01,22
+PROD-00102,PlayMaster Deluxe Building Sets,Toys,Building Sets,PlayMaster,56.16,2023-06-01,22
+PROD-00103,DigitalDream Headphones Premium Z8,Electronics,Headphones,DigitalDream,434.33,2023-03-21,36
+PROD-00104,FashionFusion Relaxed Accessories,Clothing,Accessories,FashionFusion,96.10,2023-07-24,16
+PROD-00105,GlowUp Deluxe Oral Care,Beauty Products,Oral Care,GlowUp,26.77,2023-05-05,22
+PROD-00106,ThreadWorks Relaxed Women's,Clothing,Women's,ThreadWorks,27.36,2022-03-21,24
+PROD-00107,HomeHelper Advanced Coffee Makers,Kitchen Appliances,Coffee Makers,HomeHelper,275.73,2022-04-12,28
+PROD-00108,ElectroMax Headphones Max Neo5,Electronics,Headphones,ElectroMax,243.71,2022-07-12,31
+PROD-00109,InnovateX Laptops Elite Z4,Electronics,Laptops,InnovateX,1127.19,2023-03-11,29
+PROD-00110,FashionFusion Classic Sportswear,Clothing,Sportswear,FashionFusion,82.13,2023-07-03,27
+PROD-00111,GlowUp Essential Fragrances,Beauty Products,Fragrances,GlowUp,41.63,2022-02-07,30
+PROD-00112,UrbanThreads Relaxed Women's,Clothing,Women's,UrbanThreads,33.26,2023-09-08,15
+PROD-00113,BrightMinds Advanced Action Figures,Toys,Action Figures,BrightMinds,61.82,2022-09-12,21
+PROD-00114,KitchenKing Standard Toasters,Kitchen Appliances,Toasters,KitchenKing,143.19,2023-04-03,25
+PROD-00115,InnovateX Laptops Premium Prime8,Electronics,Laptops,InnovateX,649.47,2022-05-11,24
+PROD-00116,FunFactory Deluxe Outdoor,Toys,Outdoor,FunFactory,10.57,2022-12-15,27
+PROD-00117,TechPro Smartphones Pro Alpha1,Electronics,Smartphones,TechPro,1217.79,2023-04-04,29
+PROD-00118,FashionFusion Athletic Men's,Clothing,Men's,FashionFusion,76.40,2022-07-25,34
+PROD-00119,HomeHelper Deluxe Coffee Makers,Kitchen Appliances,Coffee Makers,HomeHelper,82.71,2023-07-03,27
+PROD-00120,GlowUp Advanced Fragrances,Beauty Products,Fragrances,GlowUp,41.85,2023-02-05,24
+PROD-00121,UrbanThreads Modern Sportswear,Clothing,Sportswear,UrbanThreads,85.36,2023-03-22,16
+PROD-00122,GlowUp Deluxe Haircare,Beauty Products,Haircare,GlowUp,68.78,2022-10-03,31
+PROD-00123,HomeHelper Essential Coffee Makers,Kitchen Appliances,Coffee Makers,HomeHelper,37.19,2022-07-17,30
+PROD-00124,KidWonders Advanced Board Games,Toys,Board Games,KidWonders,39.83,2022-11-19,21
+PROD-00125,FashionFusion Slim Women's,Clothing,Women's,FashionFusion,21.35,2023-04-19,21
+PROD-00126,BrightMinds Deluxe Building Sets,Toys,Building Sets,BrightMinds,46.74,2022-03-31,22
+PROD-00127,FashionFusion Athletic Men's,Clothing,Men's,FashionFusion,101.90,2023-03-24,26
+PROD-00128,ThreadWorks Modern Children's,Clothing,Children's,ThreadWorks,28.60,2022-05-06,24
+PROD-00129,DigitalDream Tablets Max X9,Electronics,Tablets,DigitalDream,309.98,2023-10-14,36
+PROD-00130,BrightMinds Essential Educational,Toys,Educational,BrightMinds,37.71,2023-04-01,21
+PROD-00131,TechPro Headphones Pro Alpha13,Electronics,Headphones,TechPro,606.41,2023-07-31,36
+PROD-00132,KitchenKing Standard Air Fryers,Kitchen Appliances,Air Fryers,KitchenKing,251.53,2022-05-20,25
+PROD-00133,ElectroMax Tablets Premium Alpha7,Electronics,Tablets,ElectroMax,981.98,2023-06-05,30
+PROD-00134,ElectroMax Cameras Pro Prime14,Electronics,Cameras,ElectroMax,404.84,2022-08-09,33
+PROD-00135,CookCraft Professional Toasters,Kitchen Appliances,Toasters,CookCraft,198.01,2023-12-17,25
+PROD-00136,BeautyBlend Essential Fragrances,Beauty Products,Fragrances,BeautyBlend,46.93,2022-12-13,24
+PROD-00137,ChefChoice Deluxe Air Fryers,Kitchen Appliances,Air Fryers,ChefChoice,90.02,2023-03-03,36
+PROD-00138,BrightMinds Professional Outdoor,Toys,Outdoor,BrightMinds,28.41,2023-12-25,27
+PROD-00139,ElectroMax Smartphones Pro X9,Electronics,Smartphones,ElectroMax,897.65,2022-05-06,25
+PROD-00140,BrightMinds Advanced Board Games,Toys,Board Games,BrightMinds,27.81,2022-09-09,28
+PROD-00141,ChefChoice Professional Mixers,Kitchen Appliances,Mixers,ChefChoice,143.20,2023-10-01,31
+PROD-00142,PureGlow Professional Skincare,Beauty Products,Skincare,PureGlow,33.72,2022-06-27,24
+PROD-00143,ComfortBlend Classic Women's,Clothing,Women's,ComfortBlend,69.44,2022-07-25,21
+PROD-00144,DigitalDream Laptops Pro X1,Electronics,Laptops,DigitalDream,332.22,2023-04-21,21
+PROD-00145,StyleWave Athletic Sportswear,Clothing,Sportswear,StyleWave,67.44,2022-05-30,21
+PROD-00146,BrightMinds Standard Board Games,Toys,Board Games,BrightMinds,56.67,2023-09-10,22
+PROD-00147,PureGlow Standard Skincare,Beauty Products,Skincare,PureGlow,51.09,2023-05-07,23
+PROD-00148,PlayMaster Essential Educational,Toys,Educational,PlayMaster,44.13,2022-01-28,32
+PROD-00149,ComfortBlend Modern Sportswear,Clothing,Sportswear,ComfortBlend,40.52,2022-03-28,32
+PROD-00150,GlowUp Standard Skincare,Beauty Products,Skincare,GlowUp,54.47,2023-05-12,22
+PROD-00151,CulinaryTech Deluxe Air Fryers,Kitchen Appliances,Air Fryers,CulinaryTech,252.38,2022-01-18,26
+PROD-00152,ChefChoice Deluxe Coffee Makers,Kitchen Appliances,Coffee Makers,ChefChoice,58.14,2022-12-31,22
+PROD-00153,GadgetGuru Tablets Ultra Neo12,Electronics,Tablets,GadgetGuru,403.83,2022-01-15,20
+PROD-00154,PlayMaster Advanced Educational,Toys,Educational,PlayMaster,45.27,2022-08-10,28
+PROD-00155,LuxeBeauty Deluxe Fragrances,Beauty Products,Fragrances,LuxeBeauty,27.69,2023-10-06,25
+PROD-00156,TechPro Smartphones Ultra X12,Electronics,Smartphones,TechPro,1083.25,2022-05-10,30
+PROD-00157,BeautyBlend Standard Oral Care,Beauty Products,Oral Care,BeautyBlend,56.37,2023-02-10,25
+PROD-00158,GadgetGuru Smartphones Max Neo6,Electronics,Smartphones,GadgetGuru,763.88,2022-11-23,20
+PROD-00159,PureGlow Professional Haircare,Beauty Products,Haircare,PureGlow,27.04,2022-06-25,32
+PROD-00160,ElectroMax Headphones Elite Alpha14,Electronics,Headphones,ElectroMax,264.21,2023-06-24,33
+PROD-00161,KitchenKing Essential Toasters,Kitchen Appliances,Toasters,KitchenKing,60.14,2023-02-28,28
+PROD-00162,CulinaryTech Professional Coffee Makers,Kitchen Appliances,Coffee Makers,CulinaryTech,268.59,2023-11-12,21
+PROD-00163,FunFactory Advanced Building Sets,Toys,Building Sets,FunFactory,35.82,2022-10-04,28
+PROD-00164,GadgetGuru Headphones Premium Neo1,Electronics,Headphones,GadgetGuru,226.86,2022-11-30,36
+PROD-00165,PlayMaster Essential Educational,Toys,Educational,PlayMaster,14.50,2023-07-15,23
+PROD-00166,ImagineIt Standard Building Sets,Toys,Building Sets,ImagineIt,24.93,2023-04-30,33
+PROD-00167,PlayMaster Deluxe Outdoor,Toys,Outdoor,PlayMaster,58.14,2023-11-13,23
+PROD-00168,InnovateX Tablets Ultra X14,Electronics,Tablets,InnovateX,488.80,2023-04-12,20
+PROD-00169,ChefChoice Standard Air Fryers,Kitchen Appliances,Air Fryers,ChefChoice,274.24,2023-12-24,20
+PROD-00170,CulinaryTech Essential Air Fryers,Kitchen Appliances,Air Fryers,CulinaryTech,44.68,2023-10-21,21
+PROD-00171,BrightMinds Professional Outdoor,Toys,Outdoor,BrightMinds,16.32,2022-04-21,26
+PROD-00172,ElectroMax Headphones Pro Neo15,Electronics,Headphones,ElectroMax,975.82,2023-01-31,32
+PROD-00173,LuxeBeauty Standard Oral Care,Beauty Products,Oral Care,LuxeBeauty,35.92,2022-02-19,28
+PROD-00174,GlowUp Essential Skincare,Beauty Products,Skincare,GlowUp,31.14,2022-06-20,28
+PROD-00175,KidWonders Advanced Outdoor,Toys,Outdoor,KidWonders,31.09,2022-06-03,23
+PROD-00176,BeautyBlend Deluxe Haircare,Beauty Products,Haircare,BeautyBlend,55.12,2022-12-28,26
+PROD-00177,ImagineIt Essential Board Games,Toys,Board Games,ImagineIt,24.43,2022-04-09,27
+PROD-00178,PureGlow Essential Skincare,Beauty Products,Skincare,PureGlow,43.96,2022-07-20,27
+PROD-00179,StyleWave Slim Accessories,Clothing,Accessories,StyleWave,110.50,2023-03-30,19
+PROD-00180,NaturalEssence Advanced Fragrances,Beauty Products,Fragrances,NaturalEssence,73.51,2023-02-15,19
+PROD-00181,ThreadWorks Athletic Children's,Clothing,Children's,ThreadWorks,39.16,2022-02-13,22
+PROD-00182,PureGlow Professional Oral Care,Beauty Products,Oral Care,PureGlow,51.57,2022-12-26,20
+PROD-00183,ImagineIt Professional Board Games,Toys,Board Games,ImagineIt,30.57,2023-11-20,17
+PROD-00184,BrightMinds Advanced Action Figures,Toys,Action Figures,BrightMinds,25.11,2022-12-23,17
+PROD-00185,StyleWave Relaxed Children's,Clothing,Children's,StyleWave,79.95,2023-10-05,16
+PROD-00186,DigitalDream Cameras Elite Alpha12,Electronics,Cameras,DigitalDream,443.51,2023-09-03,26
+PROD-00187,ComfortBlend Athletic Women's,Clothing,Women's,ComfortBlend,113.21,2023-02-21,25
+PROD-00188,TechPro Tablets Ultra Alpha2,Electronics,Tablets,TechPro,733.51,2022-05-12,23
+PROD-00189,FashionFusion Relaxed Women's,Clothing,Women's,FashionFusion,87.94,2022-10-25,22
+PROD-00190,ElectroMax Cameras Ultra Neo11,Electronics,Cameras,ElectroMax,217.33,2022-01-30,17
+PROD-00191,PureGlow Professional Makeup,Beauty Products,Makeup,PureGlow,16.03,2023-04-11,35
+PROD-00192,UrbanThreads Athletic Men's,Clothing,Men's,UrbanThreads,36.37,2022-03-13,20
+PROD-00193,GadgetGuru Laptops Max Z2,Electronics,Laptops,GadgetGuru,512.86,2023-01-24,18
+PROD-00194,FashionFusion Athletic Sportswear,Clothing,Sportswear,FashionFusion,33.83,2022-12-19,23
+PROD-00195,CulinaryTech Professional Blenders,Kitchen Appliances,Blenders,CulinaryTech,170.45,2023-02-25,19
+PROD-00196,CulinaryTech Deluxe Toasters,Kitchen Appliances,Toasters,CulinaryTech,40.30,2023-04-18,33
+PROD-00197,ElectroMax Headphones Elite Z8,Electronics,Headphones,ElectroMax,721.19,2022-07-08,28
+PROD-00198,ElectroMax Tablets Max Prime5,Electronics,Tablets,ElectroMax,547.94,2022-07-23,28
+PROD-00199,ElectroMax Cameras Premium X13,Electronics,Cameras,ElectroMax,830.70,2023-08-15,26
+PROD-00200,UrbanThreads Relaxed Children's,Clothing,Children's,UrbanThreads,60.67,2023-08-27,26
