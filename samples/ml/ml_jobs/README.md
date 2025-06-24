@@ -136,7 +136,6 @@ ML Jobs are automatically configured with a Snowpark Session in the job context.
 Snowpark Sessions can be passed into an ML Job as an argument using the `snowflake.ml.jobs.remote` decorator.
 > Note: The session argument must either be required or default to None;  Passing a default session instance (e.g., `session=session) is not supported.
 
-
 ```python
 from snowflake.ml.jobs import remote
 from snowflake import snowpark
@@ -206,12 +205,10 @@ if __name__ == "__main__":
 ```python
 from snowflake.ml.jobs import submit_file, submit_directory, submit_from_stage
 
-compute_pool = "MY_COMPUTE_POOL"
-
 # Upload and run a single script
 job = submit_file(
     "/path/to/repo/my_script.py",
-    compute_pool,
+    "MY_COMPUTE_POOL",
     stage_name="payload_stage",
 )
 
