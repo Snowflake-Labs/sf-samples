@@ -115,7 +115,7 @@ job2 = submit_directory(
 )
 
 # Submit a job from an existing stage and run its contained entrypoint.
-# This is  useful if your code is stored in a Snowflake stage or Git repository.
+# This is useful if your code is stored in a Snowflake stage or Git repository.
 job3 = submit_from_stage(
     "@test_stage/path/to/repo/",
     compute_pool,
@@ -141,8 +141,7 @@ Snowpark Sessions can be passed into an ML Job as an argument using the `snowfla
 from snowflake.ml.jobs import remote
 from snowflake import snowpark
 
-compute_pool = "MY_COMPUTE_POOL"
-@remote(compute_pool, stage_name="payload_stage")
+@remote("MY_COMPUTE_POOL", stage_name="payload_stage")
 def hello_world(session: snowpark.Session, name: str = "world"):
     # We recommend importing any needed modules *inside* the function definition
     from datetime import datetime
@@ -178,9 +177,8 @@ def my_ml_job():
 You can retrieve the job execution result using the `MLJob.result()` API.
 The API returns the payload's return value or, if execution failed, raises an exception.
 
-> NOTE: File-based jobs may store the return value in `__return__`, otherwise,
-  they will return `None` on success. Exception handling is supported
-  for all types of jobs.
+> NOTE: File-based jobs may use a special `__return__` variable to return the execution result, 
+otherwise the `.result()` will be `None` on success. See [File-based Dispatch](#file-based-dispatch) for more details.
 
 #### Function Dispatch
 
@@ -227,8 +225,8 @@ The API returns a pandas DataFrames containing name, status, message, database_n
 or, if execution failed, raises an exception.
 
 ```python
-from snowflake.ml import jobs
-jobs.list_jobs()
+from snowflake.ml.jobs import list_jobs
+list_jobs()
 # columns: name, status, message, database_name, schema_name, owner, compute_pool, target_instances, created_time, completed_time
 ```
 
@@ -240,8 +238,7 @@ You can cancel an active job using the `job.cancel()` API
 from snowflake.ml.jobs import remote
 from snowflake import snowpark
 
-compute_pool = "MY_COMPUTE_POOL"
-@remote(compute_pool, stage_name="payload_stage")
+@remote("MY_COMPUTE_POOL", stage_name="payload_stage")
 def hello_world(name: str = "world"):
     # We recommend importing any needed modules *inside* the function definition
     from datetime import datetime
