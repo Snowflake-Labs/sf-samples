@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/sfc-gh-wahuang/cortexanalystpublicdemo/cortexanalystapp"
+	"github.com/Snowflake-Labs/sf-samples/samples/cortex-analyst/cortex-analyst-public-demo/cortexanalystapp"
 )
 
 func main() {
