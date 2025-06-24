@@ -1,4 +1,4 @@
-module github.com/sfc-gh-wahuang/cortexanalystpublicdemo
+module github.com/Snowflake-Labs/sf-samples/samples/cortex-analyst/cortex-analyst-public-demo
 
 go 1.24.3
 
