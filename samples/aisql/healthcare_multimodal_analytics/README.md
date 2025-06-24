@@ -29,7 +29,7 @@ The solution leverages several Snowflake Cortex AI-SQL functions:
 1. **Medical Image Routing**: Automatically identify and route images to appropriate specialists
 2. **Call Center Optimization**: Classify patient calls to direct them to the right department
 3. **Population Health Insights**: Generate aggregated health insights for physician intervention
-4. **Motor Vehicle Accident Identification**: Filter medical records for specific health events
+4. **Accident Identification**: Filter medical records for specific health events
 5. **Clinical Documentation Analysis**: Extract structured data from unstructured medical notes
 
 ## Usage

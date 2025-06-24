@@ -33,12 +33,6 @@ Each use case folder contains:
 - Supporting files and sample data where applicable
 - Explanations of business value and technical implementation
 
-## Requirements
-
-- Snowflake account with access to Cortex AI functions
-- Python with required packages (specified in each use case)
-- Basic knowledge of SQL and data analysis concepts
-
 ## Additional Resources
 
 - [Snowflake Cortex Documentation](https://docs.snowflake.com/en/user-guide/snowflake-cortex/aisql)
@@ -46,4 +40,7 @@ Each use case folder contains:
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please feel free to submit a Pull Request. Please ensure to include:
+1. Notebook codes
+2. Underlying data
+3. README.md in explaining use cases
