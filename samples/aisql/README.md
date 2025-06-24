@@ -25,6 +25,12 @@ Analyze diverse healthcare data including medical images, transcripts, and audio
 
 Transform ad campaign performance by analyzing image content alongside traditional metrics. This solution demonstrates image classification, content-based filtering, tagline generation, and sentiment analysis—all using familiar SQL syntax without switching between specialized tools.
 
+### [Financial Service Equity Research](./financial_service_equity_research/)
+**Automated financial document analysis and insight extraction**
+
+Streamline equity research workflows by processing PDF reports, extracting company mentions with sentiment analysis, and mapping to tradable tickers. This solution aggregates insights across multiple research documents and generates concise summaries for specific equities.
+
+
 ## Getting Started
 
 Each use case folder contains:
@@ -33,12 +39,6 @@ Each use case folder contains:
 - Supporting files and sample data where applicable
 - Explanations of business value and technical implementation
 
-## Requirements
-
-- Snowflake account with access to Cortex AI functions
-- Python with required packages (specified in each use case)
-- Basic knowledge of SQL and data analysis concepts
-
 ## Additional Resources
 
 - [Snowflake Cortex Documentation](https://docs.snowflake.com/en/user-guide/snowflake-cortex/aisql)
@@ -46,4 +46,7 @@ Each use case folder contains:
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please feel free to submit a Pull Request. Please ensure to include:
+1. Notebook codes
+2. Underlying data
+3. README.md in explaining use cases
