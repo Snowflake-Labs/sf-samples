@@ -147,9 +147,10 @@ def hello_world(session: snowpark.Session, name: str = "world"):
     # We recommend importing any needed modules *inside* the function definition
     from datetime import datetime
     if session:
-        print(f"current database: {session.get_current_session()}")
+        print(f"current database: {session.get_current_database()}")
     print(f"{datetime.now()} Hello {name}!")
 ```
+
 You can also retrieve the Session instance with the following code:
 
 ```python
@@ -182,6 +183,7 @@ The API returns the payload's return value or, if execution failed, raises an ex
   for all types of jobs.
 
 #### Function Dispatch
+
 ```python
 from snowflake.ml.jobs import get_job
 
@@ -193,6 +195,7 @@ result = job.result()
 ```
 
 #### File-based Dispatch
+
 ```python
 # /path/to/repo/my_script.py
 def main() -> str:
@@ -212,11 +215,11 @@ job = submit_file(
     "/path/to/repo/my_script.py",
     compute_pool,
     stage_name="payload_stage",
-    args=["arg1", "--arg2_key", "arg2_value"],  # (Optional) args are passed to script as-is
 )
 
 result = job.result() # Hello world
 ```
+
 ### List Jobs
 
 You can retrieve the jobs using the `jobs.list_jobs()` API.
@@ -226,12 +229,13 @@ or, if execution failed, raises an exception.
 ```python
 from snowflake.ml import jobs
 jobs.list_jobs()
-#columns: name, status, message, database_name, schema_name, owner, compute_pool, target_instances, created_time, completed_time
+# columns: name, status, message, database_name, schema_name, owner, compute_pool, target_instances, created_time, completed_time
 ```
 
 ### Cancel Jobs
 
 You can cancel an active job using the `job.cancel()` API
+
 ```python
 from snowflake.ml.jobs import remote
 from snowflake import snowpark
@@ -386,9 +390,10 @@ anywhere in your account.
      ```sql
     REMOVE <stage_path>
     ```
+    
     ```python
     from snowflake.ml.jobs import list_jobs, delete_job
-    for row in list_jobs(limit=-1).collect():
+    for _, row in list_jobs(limit=-1).iterrows()::
       if row["status"] in {"DONE", "FAILED"}:
-        delete_job(row["id"])
+        delete_job(row["name"])
     ```
