@@ -138,10 +138,10 @@ Snowpark Sessions can be passed into an ML Job as an argument using the `snowfla
 
 ```python
 from snowflake.ml.jobs import remote
-from snowflake import snowpark
+from snowflake.snowpark import Session
 
 @remote("MY_COMPUTE_POOL", stage_name="payload_stage")
-def hello_world(session: snowpark.Session, name: str = "world"):
+def hello_world(session: Session, name: str = "world"):
     # We recommend importing any needed modules *inside* the function definition
     from datetime import datetime
     if session:
@@ -225,24 +225,6 @@ or, if execution failed, raises an exception.
 from snowflake.ml.jobs import list_jobs
 list_jobs()
 # columns: name, status, message, database_name, schema_name, owner, compute_pool, target_instances, created_time, completed_time
-```
-
-### Cancel Jobs
-
-You can cancel an active job using the `job.cancel()` API
-
-```python
-from snowflake.ml.jobs import remote
-from snowflake import snowpark
-
-@remote("MY_COMPUTE_POOL", stage_name="payload_stage")
-def hello_world(name: str = "world"):
-    # We recommend importing any needed modules *inside* the function definition
-    from datetime import datetime
-    print(f"{datetime.now()} Hello {name}!")
-
-job = hello_world()
-job.cancel()
 ```
 
 ## Advanced Usage
@@ -380,8 +362,9 @@ if your account has not been properly configured with image registries yet.
 This can be resolved by [creating an image repository](https://docs.snowflake.com/en/sql-reference/sql/create-image-repository)
 anywhere in your account.
 1. Job logs may be subject to delays and may not be immediately available if compute pool has been suspended or the job entity itself has been deleted
-1. Job payload stages (configured via the `stage_name` parameter) are not automatically cleaned up. Please manually clean up using either the `delete_job()` API or SQL commands. While the job itself will be deleted automatically after TTL, the associated stages still require manual cleanup.
-     ```sql
+1. The job’s time-to-live (TTL)—the duration it remains available prior to automatic removal—is presently configured to 7 days. however, job payload stages (configured via the `stage_name` parameter) are not automatically cleaned up. Please manually clean up using either the `delete_job()` API or SQL commands. While the job itself will be deleted automatically after TTL, the associated stages still require manual cleanup.
+    
+    ```sql
     REMOVE <stage_path>
     ```
     
