@@ -8,14 +8,14 @@ This example demonstrates how to train an XGBoost model using distributed comput
 
 The sample trains an XGBoost model on a large dataset using Ray's distributed capabilities. It demonstrates:
 
-- Configuring a multi-node ML job with `num_instances=3`
+- Configuring a multi-node ML job with `target_instances=3`
 - Creating and using a synthetic dataset with SQL
 - Leveraging Ray for distributed data processing and model training
 - Testing different scaling configurations with the [XGBoost distributor](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml#xgboost)
 
 ## Prerequisites
 
-- `snowflake-ml-python>=1.8.2`
+- `snowflake-ml-python>=1.9.0`
 - A Snowflake compute pool with sufficient resources
 
 ## How to Run
@@ -48,7 +48,7 @@ job = submit_file(
     "src/train.py",
     "E2E_CPU_POOL",
     stage_name="multi_node_payload_stage",
-    num_instances=3  # Specify multiple instances
+    target_instances=3  # Specify multiple instances
 )
 
 # Option 2: Run the entire directory
@@ -57,7 +57,7 @@ job = submit_directory(
     "E2E_CPU_POOL",
     entrypoint="src/train.py",
     stage_name="multi_node_payload_stage",
-    num_instances=3  # Specify multiple instances
+    target_instances=3  # Specify multiple instances
 )
 
 # Monitor the job
