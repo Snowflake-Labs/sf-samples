@@ -362,7 +362,7 @@ if your account has not been properly configured with image registries yet.
 This can be resolved by [creating an image repository](https://docs.snowflake.com/en/sql-reference/sql/create-image-repository)
 anywhere in your account.
 1. Job logs may be subject to delays and may not be immediately available if compute pool has been suspended or the job entity itself has been deleted
-1. The job’s time-to-live (TTL)—the duration it remains available prior to automatic removal—is presently configured to 7 days. however, job payload stages (configured via the `stage_name` parameter) are not automatically cleaned up. Please manually clean up using either the `delete_job()` API or SQL commands. While the job itself will be deleted automatically after TTL, the associated stages still require manual cleanup.
+1. ML Jobs are automatically cleaned up after a time-to-live (TTL) of 7 days. However, job payload stages (configured via the `stage_name` parameter) are not automatically cleaned up. Please manually clean up using either the `delete_job()` API or SQL commands. While the job itself will be deleted automatically after TTL, the associated stages still require manual cleanup.
     
     ```sql
     REMOVE <stage_path>
