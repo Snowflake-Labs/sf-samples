@@ -15,7 +15,7 @@ Demonstrate how Snowflake's marketing team uses AISQL to analyze, cleanse, and e
 
 Process large volumes of unstructured customer reviews to identify product issues, analyze sentiment, and automate response generation. This solution helps e-commerce companies understand customer concerns, prioritize product improvements, and scale customer service operations.
 
-### [Healthcare Analytics](./healthcare_analytics/)
+### [Healthcare Analytics](./healthcare_multimodal_analytics/)
 **Multimodal healthcare data processing**
 
 Analyze diverse healthcare data including medical images, transcripts, and audio recordings using AI-powered SQL functions. This comprehensive solution supports clinical decision making, enhances population health management, and improves operational efficiency in healthcare organizations.
