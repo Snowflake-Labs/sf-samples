@@ -27,6 +27,22 @@ from snowflake.snowpark.types import IntegerType
 
 
 def get_data_last_altered_timestamp(session: Session, source_table: str) -> str:
+    """
+    Get the last altered timestamp for a table and format it as a version string.
+
+    This function queries the Snowflake INFORMATION_SCHEMA to find when a table was last modified
+    and returns it in a version-friendly format suitable for dataset versioning.
+
+    Args:
+        session (Session): Snowflake session object
+        source_table (str): Fully qualified or partially qualified table name
+
+    Returns:
+        str: Version string in format "v%Y%m%d_%H%M%S" based on last altered timestamp
+
+    Raises:
+        ValueError: If the table is not found in the database
+    """
     db, schema, table = (
         resolve_identifier(id) if id else id
         for id in parse_schema_level_object_identifier(source_table)
@@ -60,8 +76,24 @@ def get_raw_data(
     verbose: bool = False,
 ) -> DataFrame:
     """
-    Prepares the data for feature engineering and model training.
-    This function checks if the data is already in Snowflake. If not, it uploads the data from a CSV file.
+    Prepares the raw data for feature engineering and model training.
+    The function first attempts to load the table from Snowflake, and if it doesn't exist and
+    create_if_not_exists is True, it will upload the data from a local CSV file.
+
+    Args:
+        session (Session): Snowflake session object
+        table_name (str, optional): Name of the table to load or create. Defaults to DATA_TABLE_NAME.
+        create_if_not_exists (bool, optional): Whether to create the table if it doesn't exist.
+            Defaults to True.
+        verbose (bool, optional): Whether to print detailed information about the loaded data.
+            Defaults to False.
+
+    Returns:
+        DataFrame: Snowpark DataFrame containing the loaded data
+
+    Raises:
+        SnowparkSQLException: If the table doesn't exist and create_if_not_exists is False
+        AssertionError: If the table exists but contains no data
     """
     try:
         df = session.table(table_name)
@@ -108,7 +140,21 @@ def get_feature_store(
     create_if_not_exists: bool = True,
 ) -> feature_store.FeatureStore:
     """
-    Creates a Snowflake Feature Store object.
+    This function creates or retrieves a feature store instance for managing feature definitions
+    and feature views. It configures the feature store with the appropriate database, schema,
+    and warehouse settings.
+
+    Args:
+        session (Session): Snowflake session object
+        name (str, optional): Fully qualified name of the feature store in format "database.schema".
+            Defaults to FEATURE_STORE_NAME.
+        warehouse (str, optional): Name of the warehouse to use for feature store operations.
+            Defaults to WAREHOUSE.
+        create_if_not_exists (bool, optional): Whether to create the feature store if it doesn't exist.
+            Defaults to True.
+
+    Returns:
+        feature_store.FeatureStore: Configured feature store instance
     """
     _, db, schema = parse_schema_level_object_identifier(name)
     fs = feature_store.FeatureStore(
@@ -134,9 +180,24 @@ def get_feature_view(
     udf_stage: str = DAG_STAGE,
 ) -> feature_store.FeatureView:
     """
-    Prepares the feature view for the model.
     This function creates a feature view from the data and registers it in the Snowflake Feature Store.
-    Includes preprocessing steps (imputation and one-hot encoding) as part of the feature engineering.
+    It includes comprehensive feature engineering such as timestamp features, income/loan ratios,
+    aggregated features, and categorical encoding. The feature view includes preprocessing steps
+    like mean imputation and label encoding as part of the feature engineering pipeline.
+
+    Args:
+        session (Session): Snowflake session object
+        fs (Optional[feature_store.FeatureStore], optional): Feature store instance to use.
+            If None, creates a new one. Defaults to None.
+        source_table (str, optional): Name of the source table containing raw data.
+            Defaults to DATA_TABLE_NAME.
+        name (str, optional): Name for the feature view. Defaults to "MORTGAGE_FEATURE_VIEW".
+        force_refresh (bool, optional): Whether to force refresh by deleting existing feature view.
+            Defaults to False.
+        udf_stage (str, optional): Stage location for storing UDF code. Defaults to DAG_STAGE.
+
+    Returns:
+        feature_store.FeatureView: Registered feature view with engineered features
     """
     # Prepare the feature store
     fs = fs or get_feature_store(session, create_if_not_exists=True)
@@ -289,6 +350,29 @@ def generate_feature_dataset(
     create_assets: bool = True,
     force_refresh: bool = False,
 ) -> dataset.Dataset:
+    """
+    Generate a feature dataset with engineered features from the feature store.
+
+    This function creates a dataset by combining raw data with features from the feature store.
+    It uses the feature view to perform feature engineering and creates a complete dataset
+    ready for machine learning model training.
+
+    Args:
+        session (Session): Snowflake session object
+        source_table (str, optional): Name of the source table containing raw data.
+            Defaults to DATA_TABLE_NAME.
+        name (str, optional): Name for the generated dataset.
+            Defaults to "MORTGAGE_DATASET_EXTENDED_FEATURES".
+        version (Optional[str], optional): Version identifier for the dataset.
+            If None, uses timestamp from source table. Defaults to None.
+        create_assets (bool, optional): Whether to create necessary assets (feature store, tables).
+            Defaults to True.
+        force_refresh (bool, optional): Whether to force refresh of the feature view.
+            Defaults to False.
+
+    Returns:
+        dataset.Dataset: Generated dataset with engineered features
+    """
     fs = get_feature_store(session, create_if_not_exists=create_assets)
     df = get_raw_data(
         session, table_name=source_table, create_if_not_exists=create_assets
@@ -318,6 +402,18 @@ def generate_feature_dataset(
 
 
 def split_dataset(ds: dataset.Dataset) -> Tuple[dataset.Dataset, dataset.Dataset]:
+    """
+    Split a dataset into training and test sets.
+
+    This function takes a dataset and creates two new dataset versions: one for training
+    and one for testing. The split is done randomly with 80% of data for training and 20% for testing.
+
+    Args:
+        ds (dataset.Dataset): Input dataset to split
+
+    Returns:
+        Tuple[dataset.Dataset, dataset.Dataset]: A tuple containing (train_dataset, test_dataset)
+    """
     # Read the dataset into a Snowpark DataFrame and apply any transformations
     df = ds.read.to_snowpark_dataframe()
 
@@ -344,6 +440,17 @@ def split_dataset(ds: dataset.Dataset) -> Tuple[dataset.Dataset, dataset.Dataset
 
 
 def delete_dataset_versions(session: Session, name: str, *versions: str) -> None:
+    """
+    Delete specific versions of a dataset.
+
+    This function attempts to delete one or more versions of a dataset. It gracefully handles
+    cases where the dataset doesn't exist or specific versions cannot be deleted.
+
+    Args:
+        session (Session): Snowflake session object
+        name (str): Name of the dataset
+        *versions (str): Variable number of version names to delete
+    """
     try:
         ds = dataset.Dataset.load(session, name)
     except DatasetNotExistError:
@@ -364,15 +471,20 @@ def create_label_encoder_udf(
     prefix: str = "label_encode",
 ) -> F.UserDefinedFunction:
     """
-    Create a UDF for label encoding based on unique values from the specified column.
+    This function analyzes the unique values in a categorical column and creates a UDF
+    that maps each unique value to an integer. The UDF is registered in Snowflake and
+    can be used for consistent label encoding across different operations.
 
     Args:
-        session: Snowpark session
-        column_name: Name of the categorical column to analyze
-        table_name: Name of the table containing the data
+        session (Session): Snowpark session object
+        column_name (str): Name of the categorical column to analyze
+        table_name (str): Name of the table containing the data
+        stage_location (str, optional): Stage location for permanent UDF storage.
+            If None, creates a temporary UDF. Defaults to None.
+        prefix (str, optional): Prefix for the UDF name. Defaults to "label_encode".
 
     Returns:
-        Snowpark UDF for label encoding
+        F.UserDefinedFunction: Registered Snowpark UDF for label encoding
     """
     # Query to get unique categorical values
     query = f"""

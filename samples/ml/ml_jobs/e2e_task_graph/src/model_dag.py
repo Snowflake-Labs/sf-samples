@@ -25,6 +25,16 @@ ARTIFACT_DIR = "run_artifacts"
 
 
 def _ensure_environment(session: Session):
+    """
+    Ensure the environment is properly set up for DAG execution.
+
+    This function sets up the necessary environment by calling the model pipeline's
+    ensure_environment function, creating the raw data table if it doesn't exist,
+    and registering local modules for inclusion in ML Job payloads.
+
+    Args:
+        session (Session): Snowflake session object
+    """
     model_pipeline.ensure_environment(session)
 
     # Ensure the raw data table exists
@@ -35,6 +45,22 @@ def _ensure_environment(session: Session):
 
 
 def _wait_for_run_to_complete(session: Session, dag: DAG) -> str:
+    """
+    Wait for a DAG run to complete and return the final status.
+
+    This function monitors the most recent DAG run and waits for it to complete.
+    It uses exponential backoff to poll the task graph status and returns the final result.
+
+    Args:
+        session (Session): Snowflake session object
+        dag (DAG): The DAG object to monitor
+
+    Returns:
+        str: The final status of the DAG run (e.g., "SUCCEEDED", "FAILED")
+
+    Raises:
+        RuntimeError: If no recent runs are found for the DAG
+    """
     # NOTE: We assume the most recent run is our run
     # It would be better to add some unique identifier to the DAG to make it easier to identify the run
     recent_runs = session.sql(
@@ -126,6 +152,19 @@ class RunConfig:
 
 
 def prepare_datasets(session: Session) -> str:
+    """
+    DAG task to prepare datasets for model training.
+
+    This function is executed as part of the DAG workflow to prepare the training and test datasets.
+    It retrieves the configuration from the task context and calls the model pipeline's prepare_datasets
+    function to generate the necessary dataset splits.
+
+    Args:
+        session (Session): Snowflake session object
+
+    Returns:
+        str: JSON string containing serialized dataset information for downstream tasks
+    """
     ctx = TaskContext(session)
     config = RunConfig.from_task_context(ctx)
 
@@ -142,6 +181,19 @@ def prepare_datasets(session: Session) -> str:
 
 
 def train_model(session: Session) -> str:
+    """
+    DAG task to train a machine learning model.
+
+    This function is executed as part of the DAG workflow to train a model using the prepared datasets.
+    It retrieves dataset information from the previous task, trains the model, evaluates it on both
+    training and test sets, and saves the model to a stage for later use.
+
+    Args:
+        session (Session): Snowflake session object
+
+    Returns:
+        str: JSON string containing model path and evaluation metrics
+    """
     ctx = TaskContext(session)
     config = RunConfig.from_task_context(ctx)
 
@@ -181,6 +233,19 @@ def train_model(session: Session) -> str:
 
 
 def check_model_quality(session: Session) -> str:
+    """
+    DAG task to check model quality and determine next action.
+
+    This function evaluates the trained model's performance against a configured threshold
+    and returns the appropriate next action for the DAG workflow. If the model meets the
+    quality threshold, it returns "promote_model", otherwise "send_alert".
+
+    Args:
+        session (Session): Snowflake session object
+
+    Returns:
+        str: "promote_model" if model meets threshold, "send_alert" otherwise
+    """
     ctx = TaskContext(session)
     config = RunConfig.from_task_context(ctx)
 
@@ -195,6 +260,19 @@ def check_model_quality(session: Session) -> str:
 
 
 def promote_model(session: Session) -> str:
+    """
+    DAG task to promote a trained model to production.
+
+    This function registers the trained model in the model registry and promotes it
+    to production status. It retrieves the model from the stage, loads the dataset
+    information, and uses the model pipeline functions to complete the promotion.
+
+    Args:
+        session (Session): Snowflake session object
+
+    Returns:
+        str: Tuple of (fully_qualified_model_name, version_name) as string
+    """
     ctx = TaskContext(session)
     config = RunConfig.from_task_context(ctx)
 
@@ -227,6 +305,16 @@ def promote_model(session: Session) -> str:
 
 
 def cleanup(session: Session) -> None:
+    """
+    DAG task to clean up temporary artifacts and obsolete resources.
+
+    This function is executed as a finalizer task in the DAG workflow to clean up
+    temporary files, artifacts, and obsolete dataset/model versions. It removes
+    the artifact directory from the stage and calls the model pipeline's cleanup function.
+
+    Args:
+        session (Session): Snowflake session object
+    """
     ctx = TaskContext(session)
     config = RunConfig.from_task_context(ctx)
 
@@ -235,6 +323,22 @@ def cleanup(session: Session) -> None:
 
 
 def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -> DAG:
+    """
+    Create a DAG for the machine learning model training workflow.
+
+    This function creates a complete DAG that includes data preparation, model training,
+    quality checking, model promotion, and cleanup tasks. The DAG is configured with
+    the necessary packages and stages for execution.
+
+    Args:
+        name (str): Name of the DAG
+        schedule (Optional[timedelta], optional): Schedule interval for the DAG.
+            Defaults to None (no schedule).
+        **config (Any): Additional configuration parameters to override defaults
+
+    Returns:
+        DAG: Configured DAG object ready for deployment
+    """
     with DAG(
         name,
         warehouse=WAREHOUSE,

@@ -16,6 +16,21 @@ def get_model_registry(
 ) -> Registry:
     """
     Create a Snowflake model registry object.
+
+    This function creates a model registry instance for managing machine learning models
+    in Snowflake. It configures the registry with the specified database, schema, and options.
+
+    Args:
+        session (Session): Snowflake session object
+        db (Optional[str], optional): Database name for the registry. If None, uses current database.
+            Defaults to None.
+        schema (Optional[str], optional): Schema name for the registry. If None, uses current schema.
+            Defaults to None.
+        options (Optional[Dict[str, Any]], optional): Additional configuration options for the registry.
+            Defaults to None.
+
+    Returns:
+        Registry: Configured Snowflake model registry instance
     """
     default_options = {
         "enable_monitoring": True,
@@ -38,6 +53,26 @@ def register_model(
 ) -> ModelVersion:
     """
     Register a model in the Snowflake model registry.
+
+    This function registers a trained model in the Snowflake model registry with the specified
+    name and version. It configures the model with sample data, metrics, and deployment options.
+
+    Args:
+        session (Session): Snowflake session object
+        model (Any): Trained model object to register
+        model_name (str): Name for the model in the registry
+        version_name (str): Version identifier for this model instance
+        train_data (Optional[Union[DataFrame, Dataset]], optional): Training data for model context.
+            Defaults to None.
+        metrics (Optional[Dict[str, float]], optional): Performance metrics to associate with the model.
+            Defaults to None.
+        options (Optional[Dict[str, Any]], optional): Additional registration options.
+            Defaults to None.
+        registry (Optional[Registry], optional): Model registry instance to use. If None, creates a new one.
+            Defaults to None.
+
+    Returns:
+        ModelVersion: The registered model version object
     """
     registry = registry or get_model_registry(session)
 
@@ -116,11 +151,15 @@ def promote_model(
     """
     Promote a model to production in the Snowflake model registry.
 
+    This function promotes a specific model version to production status by setting it
+    as the default version in the model registry. This makes the model available for
+    production inference operations.
+
     Args:
-        session (Session): Snowflake session object.
-        model_name (str): Name of the model.
-        version_name (str): Version name of the model.
-        registry (Optional[Registry]): Snowflake model registry object.
+        session (Session): Snowflake session object
+        model (ModelVersion): Model version object to promote to production
+        registry (Optional[Registry], optional): Model registry instance to use. If None, creates a new one.
+            Defaults to None.
     """
     registry = registry or get_model_registry(session)
 

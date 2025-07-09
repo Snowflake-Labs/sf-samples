@@ -27,6 +27,23 @@ logging.getLogger().setLevel(logging.ERROR)
 
 
 def _try_run_query(session: Session, query: str) -> bool:
+    """
+    Try to execute a SQL query and return whether it succeeded.
+
+    This function attempts to execute a SQL query and returns True if successful,
+    False if it fails with certain error codes. It re-raises the exception for
+    critical errors (error code 1003).
+
+    Args:
+        session (Session): Snowflake session object
+        query (str): SQL query to execute
+
+    Returns:
+        bool: True if query executed successfully, False if it failed gracefully
+
+    Raises:
+        SnowparkSQLException: If the query fails with error code 1003 (critical error)
+    """
     try:
         session.sql(query).collect()
         return True
@@ -37,7 +54,15 @@ def _try_run_query(session: Session, query: str) -> bool:
 
 
 def ensure_environment(session: Session):
-    """Ensure the environment is set up for pipeline execution"""
+    """
+    Ensure the environment is set up for pipeline execution.
+
+    This function configures the Snowflake session with the necessary role, warehouse, database,
+    and schema. It also creates required stages and registers local modules for ML Job execution.
+
+    Args:
+        session (Session): Snowflake session object to configure
+    """
     # Set role and warehouse
     session.use_role(ROLE_NAME)
     session.use_warehouse(WAREHOUSE)
@@ -65,7 +90,23 @@ def register_model(
     train_ds: Dataset,
     metrics: dict,
 ) -> ModelVersion:
-    """Register a model in the model registry"""
+    """
+    Register a model in the model registry.
+
+    This function registers a trained model in the Snowflake model registry with the specified
+    name and version. It also associates the model with training data and performance metrics.
+
+    Args:
+        session (Session): Snowflake session object
+        model (XGBClassifier): Trained XGBoost model to register
+        model_name (str): Name for the model in the registry
+        version_name (str): Version identifier for this model instance
+        train_ds (Dataset): Training dataset used to train the model
+        metrics (dict): Dictionary of performance metrics for the model
+
+    Returns:
+        ModelVersion: The registered model version object
+    """
     mv = ops.register_model(
         session,
         model,
@@ -80,7 +121,16 @@ def register_model(
 
 
 def promote_model(session: Session, mv: ModelVersion) -> None:
-    """Promote a model version to production"""
+    """
+    Promote a model version to production.
+
+    This function promotes a specific model version to production status in the model registry,
+    making it the default version for inference operations.
+
+    Args:
+        session (Session): Snowflake session object
+        mv (ModelVersion): Model version object to promote to production
+    """
     ops.promote_model(session, mv)
     print(
         f"Promoted model {mv.fully_qualified_model_name} version {mv.version_name} to production"
@@ -90,7 +140,20 @@ def promote_model(session: Session, mv: ModelVersion) -> None:
 def clean_up(
     session: Session, dataset_name: str, model_name: str, expiry_days: int = 7
 ) -> None:
-    """Clean up obsolete artifacts"""
+    """
+    Clean up obsolete artifacts.
+
+    This function removes obsolete model versions and dataset versions that are older than
+    the specified expiry period. It helps maintain a clean workspace by removing outdated
+    artifacts while preserving active models and datasets that are still in use.
+
+    Args:
+        session (Session): Snowflake session object
+        dataset_name (str): Name of the dataset to clean up
+        model_name (str): Name of the model to clean up
+        expiry_days (int, optional): Number of days after which artifacts are considered obsolete.
+            Defaults to 7.
+    """
     # Delete obsolete models
     mr = ops.get_model_registry(session)
     model = mr.get_model(model_name=model_name)
@@ -131,7 +194,25 @@ def prepare_datasets(
     create_assets: bool = False,
     force_refresh: bool = False,
 ) -> tuple[Dataset, Dataset, Dataset]:
-    """Prepare datasets for training and evaluation with feature engineering and splitting"""
+    """
+    Prepare datasets for training and evaluation with feature engineering and splitting.
+
+    This function creates or loads datasets for machine learning, including feature engineering
+    through the feature store. It handles both creation of new datasets and loading of existing
+    ones, and automatically splits the data into training and test sets.
+
+    Args:
+        session (Session): Snowflake session object
+        source_table (str): Name of the source table containing raw data
+        name (str): Name for the dataset to create or load
+        create_assets (bool, optional): Whether to create necessary assets if they don't exist.
+            Defaults to False.
+        force_refresh (bool, optional): Whether to force refresh by deleting existing datasets.
+            Defaults to False.
+
+    Returns:
+        tuple[Dataset, Dataset, Dataset]: Tuple containing (full_dataset, train_dataset, test_dataset)
+    """
     version = data.get_data_last_altered_timestamp(session, source_table)
 
     if force_refresh:
@@ -168,7 +249,20 @@ def prepare_datasets(
 
 @remote(COMPUTE_POOL, stage_name=JOB_STAGE)
 def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
-    """Train a model on the training dataset"""
+    """
+    Train a model on the training dataset.
+
+    This function trains an XGBoost classifier on the provided training data. It extracts
+    features and labels from the input data, configures the model with predefined parameters,
+    and trains the model. This function is executed remotely on Snowpark Container Services.
+
+    Args:
+        session (Session): Snowflake session object
+        input_data (DataSource): Data source containing training data with features and labels
+
+    Returns:
+        XGBClassifier: Trained XGBoost classifier model
+    """
     input_data_df = DataConnector.from_sources(session, [input_data]).to_pandas()
 
     assert isinstance(input_data, DatasetInfo), "Input data must be a DatasetInfo"
@@ -198,7 +292,23 @@ def evaluate_model(
     *,
     prefix: str = None,
 ) -> dict:
-    """Evaluate a model on the training and test datasets"""
+    """
+    Evaluate a model on the training and test datasets.
+
+    This function evaluates a trained model's performance by calculating various metrics
+    including F1 score, accuracy, precision, and recall. It can optionally add a prefix
+    to metric names to distinguish between training and test metrics.
+
+    Args:
+        session (Session): Snowflake session object
+        model (XGBClassifier): Trained XGBoost model to evaluate
+        input_data (DataSource): Data source containing evaluation data with features and labels
+        prefix (str, optional): Prefix to add to metric names (e.g., "train_", "test_").
+            Defaults to None.
+
+    Returns:
+        dict: Dictionary containing evaluation metrics with metric names as keys and scores as values
+    """
     input_data_df = DataConnector.from_sources(session, [input_data]).to_pandas()
 
     assert isinstance(input_data, DatasetInfo), "Input data must be a DatasetInfo"
@@ -235,6 +345,21 @@ def run_pipeline(
     force_refresh: bool = False,
     no_register: bool = False,
 ):
+    """
+    Run the complete machine learning pipeline from data preparation to model deployment.
+
+    This function orchestrates the entire ML pipeline including data preparation, model training,
+    evaluation, and optional registration/promotion. It's designed to be run as a standalone
+    pipeline or as part of a larger workflow.
+
+    Args:
+        session (Session): Snowflake session object
+        source_table (str): Name of the source table containing raw data
+        dataset_name (str): Name for the generated dataset
+        model_name (str): Name for the model to be trained
+        force_refresh (bool, optional): Whether to force refresh of datasets. Defaults to False.
+        no_register (bool, optional): Whether to skip model registration. Defaults to False.
+    """
     _, train_ds, test_ds = prepare_datasets(
         session,
         source_table,
