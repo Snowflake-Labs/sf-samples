@@ -180,7 +180,7 @@ def clean_up(
         dsv = ds.select_version(version)
         if dsv.selected_version.created_on < datetime.now(timezone.utc) - timedelta(
             days=expiry_days
-        ) and not ds.selected_version(f"{version}_train").lineage(
+        ) and not ds.select_version(f"{version}_train").lineage(
             "downstream", domain_filter={"model"}
         ):
             ds.delete_version(version)
