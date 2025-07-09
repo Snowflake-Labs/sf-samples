@@ -81,15 +81,17 @@ python src/model_dag.py --schedule 30m  # Every 30 minutes
 ## Key Features
 
 ### Distributed Training with ML Jobs
-The `train_model` function uses the `@remote` decorator to execute training on Snowpark Container Services:
+
+The `train_model` function uses the `@remote` decorator to run multi-node training on Snowpark Container Services:
 
 ```python
-@remote(COMPUTE_POOL, stage_name=JOB_STAGE)
+@remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
 def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
     # Training logic runs on distributed compute
 ```
 
 ### Conditional Model Promotion
+
 The task graph includes branching logic that only promotes models meeting quality thresholds:
 
 ```python

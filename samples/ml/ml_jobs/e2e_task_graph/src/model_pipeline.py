@@ -1,3 +1,4 @@
+import os
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -247,7 +248,9 @@ def prepare_datasets(
     return (ds, train_ds, test_ds)
 
 
-@remote(COMPUTE_POOL, stage_name=JOB_STAGE)
+# NOTE: Remove `target_instances=2` to run training on a single node
+#       See https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/distributed-ml-jobs
+@remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
 def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
     """
     Train a model on the training dataset.
@@ -279,10 +282,26 @@ def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
         objective="binary:logistic",
         booster="gbtree",
     )
-    estimator = XGBClassifier(**model_params)
+
+    # Retrieve the number of nodes from environment variable
+    if int(os.environ.get("SNOWFLAKE_JOBS_COUNT", 1)) > 1:
+        # Distributed training - use ML Runtime distributor APIs
+        from snowflake.ml.modeling.distributors.xgboost.xgboost_estimator import (
+            XGBEstimator,
+            XGBScalingConfig,
+        )
+        estimator = XGBEstimator(
+            params=model_params,
+            scaling_config=XGBScalingConfig(),
+        )
+    else:
+        # Single node training - can use standard XGBClassifier
+        estimator = XGBClassifier(**model_params)
+
     estimator.fit(X_train, y_train)
 
-    return estimator
+    # Convert distributed estimator to standard XGBClassifier if needed
+    return getattr(estimator, '_sklearn_estimator', estimator)
 
 
 def evaluate_model(
