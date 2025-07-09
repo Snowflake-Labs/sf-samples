@@ -399,34 +399,47 @@ def run_pipeline(
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Run a complete machine learning pipeline including data preparation, model training, evaluation, and optional registration/promotion."
+    )
     parser.add_argument(
         "-s",
         "--source-table",
         type=str,
         default=DATA_TABLE_NAME,
-        help="Source table name",
+        help="Fully qualified name of the source table containing raw data for model training. Default uses DATA_TABLE_NAME from environment configuration.",
     )
     parser.add_argument(
         "-d",
         "--dataset-name",
         type=str,
         default="mortgage_dataset",
-        help="Dataset name",
+        help="Name for the dataset to create or load. This will be used to create feature-engineered datasets with train/test splits.",
     )
     parser.add_argument(
-        "-m", "--model-name", type=str, default="mortgage_model", help="Model name"
+        "-m",
+        "--model-name",
+        type=str,
+        default="mortgage_model",
+        help="Name for the model to train and register in the model registry. Used for model versioning and deployment.",
     )
     parser.add_argument(
         "-f",
         "--force-refresh",
         action="store_true",
-        help="Force refresh of datasets and models",
+        help="Force recreation of datasets and models, deleting any existing versions. Use this to start fresh or update with new data.",
     )
     parser.add_argument(
-        "--no-register", action="store_true", help="Disable model registration"
+        "--no-register",
+        action="store_true",
+        help="Skip model registration and promotion even if the model meets quality thresholds. Useful for testing or experimental runs.",
     )
-    parser.add_argument("-c", "--connection", type=str, help="Connection name")
+    parser.add_argument(
+        "-c",
+        "--connection",
+        type=str,
+        help="Name of the Snowflake connection profile to use for authentication. If not specified, uses default connection configuration.",
+    )
     args = parser.parse_args()
 
     session_builder = Session.builder

@@ -200,8 +200,7 @@ def train_model(session: Session) -> str:
     # Load the datasets
     serialized = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
     dataset_info = {
-        key: DatasetInfo(**obj_dict)
-        for key, obj_dict in serialized.items()
+        key: DatasetInfo(**obj_dict) for key, obj_dict in serialized.items()
     }
 
     # Train the model
@@ -282,10 +281,7 @@ def promote_model(session: Session) -> str:
         model = cp.loads(stream.read())
 
     serialized = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
-    source_data = {
-        key: DatasetInfo(**obj_dict)
-        for key, obj_dict in serialized.items()
-    }
+    source_data = {key: DatasetInfo(**obj_dict) for key, obj_dict in serialized.items()}
     mv = model_pipeline.register_model(
         session,
         model,
@@ -384,17 +380,28 @@ def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser("Create and deploy a modeling DAG")
+    parser = argparse.ArgumentParser(
+        "Create and deploy a modeling DAG",
+        description="Create and deploy a machine learning DAG that automates data preparation, model training, quality checking, and promotion workflow.",
+    )
     parser.add_argument(
         "--schedule",
         type=cli_utils.validate_schedule,
         default=None,
-        help='Schedule interval (e.g., "1d" for daily, "12h" for 12 hours, "30m" for 30 minutes, or None for no schedule)',
+        help='Schedule interval for automatic DAG execution in format: <number><unit>. Examples: "1d" for daily, "12h" for every 12 hours, "30m" for every 30 minutes. Use None or omit for manual execution only.',
     )
     parser.add_argument(
-        "--run-dag", action="store_true", default=False, help="Run the DAG immediately"
+        "--run-dag",
+        action="store_true",
+        default=False,
+        help="Execute the DAG immediately after deployment. If not specified, the DAG will only be deployed and can be run manually or according to the schedule.",
     )
-    parser.add_argument("-c", "--connection", type=str, help="Connection name")
+    parser.add_argument(
+        "-c",
+        "--connection",
+        type=str,
+        help="Name of the Snowflake connection profile to use for authentication. If not specified, uses default connection configuration.",
+    )
     args = parser.parse_args()
 
     session_builder = Session.builder
