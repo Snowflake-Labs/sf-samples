@@ -4,29 +4,6 @@ This example demonstrates how to build a complete machine learning pipeline usin
 and [Snowflake Task Graphs](https://docs.snowflake.com/en/developer-guide/snowflake-python-api/snowflake-python-managing-tasks).
 The pipeline includes data preparation, model training, evaluation, conditional promotion, and cleanup — all automated and scheduled using a Task Graph.
 
-## What you'll learn
-
-- How to create ML pipelines with **Snowflake ML Jobs** for distributed training
-- How to orchestrate workflows using **Snowflake Task Graphs** with the Python API
-- How to implement conditional logic in task graphs using **DAGTaskBranch**
-- How to integrate with **Snowflake Model Registry** for model lifecycle management
-- How to build production-ready ML workflows with automatic cleanup and monitoring
-
-## Architecture Overview
-
-The pipeline consists of two main components:
-
-1. [model_pipeline.py](src/model_pipeline.py) - Core ML pipeline that can run standalone or as part of a task graph
-2. [model_dag.py](src/model_dag.py) - Task graph orchestration using Snowflake's Python API
-
-### Task Graph Structure
-
-```
-prepare_data → train_model → check_model_quality → promote_model (if quality >= threshold)
-                                                 → send_alert (if quality < threshold)
-cleanup_task (finalizer - always runs)
-```
-
 ## Prerequisites
 
 1. All steps assume your working directory is the `e2e_task_graph/` folder
@@ -45,6 +22,9 @@ cleanup_task (finalizer - always runs)
 
 ### Standalone Pipeline (Local Testing)
 
+[model_pipeline.py](src/model_pipeline.py) provides the core ML pipeline and can be executed locally
+for testing purposes.
+
 Run the ML pipeline locally without task graph orchestration:
 
 ```bash
@@ -53,6 +33,9 @@ python src/model_pipeline.py --no-register  # Skip model registration for faster
 ```
 
 ### Task Graph Orchestration
+
+[model_dag.py](src/model_dag.py) contains the Task Graph definition and can be used to trigger
+[one-off executions](#one-time-execution) or [scheduled runs](#scheduled-execution).
 
 #### One-Time Execution
 
