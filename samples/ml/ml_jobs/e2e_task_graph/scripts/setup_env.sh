@@ -8,22 +8,18 @@ SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 # Parse command line arguments
 CONNECTION_NAME=""
 CONNECTION_ARG=""
-DEV_USER="DEMO_USER"
 
-while getopts "c:u:r:" opt; do
+while getopts "c:r:" opt; do
     case $opt in
         c)
             CONNECTION_NAME="$OPTARG"
             CONNECTION_ARG="-c $CONNECTION_NAME"
             ;;
-        u)
-            DEV_USER="$OPTARG"
-            ;;
         r)
             SNOWFLAKE_ROLE="$OPTARG"
             ;;
         \?)
-            echo "Usage: $0 [-c connection_name] [-u dev_user] [-r snowflake_role]"
+            echo "Usage: $0 [-c connection_name] [-r snowflake_role]"
             exit 1
             ;;
     esac
@@ -48,8 +44,6 @@ if ! snow connection test --database="" --warehouse="" $CONNECTION_ARG ; then
     exit 1
 fi
 
-snow sql $CONNECTION_ARG -q "alter user set DEFAULT_SECONDARY_ROLES=()"
-
 # Load environment variables
 export SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE:-ENGINEER}
 export SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE:-SNOWBANK}
@@ -58,20 +52,12 @@ export SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE:-DEMO_WH}
 export SNOWFLAKE_COMPUTE_POOL=${SNOWFLAKE_COMPUTE_POOL:-DEMO_POOL}
 
 ## Non-standard variables
-SNOWFLAKE_ADMIN_ROLE=${SNOWFLAKE_ADMIN_ROLE:-ACCOUNTADMIN}
+SNOWFLAKE_ADMIN_ROLE=${SNOWFLAKE_ADMIN_ROLE:-$SNOWFLAKE_ROLE}
 SNOWFLAKE_ADMIN_DB=${SNOWFLAKE_ADMIN_DB:-$SNOWFLAKE_DATABASE}
-SNOWFLAKE_ADMIN_SCHEMA=${SNOWFLAKE_ADMIN_SCHEMA:-ADMIN_SCHEMA}
+SNOWFLAKE_ADMIN_SCHEMA=${SNOWFLAKE_ADMIN_SCHEMA:-$SNOWFLAKE_SCHEMA}
 SNOWFLAKE_DATA_SCHEMA=${SNOWFLAKE_DATA_SCHEMA:-DATA}
 
 # Set up Snowflake environment
-
-## Configure a new developer user and role
-snow sql \
-    $CONNECTION_ARG \
-    --role $SNOWFLAKE_ADMIN_ROLE \
-    -f "$SCRIPT_DIR/create_dev_user.sql" \
-    -D "user_name=$DEV_USER" \
-    -D "role_name=$SNOWFLAKE_ROLE"
 
 ## Create resources for DAG
 snow sql \

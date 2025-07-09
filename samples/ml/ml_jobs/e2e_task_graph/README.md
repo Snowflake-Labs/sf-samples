@@ -7,16 +7,23 @@ The pipeline includes data preparation, model training, evaluation, conditional 
 ## Prerequisites
 
 1. All steps assume your working directory is the `e2e_task_graph/` folder
+
     ```bash
     cd samples/ml/ml_jobs/e2e_task_graph
     ```
+
 2. Configure your default Snowflake connection following the [connection configuration guide](https://docs.snowflake.com/developer-guide/snowflake-cli/connecting/configure-connections#define-connections)
 3. Set up your development environments using the [setup_env.sh](scripts/setup_env.sh) helper script.
     The script will create a new virtual environment (if needed), install all the necessary Python packages,
     and create the necessary resources in your default Snowflake account from step 2.
+
     ```bash
     bash scripts/setup_env.sh
     ```
+
+    > NOTE: The setup script executes commands requiring elevated privileges such as `CREATE DATABASE`, `CREATE WAREHOUSE`, and `CREATE COMPUTE POOL`.
+      If necessary, you can modify the script to skip these steps and instead use existing resources (database/warehouse/compute pool/etc)
+      Update the values in [constants.py](src/constants.py) to match your Snowflake environment.
 
 ## Running the Pipeline
 
