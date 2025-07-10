@@ -50,7 +50,7 @@ def single_node_xgb_dag_example():
             ],
             compute_pool="DEMO_POOL_CPU",
             stage_name="HEADLESS_DEMO_DB.DAG_DEMO.PAYLOAD_STAGE",
-            # num_instances=4, # Multi-node not supported in PrPr
+            target_instances=4,
         )
 
         return job.id

@@ -23,16 +23,16 @@ The sample trains an XGBoost model on a large dataset using Ray's distributed ca
 1. Create a compute pool if you don't already have one:
 
 ```sql
-CREATE COMPUTE POOL IF NOT EXISTS E2E_CPU_POOL
+CREATE COMPUTE POOL IF NOT EXISTS DEMO_POOL
     MIN_NODES = 1
     MAX_NODES = 3
     INSTANCE_FAMILY = CPU_X64_S;
 ```
 
-Note: `MAX_NODES` should be at least equal to `num_instances` (3 in this example).
-If `MAX_NODES` is less than `num_instances`, only `MAX_NODES` nodes will start initially, 
+Note: `MAX_NODES` should be at least equal to `target_instances` (3 in this example).
+If `MAX_NODES` is less than `target_instances`, only `MAX_NODES` nodes will start initially,
 and remaining nodes will only start when slots become available (when existing
-nodes shut down). This can cause new worker nodes to fail connecting to the 
+nodes shut down). This can cause new worker nodes to fail connecting to the
 head node, potentially causing job failure.
 
 2. Ensure the `ENABLE_BATCH_JOB_SERVICES` parameter is enabled on your Snowflake account.
@@ -46,7 +46,7 @@ from snowflake.ml.jobs import submit_file, submit_directory
 # Option 1: Run just the main file
 job = submit_file(
     "src/train.py",
-    "E2E_CPU_POOL",
+    "DEMO_POOL",
     stage_name="multi_node_payload_stage",
     target_instances=3  # Specify multiple instances
 )
@@ -54,7 +54,7 @@ job = submit_file(
 # Option 2: Run the entire directory
 job = submit_directory(
     "src",
-    "E2E_CPU_POOL",
+    "DEMO_POOL",
     entrypoint="src/train.py",
     stage_name="multi_node_payload_stage",
     target_instances=3  # Specify multiple instances
@@ -116,7 +116,7 @@ When submitting your training job, modify the code scaling config in `train.py` 
 ```python
 # Configure Ray scaling for XGBoost
 scaling_config = XGBScalingConfig(
-    num_workers=num_workers, 
+    num_workers=num_workers,
     num_cpu_per_worker=num_cpu_per_worker,
     use_gpu=true
 )
@@ -125,6 +125,6 @@ scaling_config = XGBScalingConfig(
 Also change the compute pool from the old cpu one to use the gpu one in `train.py`:
 
 ```python
-# compute_pool = "E2E_CPU_POOL"
+# compute_pool = "DEMO_POOL"
 compute_pool = "E2E_GPU_POOL"
 ```
