@@ -95,7 +95,7 @@ EXECUTE TASK ON ACCOUNT TO ROLE ENGINEER;
 
 ### Standalone Pipeline (Local Testing)
 
-[model_pipeline.py](src/model_pipeline.py) provides the core ML pipeline and can be executed locally
+[pipeline_local.py](src/pipeline_local.py) provides the core ML pipeline and can be executed locally
 for testing purposes.
 The pipeline reads features from a [Feature Store](https://docs.snowflake.com/en/developer-guide/snowflake-ml/feature-store/overview)
 prepared in the previous [setup step](#local-setup), generates train and test data splits,
@@ -106,8 +106,8 @@ for downstream consumption.
 Run the ML pipeline locally without task graph orchestration:
 
 ```bash
-python src/model_pipeline.py
-python src/model_pipeline.py --no-register  # Skip model registration for faster experimentation
+python src/pipeline_local.py
+python src/pipeline_local.py --no-register  # Skip model registration for faster experimentation
 ```
 
 You can monitor the corresponding ML Job for model training via the [Job UI in Snowsight](../README.md#job-ui-in-snowsight).
@@ -116,7 +116,7 @@ You can monitor the corresponding ML Job for model training via the [Job UI in S
 
 ### Task Graph Orchestration
 
-[model_dag.py](src/model_dag.py) contains the Task Graph definition and can be used to trigger
+[pipeline_dag.py](src/pipeline_dag.py) contains the Task Graph definition and can be used to trigger
 [one-off executions](#one-time-execution) or [scheduled runs](#scheduled-execution).
 
 #### One-Time Execution
@@ -124,7 +124,7 @@ You can monitor the corresponding ML Job for model training via the [Job UI in S
 Deploy and immediately execute the task graph:
 
 ```bash
-python src/model_dag.py --run-dag
+python src/pipeline_dag.py --run-dag
 ```
 
 The script will:
@@ -138,9 +138,9 @@ The script will:
 Deploy the task graph with a recurring schedule:
 
 ```bash
-python src/model_dag.py --schedule 1d   # Daily execution
-python src/model_dag.py --schedule 12h  # Every 12 hours
-python src/model_dag.py --schedule 30m  # Every 30 minutes
+python src/pipeline_dag.py --schedule 1d   # Daily execution
+python src/pipeline_dag.py --schedule 12h  # Every 12 hours
+python src/pipeline_dag.py --schedule 30m  # Every 30 minutes
 ```
 
 ### Task Graph UI in Snowsight
@@ -152,7 +152,7 @@ Navigate to **Monitoring** > **Task History** to access the Task Graph interface
 ![Task History](images/task-history.png)
 
 Click into the Task Graph of interest to get a detailed view of the latest execution for that graph.
-In this case, click on **DAG** to inspect the Task Graph created in [model_dag.py](src/model_dag.py)
+In this case, click on **DAG** to inspect the Task Graph created in [pipeline_dag.py](src/pipeline_dag.py)
 
 ![Task Graph Overview](images/task-graph-overview.png)
 
@@ -166,7 +166,7 @@ This visual interface makes it easy to:
 
 ### Task Graph Orchestration
 
-[model_dag.py](src/model_dag.py) leverages several key [Snowflake Task Graph](https://docs.snowflake.com/en/developer-guide/snowflake-python-api/snowflake-python-managing-tasks) features:
+[pipeline_dag.py](src/pipeline_dag.py) leverages several key [Snowflake Task Graph](https://docs.snowflake.com/en/developer-guide/snowflake-python-api/snowflake-python-managing-tasks) features:
 
 - **DAG Creation**: Using `DAG` context manager to define workflow structure
 - **Task Dependencies**: Using `>>` operator to define execution order
