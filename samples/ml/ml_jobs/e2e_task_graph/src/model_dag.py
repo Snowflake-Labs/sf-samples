@@ -2,17 +2,11 @@ import io
 import json
 import os
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
-import cli_utils
 import cloudpickle as cp
-import data
-
-# User code
-import model_pipeline
-from constants import DAG_STAGE, DATA_TABLE_NAME, DB_NAME, SCHEMA_NAME, WAREHOUSE
 from snowflake.core import CreateMode, Root
 from snowflake.core.task.context import TaskContext
 from snowflake.core.task.dagv1 import DAG, DAGOperation, DAGTask, DAGTaskBranch
@@ -21,6 +15,12 @@ from snowflake.ml.dataset import load_dataset
 from snowflake.ml.jobs import MLJob
 from snowflake.snowpark import Session
 
+import cli_utils
+import data
+import modeling
+from constants import (DAG_STAGE, DATA_TABLE_NAME, DB_NAME, SCHEMA_NAME,
+                       WAREHOUSE)
+
 ARTIFACT_DIR = "run_artifacts"
 
 
@@ -28,20 +28,20 @@ def _ensure_environment(session: Session):
     """
     Ensure the environment is properly set up for DAG execution.
 
-    This function sets up the necessary environment by calling the model pipeline's
+    This function sets up the necessary environment by calling the shared
     ensure_environment function, creating the raw data table if it doesn't exist,
     and registering local modules for inclusion in ML Job payloads.
 
     Args:
         session (Session): Snowflake session object
     """
-    model_pipeline.ensure_environment(session)
+    modeling.ensure_environment(session)
 
     # Ensure the raw data table exists
     _ = data.get_raw_data(session, DATA_TABLE_NAME, create_if_not_exists=True)
 
     # Register local modules for inclusion in ML Job payloads
-    cp.register_pickle_by_value(model_pipeline)
+    cp.register_pickle_by_value(modeling)
 
 
 def _wait_for_run_to_complete(session: Session, dag: DAG) -> str:
@@ -156,7 +156,7 @@ def prepare_datasets(session: Session) -> str:
     DAG task to prepare datasets for model training.
 
     This function is executed as part of the DAG workflow to prepare the training and test datasets.
-    It retrieves the configuration from the task context and calls the model pipeline's prepare_datasets
+    It retrieves the configuration from the task context and calls the shared prepare_datasets
     function to generate the necessary dataset splits.
 
     Args:
@@ -168,7 +168,7 @@ def prepare_datasets(session: Session) -> str:
     ctx = TaskContext(session)
     config = RunConfig.from_task_context(ctx)
 
-    ds, train_ds, test_ds = model_pipeline.prepare_datasets(
+    ds, train_ds, test_ds = modeling.prepare_datasets(
         session, DATA_TABLE_NAME, config.dataset_name
     )
 
@@ -204,15 +204,15 @@ def train_model(session: Session) -> str:
     }
 
     # Train the model
-    model = model_pipeline.train_model(session, dataset_info["train"])
+    model = modeling.train_model(session, dataset_info["train"])
     if isinstance(model, MLJob):
         model = model.result()
 
     # Evaluate the model
-    train_metrics = model_pipeline.evaluate_model(
+    train_metrics = modeling.evaluate_model(
         session, model, dataset_info["train"], prefix="train"
     )
-    test_metrics = model_pipeline.evaluate_model(
+    test_metrics = modeling.evaluate_model(
         session, model, dataset_info["test"], prefix="test"
     )
     metrics = {**train_metrics, **test_metrics}
@@ -282,7 +282,7 @@ def promote_model(session: Session) -> str:
 
     serialized = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
     source_data = {key: DatasetInfo(**obj_dict) for key, obj_dict in serialized.items()}
-    mv = model_pipeline.register_model(
+    mv = modeling.register_model(
         session,
         model,
         model_name=config.model_name,
@@ -295,7 +295,7 @@ def promote_model(session: Session) -> str:
         metrics=train_result["metrics"],
     )
 
-    model_pipeline.promote_model(session, mv)
+    modeling.promote_model(session, mv)
 
     return (mv.fully_qualified_model_name, mv.version_name)
 
@@ -306,7 +306,7 @@ def cleanup(session: Session) -> None:
 
     This function is executed as a finalizer task in the DAG workflow to clean up
     temporary files, artifacts, and obsolete dataset/model versions. It removes
-    the artifact directory from the stage and calls the model pipeline's cleanup function.
+    the artifact directory from the stage and calls the shared cleanup function.
 
     Args:
         session (Session): Snowflake session object
@@ -315,7 +315,7 @@ def cleanup(session: Session) -> None:
     config = RunConfig.from_task_context(ctx)
 
     session.sql(f"REMOVE {config.artifact_dir}").collect()
-    model_pipeline.clean_up(session, config.dataset_name, config.model_name)
+    modeling.clean_up(session, config.dataset_name, config.model_name)
 
 
 def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -> DAG:
