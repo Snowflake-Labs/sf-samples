@@ -228,6 +228,25 @@ list_jobs()
 # columns: name, status, message, database_name, schema_name, owner, compute_pool, target_instances, created_time, completed_time
 ```
 
+### Job UI in Snowsight
+
+You can monitor current and previous ML Job executions via the new Job UI in Snowsight.
+This provides a centralized view of all your jobs with real-time status updates and detailed execution information.
+
+**Job List View**: Navigate to **Projects** > **Services and Jobs** > **Jobs** to see all your running and completed jobs:
+
+![Job List](images/job-list.png)
+
+**Job Overview**: Click on any job to see detailed information including container status, logs, and execution metrics:
+
+![Job Overview](images/job-overview.png)
+
+The Job UI makes it easy to:
+- Monitor job progress and status
+- View detailed logs and error messages
+- Track resource usage and performance metrics
+- Access job specifications and configuration details
+
 ## Advanced Usage
 
 ### Custom Python Dependencies

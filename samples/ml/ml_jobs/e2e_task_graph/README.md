@@ -97,6 +97,11 @@ EXECUTE TASK ON ACCOUNT TO ROLE ENGINEER;
 
 [model_pipeline.py](src/model_pipeline.py) provides the core ML pipeline and can be executed locally
 for testing purposes.
+The pipeline reads features from a [Feature Store](https://docs.snowflake.com/en/developer-guide/snowflake-ml/feature-store/overview)
+prepared in the previous [setup step](#local-setup), generates train and test data splits,
+and runs model training using an ML Job. The pipeline concludes by evaluating the trained model and
+conditionally logging the trained model to [Model Registry](https://docs.snowflake.com/en/developer-guide/snowflake-ml/model-registry/overview)
+for downstream consumption.
 
 Run the ML pipeline locally without task graph orchestration:
 
@@ -104,6 +109,10 @@ Run the ML pipeline locally without task graph orchestration:
 python src/model_pipeline.py
 python src/model_pipeline.py --no-register  # Skip model registration for faster experimentation
 ```
+
+You can monitor the corresponding ML Job for model training via the [Job UI in Snowsight](../README.md#job-ui-in-snowsight).
+
+![Job List](../images/job-list.png)
 
 ### Task Graph Orchestration
 
@@ -133,6 +142,25 @@ python src/model_dag.py --schedule 1d   # Daily execution
 python src/model_dag.py --schedule 12h  # Every 12 hours
 python src/model_dag.py --schedule 30m  # Every 30 minutes
 ```
+
+### Task Graph UI in Snowsight
+
+Once your Task Graph is deployed and running, you can monitor and inspect your DAG executions through Snowflake's Task Graph UI in Snowsight.
+
+Navigate to **Monitoring** > **Task History** to access the Task Graph interface:
+
+![Task History](images/task-history.png)
+
+Click into the Task Graph of interest to get a detailed view of the latest execution for that graph.
+In this case, click on **DAG** to inspect the Task Graph created in [model_dag.py](src/model_dag.py)
+
+![Task Graph Overview](images/task-graph-overview.png)
+
+This visual interface makes it easy to:
+- Validate that task execution is proceeding as expected
+- Debug failed executions by examining task logs and dependencies
+- Verify that conditional logic (like model promotion) is working correctly
+
 
 ## Key Features
 
