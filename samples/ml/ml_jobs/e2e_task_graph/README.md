@@ -136,7 +136,17 @@ python src/model_dag.py --schedule 30m  # Every 30 minutes
 
 ## Key Features
 
-### Distributed Training with ML Jobs
+### Task Graph Orchestration
+
+[model_dag.py](src/model_dag.py) leverages several key [Snowflake Task Graph](https://docs.snowflake.com/en/developer-guide/snowflake-python-api/snowflake-python-managing-tasks) features:
+
+- **DAG Creation**: Using `DAG` context manager to define workflow structure
+- **Task Dependencies**: Using `>>` operator to define execution order
+- **Task Context**: Passing values between Tasks in the DAG via the `TaskContext`
+- **Branching Logic**: Using `DAGTaskBranch` for conditional execution paths
+- **Finalizer Tasks**: Ensuring cleanup always runs regardless of success/failure
+
+### Model Training on SPCS using ML Jobs
 
 The `train_model` function uses the `@remote` decorator to run multi-node training on Snowpark Container Services:
 
@@ -165,30 +175,3 @@ Successful models are automatically registered and promoted to production:
 mv = register_model(session, model, model_name, version, train_ds, metrics)
 promote_model(session, mv)  # Sets as default version
 ```
-
-### Automatic Cleanup
-The pipeline includes a finalizer task that removes obsolete artifacts:
-
-```python
-cleanup_task = DAGTask("cleanup_task", definition=cleanup, is_finalizer=True)
-```
-
-## Task Graph Concepts
-
-This example demonstrates key [Snowflake Task Graph](https://docs.snowflake.com/en/developer-guide/snowflake-python-api/snowflake-python-managing-tasks) concepts:
-
-- **DAG Creation**: Using `DAG` context manager to define workflow structure
-- **Task Dependencies**: Using `>>` operator to define execution order
-- **Branching Logic**: Using `DAGTaskBranch` for conditional execution paths
-- **Task Context**: Accessing configuration and predecessor outputs via `TaskContext`
-- **Finalizer Tasks**: Ensuring cleanup always runs regardless of success/failure
-
-## Next Steps
-
-- Modify the model training logic in `train_model()` for your use case
-- Adjust quality thresholds and metrics in the DAG configuration
-- Add notification integrations for the alert task
-- Customize the feature engineering pipeline in `prepare_datasets()`
-- Scale compute resources by modifying the compute pool configuration
-
-For more information on Snowflake Task Graphs, see the [Python API documentation](https://docs.snowflake.com/en/developer-guide/snowflake-python-api/snowflake-python-managing-tasks).
