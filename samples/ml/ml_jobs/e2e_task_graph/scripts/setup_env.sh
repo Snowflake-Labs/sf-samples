@@ -52,13 +52,9 @@ export SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE:-DEMO_WH}
 export SNOWFLAKE_COMPUTE_POOL=${SNOWFLAKE_COMPUTE_POOL:-DEMO_POOL}
 
 ## Non-standard variables
-SNOWFLAKE_ADMIN_ROLE=${SNOWFLAKE_ADMIN_ROLE:-$SNOWFLAKE_ROLE}
-SNOWFLAKE_ADMIN_DB=${SNOWFLAKE_ADMIN_DB:-$SNOWFLAKE_DATABASE}
-SNOWFLAKE_ADMIN_SCHEMA=${SNOWFLAKE_ADMIN_SCHEMA:-$SNOWFLAKE_SCHEMA}
 SNOWFLAKE_DATA_SCHEMA=${SNOWFLAKE_DATA_SCHEMA:-DATA}
 
 # Set up Snowflake environment
-
 ## Create resources for DAG
 snow sql \
     $CONNECTION_ARG \
@@ -67,25 +63,6 @@ snow sql \
     -D "database_name=$SNOWFLAKE_DATABASE" \
     -D "schema_name=$SNOWFLAKE_SCHEMA" \
     -D "data_schema_name=$SNOWFLAKE_DATA_SCHEMA"
-
-## Create admin resources (warehouse, compute pool, notification integration)
-snow sql \
-    $CONNECTION_ARG \
-    --role $SNOWFLAKE_ADMIN_ROLE \
-    -f "$SCRIPT_DIR/create_admin_resources.sql" \
-    -D "compute_pool_name=$SNOWFLAKE_COMPUTE_POOL" \
-    -D "warehouse_name=$SNOWFLAKE_WAREHOUSE" \
-    -D "database_name=$SNOWFLAKE_ADMIN_DB" \
-    -D "schema_name=$SNOWFLAKE_ADMIN_SCHEMA" \
-    -D "notification_integration_name=DEMO_NOTIFICATION_INTEGRATION"
-snow sql \
-    $CONNECTION_ARG \
-    --role $SNOWFLAKE_ADMIN_ROLE \
-    -f "$SCRIPT_DIR/grant_admin_resources.sql" \
-    -D "warehouse_name=$SNOWFLAKE_WAREHOUSE" \
-    -D "compute_pool_name=$SNOWFLAKE_COMPUTE_POOL" \
-    -D "notification_integration_name=DEMO_NOTIFICATION_INTEGRATION" \
-    -D "role_name=$SNOWFLAKE_ROLE"
 
 ## Set up feature store
 SNOWFLAKE_SCHEMA=$SNOWFLAKE_DATA_SCHEMA \

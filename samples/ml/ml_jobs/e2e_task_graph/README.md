@@ -6,6 +6,71 @@ The pipeline includes data preparation, model training, evaluation, conditional 
 
 ## Prerequisites
 
+### Snowflake Account Setup
+
+Work with your account administrator to provision the required resources in your Snowflake account as needed.
+
+> NOTE: The steps below use role name `ENGINEER`. Replace this with the role name you will be using to
+  work through the example.
+
+1. Create a compute pool if you don't already have one:
+
+```sql
+CREATE COMPUTE POOL IF NOT EXISTS DEMO_POOL
+    MIN_NODES = 1
+    MAX_NODES = 2
+    INSTANCE_FAMILY = CPU_X64_S;
+GRANT USAGE ON COMPUTE POOL TO ROLE ENGINEER;
+```
+
+Note: `MAX_NODES` should be at least equal to `target_instances` (2 in this example).
+
+2. Create a virtual warehouse if you don't already have one:
+
+```sql
+CREATE WAREHOUSE IF NOT EXISTS DEMO_WH;  -- Default settings are fine
+GRANT USAGE ON WAREHOUSE DEMO_WH TO ROLE ENGINEER;
+```
+
+3. Configure database privileges for the demo. Subsequent steps will create resources inside this database.
+
+```sql
+-- OPTIONAL: Create a separate database for easy cleanup
+CREATE DATABASE IF NOT EXISTS SNOWBANK;
+
+GRANT USAGE ON DATABASE SNOWBANK TO ROLE ENGINEER;
+GRANT CREATE SCHEMA ON DATABASE SNOWBANK TO ROLE ENGINEER;
+```
+
+4. Grant other required [access control privileges](https://docs.snowflake.com/en/user-guide/security-access-control-privileges)
+  needed to execute the sample:
+
+```sql
+EXECUTE TASK ON ACCOUNT TO ROLE ENGINEER;
+```
+
+5. (Optional) Configure a [notification integration](https://docs.snowflake.com/en/user-guide/notifications/webhook-notifications)
+  to enable [sending notifications](https://docs.snowflake.com/en/user-guide/notifications/snowflake-notifications)
+  from Task Graph executions.
+   1. Create a webhook with your desired notification channel (e.g. [Slack Webhook](https://api.slack.com/messaging/webhooks))
+   2. Configure notification integration with your webhook
+
+    ```sql
+    CREATE SECRET IF NOT EXISTS DEMO_WEBHOOK_SECRET
+    TYPE = GENERIC_STRING
+    SECRET_STRING = 'T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'; -- (ACTION NEEDED) Put your webhook secret here
+    CREATE NOTIFICATION INTEGRATION IF NOT EXISTS DEMO_WEBHOOK_INTEGRATION
+    TYPE=WEBHOOK
+    ENABLED=TRUE
+    WEBHOOK_URL='https://hooks.slack.com/services/SNOWFLAKE_WEBHOOK_SECRET'
+    WEBHOOK_SECRET=DEMO_WEBHOOK_SECRET
+    WEBHOOK_BODY_TEMPLATE='{"text": "SNOWFLAKE_WEBHOOK_MESSAGE"}'
+    WEBHOOK_HEADERS=('Content-Type'='application/json');
+    GRANT USAGE ON INTEGRATION DEMO_WEBHOOK_INTEGRATION TO ROLE ENGINEER;
+    ```
+
+### Local Setup
+
 1. All steps assume your working directory is the `e2e_task_graph/` folder
 
     ```bash
@@ -18,14 +83,15 @@ The pipeline includes data preparation, model training, evaluation, conditional 
     and create the necessary resources in your default Snowflake account from step 2.
 
     ```bash
-    bash scripts/setup_env.sh
+    bash scripts/setup_env.sh -r ENGINEER  # Change ENGINEER to your role name
     ```
 
-    > NOTE: The setup script executes commands requiring elevated privileges such as `CREATE DATABASE`, `CREATE WAREHOUSE`, and `CREATE COMPUTE POOL`.
-      If necessary, you can modify the script to skip these steps and instead use existing resources (database/warehouse/compute pool/etc)
-      Update the values in [constants.py](src/constants.py) to match your Snowflake environment.
+    > Modify `-r ENGINEER` to match the role name used in [Snowflake Account Setup](#snowflake-account-setup)
 
-## Running the Pipeline
+4. Update the values in [constants.py](src/constants.py) to match your Snowflake environment as configured
+    in [Snowflake Account Setup](#snowflake-account-setup) and any modifications made to step 3 above.
+
+## How to Run
 
 ### Standalone Pipeline (Local Testing)
 
