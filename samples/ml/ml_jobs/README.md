@@ -1,6 +1,7 @@
 # ML Jobs
 
-Snowflake ML Jobs enables you to run machine learning workloads inside Snowflake
+[Snowflake ML Jobs](https://docs.snowflake.com/developer-guide/snowflake-ml/ml-jobs/overview)
+enable you to run machine learning workloads inside Snowflake
 [ML Container Runtimes](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml)
 from any environment. This solution allows you to:
 
@@ -227,6 +228,25 @@ list_jobs()
 # columns: name, status, message, database_name, schema_name, owner, compute_pool, target_instances, created_time, completed_time
 ```
 
+### Job UI in Snowsight
+
+You can monitor current and previous ML Job executions via the new Job UI in Snowsight.
+This provides a centralized view of all your jobs with real-time status updates and detailed execution information.
+
+**Job List View**: Navigate to **Projects** > **Services and Jobs** > **Jobs** to see all your running and completed jobs:
+
+![Job List](images/job-list.png)
+
+**Job Overview**: Click on any job to see detailed information including container status, logs, and execution metrics:
+
+![Job Overview](images/job-overview.png)
+
+The Job UI makes it easy to:
+- Monitor job progress and status
+- View detailed logs and error messages
+- Track resource usage and performance metrics
+- Access job specifications and configuration details
+
 ## Advanced Usage
 
 ### Custom Python Dependencies
@@ -294,17 +314,11 @@ job3 = submit_directory(
 
 ### Multi-Node Capabilities (PuPr)
 
-ML Jobs also support running distributed machine learning workloads across multiple nodes, allowing you to:
+ML Jobs also support running distributed machine learning workloads across [multiple nodes](https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/distributed-ml-jobs),
+allowing you to:
 - Scale workloads across multiple compute instances via [Ray](https://docs.ray.io/en/latest/ray-overview/examples.html)
 - Process larger datasets and train more complex models through distributed data connectors and trainers that can efficiently handle data processing and model training across multiple nodes
 - Speed up training through parallelization
-
-Multi-node requires the `ENABLE_BATCH_JOB_SERVICES` to be enabled.
-Contact your Snowflake account admin to enable the feature on your account.
-
-```sql
-ALTER ACCOUNT <account> SET ENABLE_BATCH_JOB_SERVICES = TRUE;
-```
 
 To use multi-node capabilities, specify the `target_instances` parameter:
 
@@ -349,8 +363,9 @@ Examples showcasing how ML Jobs can be used from a notebook environment like Jup
 
 ### Pipelines / DAGs
 
-Examples showcasing how ML Jobs can be integrated with workflow/DAG frameworks like Airflow.
+Examples showcasing how ML Jobs can be integrated with workflow/DAG frameworks like Snowflake Task Graphs and Apache Airflow.
 
+- [e2e_task_graph](./e2e_task_graph/) - end-to-end feature engineering and modeling pipeline using Snowflake Task Graph
 - [xgb_classifier_airflow](./xgb_classifier_airflow/) - orchestrate model training and evaluation using Apache Airflow
 
 ## Known Limitations
