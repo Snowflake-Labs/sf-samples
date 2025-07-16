@@ -32,7 +32,7 @@ def run_pipeline(
         force_refresh (bool, optional): Whether to force refresh of datasets. Defaults to False.
         no_register (bool, optional): Whether to skip model registration. Defaults to False.
     """
-    _, train_ds, test_ds = modeling.prepare_datasets(
+    ds, train_ds, test_ds = modeling.prepare_datasets(
         session,
         source_table,
         name=dataset_name,
@@ -62,7 +62,7 @@ def run_pipeline(
     elif current_score > threshold:
         # If model is good, register and promote model
         version = datetime.now().strftime("v%Y%m%d_%H%M%S")
-        mv = modeling.register_model(session, model_obj, model_name, version, train_ds, metrics)
+        mv = modeling.register_model(session, model_obj, model_name, version, ds, metrics)
         modeling.promote_model(session, mv)
 
     modeling.clean_up(session, dataset_name, model_name, expiry_days=1)

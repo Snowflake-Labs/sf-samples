@@ -289,8 +289,8 @@ def promote_model(session: Session) -> str:
         version_name=config.run_id,
         train_ds=load_dataset(
             session,
-            source_data["train"].fully_qualified_name,
-            source_data["train"].version,
+            source_data["full"].fully_qualified_name,
+            source_data["full"].version,
         ),
         metrics=train_result["metrics"],
     )
