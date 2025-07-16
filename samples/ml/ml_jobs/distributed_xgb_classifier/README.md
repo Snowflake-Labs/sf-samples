@@ -35,10 +35,7 @@ and remaining nodes will only start when slots become available (when existing
 nodes shut down). This can cause new worker nodes to fail connecting to the
 head node, potentially causing job failure.
 
-2. Ensure the `ENABLE_BATCH_JOB_SERVICES` parameter is enabled on your Snowflake account.
-Contact your Snowflake account admin to enable the feature if needed.
-
-3. Run the example:
+1. Run the example:
 
 ```python
 from snowflake.ml.jobs import submit_file, submit_directory
