@@ -370,7 +370,7 @@ Examples showcasing how ML Jobs can be integrated with workflow/DAG frameworks l
 
 ## Known Limitations
 
-1. The Headless Runtime currently only supports Python 3.10. Attempting to use 
+1. ML Jobs currently only supports Python 3.10. Attempting to use
 other Python versions may throw unexpected errors like `UnpicklingError` or `TypeError`.
 1. Job submission may fail with `Failed to retrieve image <image_name> from the image repository`
 if your account has not been properly configured with image registries yet.

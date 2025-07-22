@@ -348,8 +348,8 @@ def clean_up(
         dsv = ds.select_version(version)
         if dsv.selected_version.created_on < datetime.now(timezone.utc) - timedelta(
             days=expiry_days
-        ) and not ds.select_version(f"{version}_train").lineage(
-            "downstream", domain_filter={"model"}
-        ):
+        ) and not dsv.lineage("downstream", domain_filter={"model"}):
             ds.delete_version(version)
+            ds.delete_version(f"{version}_train")
+            ds.delete_version(f"{version}_test")
             print(f"Deleted obsolete dataset version {version}") 
