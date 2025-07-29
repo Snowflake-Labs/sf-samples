@@ -24,7 +24,7 @@ LEFT JOIN SNOWFLAKE.ACCOUNT_USAGE.TAG_REFERENCES tu ON tu.object_name = sf.user_
   AND tu.TAG_NAME = '<% ctx.env.finops_tag_name %>'
   AND tu.DOMAIN = 'USER'
 --Warehouse fallback if nothing else tagged.
-LEFT JOIN SNOWFLAKE.ACCOUNT_USAGE.TAG_REFERENCES tw ON tw.object_name = sf.warehouse_name
+LEFT JOIN SNOWFLAKE.ACCOUNT_USAGE.TAG_REFERENCES tw ON tw.object_id = sf.warehouse_id
   AND tw.TAG_NAME = '<% ctx.env.finops_tag_name %>'
   AND tw.DOMAIN = 'WAREHOUSE'
 GROUP BY ALL

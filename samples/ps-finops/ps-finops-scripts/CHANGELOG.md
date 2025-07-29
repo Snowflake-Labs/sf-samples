@@ -1,5 +1,20 @@
 # Changelog
 
+## Future ToDo:
+ - COSTCENTER table exists in each of the Streamlit app schemas, should we centralize it?
+
+## [1.3] - 2025-07-18
+ - Map to warehouse_id instead of name in tag_references join in case of name changes and performance.
+ - Bug fixes for Streamlit apps not working.
+ - Bug fixes for views
+ - Readme updates
+
+## [1.2] - 2025-05-20
+  - Major update to how cost per query is calculated requiring full redo of SF_CREDITS_BY_QUERY table data and updated schema.
+    - Added QUERY_LOAD_PERCENT to tables and use it in calculation to potentially decrement the queries cost based on this percentage.
+    e.g. if the value is 25% then the adjustment of warehouse weight for that query is multiplied by 25%
+  - Updated linear forecast view to handle multi-year contract periods.
+
 ## [1.1.3] - 2025-04-11
 
  - Bug fixes in:
