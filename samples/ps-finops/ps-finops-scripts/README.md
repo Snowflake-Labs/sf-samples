@@ -2,11 +2,22 @@
 
 The PS FinOps Framework was developed to help customer's visualize credit and in some cases currency consumption by a Team/Project using common Snowflake objects that the Cost Management Snowsight interface either does not provide, or is not available to those that need to see this data. The data it consumes is from the Snowflake Application telemetry database available in all accounts. We have provided two methods to collect data:
 1. Per Account install that includes tables, views, tasks, and optional Streamlit applications.
-2. Organizational Account install that includes tables, views, tasks, and optional Streamlit applications. This new org feature aggregates all your account telemetry into one central account. The Organizational Account views do not cover all Account views as of Apr 2025, so it is possible to not have detailed data on new services with it.
+2. Organizational Account install that includes tables, views, tasks, and optional Streamlit applications. This new org feature aggregates all your account telemetry into one central account. The Organizational Account views do not cover all Account views as of July 2025, so it is possible to not have detailed data on new services with it. To supplement the missing telemetry, you will need to replicate the data from the remote to your central account manually.
 
 The installation and setup is designed to be implemented by Snowflake Solution Architects, but this could be installed by engineers competent in Snowflake metrics, automation, and have the appropriate rights to install. Installation incorporates separation of duties - admins can do the security, database, and tag setup, while a delegated admin can deploy the remaining object code.
 
-The base install prepares for installation of the two Streamlit apps for you to extend and develop more. These are in the POC phase, so optionally you may want to exclude them if you have other preferred visualization tools.
+### Cost Per Query Methodology
+In order to provide accurate cost attribution for queries that happen against a warehouse, we use this algorithm instead of query_attribution_history as our solution includes warehouse idle time and small queries.
+
+1. Get the credit usage for each warehouse by hour
+2. Get the queries that ran on that warehouse during that hour
+3. Take into account queries that span hours so the cost of that query is split based on how much time it was active in each hour and don’t count queued time or transaction blocked times towards the cost of a query since it isn’t using the XP during that time.
+4. Compute the ratio of active milliseconds of each query to the total query milliseconds for that XP during that hour.  This ratio also takes into account the current size of the warehouse, in case the warehouse size changes during a particular hour (elapsed_time_ratio computed using ratio_to_report).
+5. Multiply the elapsed_time_ratio by the credits used and query_load_perc for that warehouse and hour to get the credits usage estimate for this query
+
+
+### Steamlit POC Apps
+The base install prepares for installation of the two Streamlit apps for you to extend and develop more. These are in the POC phase, so optionally you may want to exclude them if you have other preferred visualization tools. Installation of apps is its own process in the Streamlit folder.
 
 ### Prequisites:
 - Snowflake Enterprise Edition or higher for Tag use.
@@ -15,7 +26,7 @@ The base install prepares for installation of the two Streamlit apps for you to 
 - Snow CLI installed for easy deployment.
 
 ## Security Model
-Our example creates a delegated FinOps admin user with password or RSA Key Pair to create (or use if the database and schema exists) where FinOps objects reside and optionally the same with the COST_CENTER tag in its own location or same location. We also create a viewer role to view the data and views in FinOps db and Snowflake telemetry database (Admin and viewer have these database roles: GOVERNANCE_VIEWER, OBJECT_VIEWER, USAGE_VIEWER, ORGANIZATION_BILLING_VIEWER, and ORGANIZATION_USAGE_VIEWER). The variable values can be set in the snowflake.yml config file as described below:
+Our example creates a delegated FinOps admin user with password or RSA Key Pair to create (or use if the database and schema exists) where FinOps objects reside and optionally the same with the COST_CENTER tag in its own location or same location. We also create a viewer role to view the data and views in FinOps db and Snowflake telemetry database (Admin and viewer have these database roles: GOVERNANCE_VIEWER, OBJECT_VIEWER, USAGE_VIEWER, ORGANIZATION_BILLING_VIEWER, and ORGANIZATION_USAGE_VIEWER, ORGANIZATION_OBJECT_VIEWER, ORGANIZATION_GOVERNANCE_VIEWER). The variable values can be set in the snowflake.yml config file as described below:
 
 - finops_admin_user - User name for finops admin - the service account used to connect to accounts and create objects except the cost_center tag itself.
 - finops_db_admin_role - Functional role that can create databases and warehouses along with their respective FinOps objects.
@@ -25,20 +36,20 @@ Our example creates a delegated FinOps admin user with password or RSA Key Pair 
 Other things to consider that are not implemented in our solution - granual visibility to specific cost center data based on your persona.
 
 ## Why Did We Choose Snowflake Tags?
-Tagging is an Enterprise and above feature, but most all of our customer's asking for FinOps are using this tier of Snowflake Accounts. It is flexible and easy to consume because of the Snowflake telemetry database view called tag_references that gathers all the tags together where they are assigned on inherited making for easy consumption. Alternatives that you could look into would be object comments with json or naming conventions and table lookups.
+Tagging was just an Enterprise and above feature, but as of May 2025 tagging of objects is available in all editions - masking policies and tag propagation remain Enterprise and higher editions. This is a key change asked by many customers to enable ownership, cost management, and other attributes to objects within Snowflake. It is flexible and easy to consume because of the Snowflake telemetry database view called tag_references gathers all the tags together where they are assigned on inherited making for easy consumption. Other methods that you could look into could be object comments with json or object naming conventions with mapping tables.
 
-We chose the COST_CENTER name because most HR systems think in terms of Teams, but accountants and finance think in terms of Cost Centers. Cost Center is the more generic term that could include Project names, or Business Units. COST_CENTER is the codified tag name and is not case sensitive. If you have an existing tag, feel free to update the snowflake.yml variable value since this is just a custom tag and not a Snowflake provided tag name.
+We chose the COST_CENTER name because most HR systems think in terms of Teams, but accountants and finance think in terms of Cost Centers. Cost Center is the more generic term that could include Project names or Business Units. COST_CENTER is the codified tag name and is not case sensitive. If you have an existing tag, feel free to update the snowflake.yml variable value since this is just a custom tag and not a Snowflake provided tag name.
 
-The one downside that could be an issue is you are limited to 300 values in a Tag. So, this prevents you from doing things like tagging user's with their username or being very granular. You could use other tags and combine ideas, say Environment tag if separating environment costs within an account is a concern.
+The one downside that could be an issue is **you are limited to 300 values in a Tag**. So, this prevents you from doing things like tagging user's with their username or being very granular. You could use other tags and combine ideas, say Environment tag if separating environment costs within an account is a concern.
 
 ## Decision Details and Requirements
 Detailed cost attribution in FinOps requires the use of object and query tagging. It is assumed that a Schema is attributable to one cost center. In some cases this is not true, so alternative script ideas are provided, but up to you to implement.
 
-Organizational Account (Org V2) installation - Optional use, but recommended for many account customers that have significant usage in more than 1 account. This is using new PuPr feature https://docs.snowflake.com/en/user-guide/organization-accounts Organization Accounts (Org V2/Org 2.0). It aggregates all the remote account telemetry data into one new Org Account. It will incur storage and compute costs and right now is missing a few of the new Snowflake feature views, so not all of the services view data is available, but the core compute and storage metrics work. Organization Accounts enable Organization users and groups, so that is another thing to consider.
+Organizational Account (Org V2) installation - Optional use, but recommended for many account customers that have significant usage in more than 1 account. Feature docs: https://docs.snowflake.com/en/user-guide/organization-accounts Organization Accounts (Internally referred to as Org V2/Org 2.0). It aggregates all the remote account telemetry data into one new Org Account. It will incur storage and compute costs and right now is missing a few of the new Snowflake feature views, so not all of the services view data is available, but the core compute and storage metrics work. Organization Accounts enable Organization users and groups, so that is another thing to consider.
 
 For installation that works for most customers, we chose SNOW CLI for installation (ver 3.5.0 minimum), so some command line familiarity is required. Also, ability to setup a process to do the install. There are some steps that are manual, but most objects are deployable code. Scripts sections are manually deployed and require you to read the code to make some decisions. The first scripts will require ACCOUNTADMIN level role to run, so do find someone with that level of privileges. We create a delegated admin for WH and DB object creation for all the FinOps stuff, or you can use SYSADMIN, up to you, just update the snowflake.yml file with names of objects and roles.
 
-For Query and Warehouse attribution costs, a helper function was created such that all queries can use the same logic and one update changes them all. The function is GET_TAG_COST_CENTER and the priority defaults to this - of which you many want to customize to your specific needs:
+For Query attribution of costs, a helper function was created such that all queries can use the same logic and one update changes them all. The function is GET_TAG_COST_CENTER and the priority defaults to this - of which you many want to customize to your specific needs:
 ```sql
     # finops/core/functions/get_tag_cost_center.sql
     SELECT COALESCE(IFF(QUERY_TAG <> '',try_parse_json(QUERY_TAG):"cost_center"::varchar, NULL)
@@ -62,10 +73,10 @@ See folder sample_scripts for a couple of options to help with tagging. Also we 
 ## General Notes:
 Snowflake APPLICATIONS are not tagged in this solution. They are not part of the cost attribution model yet.
 How to see immediate tag results:
-`SELECT SYSTEM$GET_TAG('<DB>.<TAGSCHEMA>.COST_CENTER', 'DBT_ROLE', 'ROLE');`
+`SELECT SYSTEM$GET_TAG('<DB>.<TAGSCHEMA>.COST_CENTER', '<Role Name>', 'ROLE');`
 
 In this solution, we use delayed telemetry data from Snowflake database for performance & cost reasons. If you need immediate results, you can use the SYSTEM$GET_TAG function to see the immediate results.:
-`SELECT * FROM TABLE(SNOWFLAKE.ACCOUNT_USAGE.TAG_REFERENCES_WITH_LINEAGE('<DB>.<TAGSCHEMA>.COST_CENTER')) WHERE OBJECT_NAME = 'DBT_ROLE';`
+`SELECT * FROM TABLE(SNOWFLAKE.ACCOUNT_USAGE.TAG_REFERENCES_WITH_LINEAGE('<DB>.<TAGSCHEMA>.COST_CENTER')) WHERE OBJECT_NAME = '<Role Name>';`
 
 ```sql
 --See if existing cost center tag in use (2 hour telemetry delay). Just FYI, code will not re-create, but make sure to point to same db and schema in snowflake.yml to reuse it.
@@ -82,13 +93,13 @@ AS (
    FROM SNOWFLAKE.ORGANIZATION_USAGE.RATE_SHEET_DAILY RS
    WHERE SERVICE_TYPE = 'WAREHOUSE_METERING' --  Alter this to service type data you are joining too.
        AND IS_ADJUSTMENT = FALSE
-       AND ACCOUNT_LOCATOR = CURRENT_ACCOUNT()
+    --    AND ACCOUNT_LOCATOR = CURRENT_ACCOUNT() -- For use with Organizational Accounts.
        AND RS.DATE > (
            SELECT MIN(START_DATE)
            FROM SNOWFLAKE.ORGANIZATION_USAGE.CONTRACT_ITEMS
            WHERE START_DATE <= CURRENT_DATE()
             AND CONTRACT_ITEM IN ('Capacity', 'Additional Capacity')
-            AND NVL(EXPIRATION_DATE, '2999-01-01') > END_DATE
+            AND EXPIRATION_DATE IS NOT NULL
            )
     GROUP BY DATE
 
@@ -232,7 +243,7 @@ Passwords will not be allowed as Snowflake moves to more trusted connections, so
 Create a new connection with SSO for Account Admin role rights we need for initial setup or use service account and key pair authentication.
 
 ```bash
-# Add to connections.toml you the platform admin, a human user with Accountadmin role and SSO connection (change as required):
+# Add to connections.toml you the platform admin, a human user with Accountadmin role and SSO connection (example below will use SSO):
 [platformadmin]
 account = "ORGNAME-ACCOUNTNAME"
 user = "USERNAME"
@@ -242,17 +253,16 @@ role = "ACCOUNTADMIN"
 ```
 
 
-
 ### Optional: If you want to use a service account for deploying:
-Next we need to create a FinOps service account. We show below how to create RSA key and create user with it.
+Next we need to create a FinOps service account. We show below how to create RSA key compatible with Snowflake and create user with it.
 
 ```bash
-# MacOS commands to create a Stronger key *necessary* for Terraform than our docs show (4096 vs 2048 and aes-256-cbc vs des3).
+# MacOS commands:
 cd ~
 mkdir .ssh
 chmod 700 ~/.ssh/
 cd .ssh\
-openssl genrsa 4096 | openssl pkcs8 -topk8 -v2 aes-256-cbc -inform PEM -out rsa_key_finopsadmin.p8
+openssl genrsa 2048 | openssl pkcs8 -topk8 -v2 aes-256-cbc -inform PEM -out rsa_key_finopsadmin.p8
 # enter password: somegoodpassphrasehere
 openssl rsa -in rsa_key_finopsadmin.p8 -pubout -out rsa_key_finopsadmin.pub
 # enter password: somegoodpassphrasehere  # with copy and paste hit enter twice.
@@ -261,17 +271,17 @@ openssl rsa -in rsa_key_finopsadmin.p8 -pubout -out rsa_key_finopsadmin.pub
 cat rsa_key_finopsadmin.pub
 cat rsa_key_finopsadmin.p8
 
-# On a PC
+# On a PC commands:
 cd $Home
 mkdir .ssh
 cd .ssh\
-openssl genrsa 4096 | openssl pkcs8 -topk8 -v2 aes-256-cbc -inform PEM -out rsa_key_finopsadmin.pem
+openssl genrsa 2048 | openssl pkcs8 -topk8 -v2 aes-256-cbc -inform PEM -out rsa_key_finopsadmin.pem
 # enter password: somegoodpassphrasehere
 openssl rsa -in rsa_key_finopsadmin.pem -pubout -out rsa_key_finopsadmin.pub
 # enter password: somegoodpassphrasehere
 
 
-# Add to connections.toml the Finops Admin connection string:
+# Add to connections.toml the FinOps Admin connection string:
 [finopsadmin]
 account = "ORGNAME-ACCOUNTNAME"
 user = "FINOPS_ADMIN_USER"
@@ -356,7 +366,7 @@ cat account/procedures/*.sql | snow sql -i -c finopsadmin
 cat org_v1/views/*.sql | snow sql -i -c finopsadmin
 
 # Streamlit apps RBAC
-snow sql -c finopsadmin -f streamlit/00_db_ar.sql
+snow sql -c platformadmin -f streamlit/00_db_ar.sql
 
 # Tagging Streamlit app
 snow sql -c finopsadmin -f streamlit/finops_tag/deploy/db_objects.sql
@@ -364,6 +374,7 @@ snow sql -c finopsadmin -f streamlit/finops_tag/deploy/task_object_mapping_proc.
 snow streamlit deploy tag_app -c finopsadmin --replace
 
 # Usage Streamlit app
+snow sql -c finopsadmin -f streamlit/finops_usage/deploy/db_objects.sql
 snow streamlit deploy usage_app -c finopsadmin --replace
 
 
@@ -376,24 +387,23 @@ Optional use for Organizational Accounts only.
 
 ```bash
 # Accountadmin Role:
-snow sql -f org_v2/account_level_scripts/00_security_and_db_setup.sql
+snow sql -c platformadmin -f org_v2/orgv2_level_scripts/00_orgv2_security_and_db_setup.sql
 # Delegated Admin Role:
-snow sql -f org_v2/account_level_scripts/01_tagging_module_create_db_schema_role.sql
-snow sql -f org_v2/account_level_scripts/02_cost_per_query_automation.sql
-snow sql -f org_v2/account_level_scripts/03_table_storage_detailed_task.sql
+snow sql -c finopsadmin -f org_v2/orgv2_level_scripts/01_orgv2_tagging_module_create_db_schema_role.sql
+snow sql -c finopsadmin -f org_v2/orgv2_level_scripts/02_orgv2_cost_per_query_automation.sql
+snow sql -c finopsadmin -f org_v2/orgv2_level_scripts/03_orgv2_table_storage_detailed_task.sql
 
 # These object scripts assume connection is connecting to the created db and schema and using delegated admin:
-snow sql -f core/functions/get_tag_cost_center.sql
+snow sql -c finopsadmin -f core/functions/get_tag_cost_center.sql
 
-cat org_v2/tables/*.sql | snow sql -i
-cat org_v2/views/*.sql | snow sql -i
-cat org_v2/procedures/*.sql | snow sql -i
+cat org_v2/tables/*.sql | snow sql -i -c finopsadmin
+cat org_v2/views/*.sql | snow sql -i -c finopsadmin
+cat org_v2/procedures/*.sql | snow sql -i -c finopsadmin
 ```
 
 
 ### File Hierarchy
 ```
-.
 ├── CHANGELOG.md
 ├── LEGAL.md
 ├── LICENSE.txt
@@ -416,6 +426,10 @@ cat org_v2/procedures/*.sql | snow sql -i
 │       ├── compute_and_qas_cc_currency_day.sql
 │       ├── compute_and_qas_wh_cc_credits_day.sql
 │       ├── compute_and_qas_wh_cc_currency_day.sql
+│       ├── cortex_analyst_cc_credits_day.sql
+│       ├── cortex_fine_tuning_cc_token_credits_day.sql
+│       ├── cortex_function_cc_token_credits_day.sql
+│       ├── cortex_search_cc_credits_day.sql
 │       ├── logging_events_cc_credits_day.sql
 │       ├── materialized_view_cc_credits_day.sql
 │       ├── query_acceleration_cc_credits_day.sql
@@ -435,13 +449,15 @@ cat org_v2/procedures/*.sql | snow sql -i
 │   ├── 01_tagging_module_create_db_schema_role.sql
 │   ├── 02_cost_per_query_automation.sql
 │   ├── 03_table_storage_detailed_task.sql
-│   └── 04_hybrid_storage_detailed_task.sql
-├── core
-│   ├── functions
-│   │   └── get_tag_cost_center.sql
+│   ├── 04_hybrid_storage_detailed_task.sql
+│   ├── 05_task_enable_disable.sql
 │   └── user_creation
 │       ├── alter_user_set_rsakey.sql
+│       ├── alter_user_set_wh.sql
 │       └── create_user.sql
+├── core
+│   └── functions
+│       └── get_tag_cost_center.sql
 ├── org_v1
 │   └── views
 │       ├── orgv1_account_currency_day.sql
@@ -485,27 +501,28 @@ cat org_v2/procedures/*.sql | snow sql -i
 │       └── org_table_recreation_schema_count_day.sql
 ├── sample_scripts
 │   ├── apply_tag_import.sql
+│   ├── comparison_cost_per_query_methods.sql
 │   ├── cortex
 │   │   ├── orgv2_storage_forecast_model.sql
 │   │   └── storage_forecast_model.sql
 │   └── tagging_module_create_tags.sql
 ├── snowflake.yml
-└── streamlit
-    ├── finops_tag
-    │   ├── db_objects.sql
-    │   ├── stage
-    │   │   └── streamlit_main.py
-    │   └── task_object_mapping_proc.sql
-    ├── finops_usage
-    │   ├── finops_app_setup.sql
-    │   └── stage
-    │       ├── bug-sno-blue.png
-    │       ├── compute_qas_cost_attribution.py
-    │       ├── environment.yml
-    │       ├── serverless_compute_optimization.py
-    │       ├── storage_cost_attribution.py
-    │       └── streamlit_main.py
-    └── finops_usage_sis_app_objects.sql
+├── streamlit
+│   ├── 00_db_ar.sql
+│   ├── finops_tag
+│   │   ├── deploy
+│   │   │   ├── db_objects.sql
+│   │   │   └── task_object_mapping_proc.sql
+│   │   ├── environment.yml
+│   │   └── streamlit_main.py
+│   └── finops_usage
+│       ├── bug-sno-blue.png
+│       ├── compute_qas_cost_attribution.py
+│       ├── environment.yml
+│       ├── serverless_compute_optimization.py
+│       ├── storage_cost_attribution.py
+│       └── streamlit_main.py
+└── 
 ```
 
 ### Testing access after install

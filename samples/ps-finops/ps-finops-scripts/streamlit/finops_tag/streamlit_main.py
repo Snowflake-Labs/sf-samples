@@ -12,13 +12,13 @@ st.set_page_config(layout="wide")
 # Write directly to the app
 st.title(":blue[FINOPS TAGGING]")
 
-with open('finops_tag/snowflake.yml', 'r') as f:
+with open('snowflake.yml', 'r') as f:
     config = yaml.load(f, Loader=yaml.SafeLoader).get('env')
 
 fqn_tag = '.'.join([config.get('finops_sis_db'),config.get('finops_sis_tag_sc'), config.get('finops_tag_name')])
 
-username = st.experimental_user.user_name
-email = st.experimental_user.email
+username = st.user.user_name
+email = st.user.email
 welcome_message = f"Welcome:  {username}"
 st.write(welcome_message)
 st.write(fqn_tag)

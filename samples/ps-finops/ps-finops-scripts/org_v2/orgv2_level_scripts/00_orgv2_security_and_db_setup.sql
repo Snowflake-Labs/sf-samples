@@ -185,10 +185,19 @@ GRANT DATABASE ROLE OBJECT_VIEWER TO ROLE <% ctx.env.finops_viewer_role %>;
 GRANT DATABASE ROLE OBJECT_VIEWER TO ROLE <% ctx.env.finops_db_admin_role %>;
 GRANT DATABASE ROLE USAGE_VIEWER TO ROLE <% ctx.env.finops_viewer_role %>;
 GRANT DATABASE ROLE USAGE_VIEWER TO ROLE <% ctx.env.finops_db_admin_role %>;
-GRANT DATABASE ROLE ORGANIZATION_BILLING_VIEWER TO ROLE <% ctx.env.finops_viewer_role %>;
-GRANT DATABASE ROLE ORGANIZATION_BILLING_VIEWER TO ROLE <% ctx.env.finops_db_admin_role %>;
-GRANT DATABASE ROLE ORGANIZATION_USAGE_VIEWER TO ROLE <% ctx.env.finops_viewer_role %>;
-GRANT DATABASE ROLE ORGANIZATION_USAGE_VIEWER TO ROLE <% ctx.env.finops_db_admin_role %>;
+
+USE ROLE GLOBALORGADMIN;
+
+GRANT APPLICATION ROLE ORGANIZATION_USAGE_VIEWER TO ROLE <% ctx.env.finops_viewer_role %>;
+GRANT APPLICATION ROLE ORGANIZATION_USAGE_VIEWER TO ROLE <% ctx.env.finops_db_admin_role %>;
+GRANT APPLICATION ROLE ORGANIZATION_BILLING_VIEWER TO ROLE <% ctx.env.finops_viewer_role %>;
+GRANT APPLICATION ROLE ORGANIZATION_BILLING_VIEWER TO ROLE <% ctx.env.finops_db_admin_role %>;
+
+GRANT APPLICATION ROLE ORGANIZATION_GOVERNANCE_VIEWER TO ROLE <% ctx.env.finops_viewer_role %>;
+GRANT APPLICATION ROLE ORGANIZATION_GOVERNANCE_VIEWER TO ROLE <% ctx.env.finops_db_admin_role %>;
+
+GRANT APPLICATION ROLE ORGANIZATION_OBJECT_VIEWER TO ROLE <% ctx.env.finops_viewer_role %>;
+GRANT APPLICATION ROLE ORGANIZATION_OBJECT_VIEWER TO ROLE <% ctx.env.finops_db_admin_role %>;
 
 -- Optional: Account level setting to allow delegated admin ability to start any Snowflake task:
 -- GRANT EXECUTE TASK ON ACCOUNT TO ROLE <% ctx.env.finops_db_admin_role %>;

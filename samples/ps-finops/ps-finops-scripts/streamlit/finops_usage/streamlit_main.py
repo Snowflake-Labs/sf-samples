@@ -197,7 +197,7 @@ def main():
         st.session_state['download_export'] = {}
 
     # Database, schema
-    with open('finops_usage/snowflake.yml', 'r') as f:
+    with open('snowflake.yml', 'r') as f:
         config = yaml.load(f, Loader=yaml.SafeLoader).get('env')
 
     db_name = config.get('finops_sis_db')

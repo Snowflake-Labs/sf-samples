@@ -41,7 +41,8 @@ def app():
         config = yaml.load(f, Loader=yaml.SafeLoader).get('env')
 
     db_name = config.get('finops_sis_db')
-    schema_name = config.get('finops_sis_usage_sc')
+    schema_name = config.get('finops_acct_schema')
+    costcenter_schema_name = config.get('finops_sis_usage_sc')
 
     # View list - update to dynamically build dfs
     ac_cost_center_vw = 'AUTOCLUSTERING_SCHEMA_CURRENCY_DAY'
@@ -64,7 +65,7 @@ def app():
 
     cost_center_tbl = 'COSTCENTER'
 
-    cost_center_df = get_df(_session, db_name, schema_name, cost_center_tbl)
+    cost_center_df = get_df(_session, db_name, costcenter_schema_name, cost_center_tbl)
 
     # Page Level filters
     filters = st.expander("**Page-Level Filters** :twisted_rightwards_arrows:", expanded=False)

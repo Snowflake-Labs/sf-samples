@@ -1,24 +1,26 @@
 definition_version: 2 # Keep this value as is - higher versions expect Native App deployments.
 
 env:
-  finops_admin_user:        "%FINOPS_ADMIN_USER%" # Env variable value if username is an email address. This is for finops admin - the service account used to connect to accounts and create objects except the cost_center tag itself.
-  # finops_admin_user:        YOURUSERNAME # User name for finops admin if not using email address for username - the service account used to connect to accounts and create objects except the cost_center tag itself.
-  finops_db_admin_role:     SYSADMIN # Functional role that can create databases and warehouses along with their respective FinOps objects.
-  finops_tag_admin_role:    SYSADMIN # Functional role used to create the tag if it does not exist and apply tags as it will have global apply tag rights.
+  # Use one of the next two lines for finops admin user based on email use or not.
+  # finops_admin_user:        "%FINOPS_ADMIN_USER%" # Env variable value if username is an email address. This is for finops admin - the service account used to connect to accounts and create objects except the cost_center tag itself.
+  finops_admin_user:        FINOPS_ADMIN_USER # User name for finops admin if not using email address for username - the service account used to connect to accounts and create objects except the cost_center tag itself.
+  finops_db_admin_role:     FINOPS_ADMIN # Functional role that can create databases and warehouses along with their respective FinOps objects.
+  finops_tag_admin_role:    FINOPS_ADMIN # Functional role used to create the tag if it does not exist and apply tags as it will have global apply tag rights.
   finops_viewer_role:       FINOPS_VIEWER # Functional role used to grant select rights on objects for read only reporting.
   wh_creation_role:         SYSADMIN # Functional role used to create warehouses.
-  admin_wh:                 ADMIN_XSMALL # Existing or will be created XS warehouse for deployment of this code
-  finops_acct_db:           FINOPS # Database name for finops objects
+  admin_wh:                 XSMALL # Existing or will be created XS warehouse for deployment of this code
+  finops_acct_db:           FINOPS_DB # Database name for finops objects
   finops_acct_schema:       FINOPS_ACCOUNT # Schema name for finops objects
-  finops_tag_db:            FINOPS # Database name for tag objects used in finops.
+  finops_tag_db:            FINOPS_DB # Database name for tag objects used in finops.
   finops_tag_schema:        FINOPS_ACCOUNT # Schema name for tag objects used in finops.
   finops_tag_name:          COST_CENTER # Tag name used in finops.
   # For Streamlit apps install
-  finops_sis_user:          FINOPS_SIS_USER # Streamlit app user
-  finops_sis_admin:         FINOPS_SIS_ADMIN # Streamlit app admin
-  finops_sis_db:            APP # Streamlit app database for both tagging and usage apps
+  finops_sis_user:          FINOPS_ADMIN # Streamlit app user
+  finops_sis_admin:         FINOPS_ADMIN # Streamlit app admin
+  finops_sis_db:            FINOPS_DB # Streamlit app database for both tagging and usage apps
   finops_sis_tag_sc:        TAG # Streamlit Tagging app schema location
   finops_sis_usage_sc:      USAGE # Streamlit Usage app schema location
+  rsa_public_key:           "%RSA_PUB_KEY%" # Env variable value for RSA public key.
 
 entities:
   tag_app:
