@@ -46,6 +46,7 @@ def app():
 
     db_name = config.get('finops_acct_db')
     schema_name = config.get('finops_acct_schema')
+    costcenter_schema_name = config.get('finops_sis_usage_sc')
 
     # View list - update to dynamically build dfs
     compute_qas_cost_center_vw = 'COMPUTE_AND_QAS_CC_CURRENCY_DAY'
@@ -59,7 +60,7 @@ def app():
 
     cost_center_tbl = 'COSTCENTER'
 
-    cost_center_df = get_df(_session, db_name, schema_name, cost_center_tbl)
+    cost_center_df = get_df(_session, db_name, costcenter_schema_name, cost_center_tbl)
 
     # Page Level filters
     filters = st.expander("**Page-Level Filters** :twisted_rightwards_arrows:", expanded=False)
@@ -126,25 +127,13 @@ def app():
 
         # Initialize sample data
         if qas_cost_center_df.empty:
-            data = [
-                    {
-                        'Datetime': pd.to_datetime(['2024-09-15','2024-09-15','2024-09-16','2024-09-16','2024-09-17','2024-09-17','2024-09-18','2024-09-18','2024-09-19','2024-09-19']),
-                        'string':['PS', 'FINANCE','PS', 'FINANCE','PS', 'FINANCE'],
-                        'int':[5,3,3,1,10,3,4,1,9,2],
-                    }
-                    # ['2024-09-15', 'PS', 5],
-                    # ['2024-09-15', 'FINANCE', 3],
-                    # ['2024-09-16', 'PS', 3],
-                    # ['2024-09-16', 'FINANCE', 1],
-                    # ['2024-09-17', 'PS', 10],
-                    # ['2024-09-17', 'FINANCE', 3],
-                    # ['2024-09-18', 'PS', 4],
-                    # ['2024-09-18', 'FINANCE', 1],
-                    # ['2024-09-19', 'PS', 9],
-                    # ['2024-09-19', 'FINANCE', 2],
-                   ]
+            data = {
+                'DAY': ['2024-09-15','2024-09-15','2024-09-16','2024-09-16','2024-09-17','2024-09-17','2024-09-18','2024-09-18','2024-09-19','2024-09-19'],
+                'COST_CENTER': ['PS', 'FINANCE','PS', 'FINANCE','PS', 'FINANCE','PS', 'FINANCE','PS', 'FINANCE'],
+                'QAS_COST_CURRENCY': [5,3,3,1,10,3,4,1,9,2]
+            }
 
-            qas_cost_center_df = pd.DataFrame(data, columns=['DAY', 'COST_CENTER','QAS_COST_CURRENCY'])
+            qas_cost_center_df = pd.DataFrame(data)
 
         qas_cost_center_df["DAY"] = pd.to_datetime(qas_cost_center_df["DAY"]).dt.date
 

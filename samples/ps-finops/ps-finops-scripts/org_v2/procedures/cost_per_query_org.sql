@@ -1,36 +1,39 @@
 USE ROLE <% ctx.env.finops_db_admin_role%>;
 USE DATABASE <% ctx.env.finops_acct_db %>;
 USE SCHEMA <% ctx.env.finops_acct_schema %>;
+
 CREATE OR REPLACE PROCEDURE COST_PER_QUERY_ORG()
  RETURNS VARCHAR
  LANGUAGE SQL
  COMMENT = 'Procedure to allocate warehouse costs to individual queries'
  EXECUTE AS OWNER
 AS
+$$
 /*****
 Purpose: Provide *APPROXIMATE* per query cost for you to join with team information (you provide) to inform teams on their spend with Warehouse Compute and Query Acceleration Service costs.
 
 What is provided: This procedure stores per query cost allocation since its last run for compute and includes Query Acceleration Service costs in its own column.
-This procedure was created before Snowflake had a per query cost allocation feature. Once that is GA, please update the proc to use it as this proc is a rough approximation.
-
+This procedure was created before Snowflake had a per query cost allocation feature. The new QUERY_ATTRIBUTION_HISTORY view does provide a cost per query, but leaves out 
+warehouse idle time as an exercise for you. 
 How:
 It does an incremental load of query history and warehouse metering history and allocates the credits for that hour and warehouse across
 the queries using warehouse compute based on query execution time. It evenly distributes the cost across all execution time for that hour using the metering history
-dollar amount. Basically, it linearly adds up all the execution time, figures out each queries total percent of the hour's total time * WH server count
+dollar amount. Basically, it linearly adds up all the execution time, figures out each queries total percent of the hour's total time * WH server count * Query Load Percentage
 using native Snowflake function, ratio_to_report. Similar process for QAS time.
 
-Limitations: Since we don't have per cluster cost metrics, in multi-cluster implementations (MCW), we are averaging across all the warehouses, which could not be fair for small time frames like a day, but hopefully with the law of averages, over say a week's period in well-used environments, this should be fine. Also, in highly concurrent environments with short and long running jobs, the concurrent queries get a larger percentage of the cost if we could calculate that, but we can't, so wait for new per query cost feature if this seems to be an issue.
+Limitations: Since we don't have per cluster cost metrics, in multi-cluster implementations (MCW), we are averaging across all the warehouses, which could not be fair for small time frames like a day, but hopefully with the law of averages, over say a week's period in well-used environments, this should be fine. Also, in highly concurrent environments with short and long running jobs, the concurrent queries get a larger percentage of the cost. So, if you need higher precision use QUERY_ATTRIBUTION_HISTORY and figure out a way to charge for idle time.
 
 Revision:
 2024/08/12 CL Update for ORG 2.0 preview. QAS data is at daily grain, so removed it for now.
 2025/04/03 CL Added filter to exclude queries on Snowflake Compute Service.
+2025/05/20 CL Added CALL statements and incorporated query_load_percent into warehouse_weight and table output
 ******/
 
 DECLARE 
     START_TIME_RANGE TIMESTAMP_LTZ;
     END_TIME_RANGE TIMESTAMP_LTZ;
-    MINIMUM_LAG NUMBER DEFAULT 4; --end_time should be more than 4 hours past because of latency in organization_usage.warehouse_metering_history. Check query_cost_checks.sql for data validation.
-    LOOKBACK_HOURS NUMBER DEFAULT 24 ; --number of hours before end_time_range to delete and re-process to make sure no queries were missed and to reprocess queries that may have still been running. 
+    MINIMUM_LAG NUMBER DEFAULT 4; --end_time should be more than 4 hours past because of latency in organization_usage.warehouse_metering_history. 
+    LOOKBACK_HOURS NUMBER DEFAULT 24 ;  --Change to your longest running query time to reprocess data to capture long running queries that would have been missed.
     ROWCOUNT NUMBER;
 
 BEGIN
@@ -44,7 +47,7 @@ WHERE PARAMETER_NAME = 'org_query_start_time';
 --decrease start_time range by lookback hours so that we reprocess the lookback time range
 START_TIME_RANGE :=  DATEADD('HOURS',-LOOKBACK_HOURS,START_TIME_RANGE);
 
-DELETE FROM SF_CREDITS_BY_QUERY
+DELETE FROM SF_CREDITS_BY_QUERY_ORG
 WHERE START_SLICE >= :START_TIME_RANGE;
 
 ROWCOUNT := (SELECT DATEDIFF('HOUR', :START_TIME_RANGE, :END_TIME_RANGE));
@@ -69,6 +72,7 @@ CREATE OR REPLACE TEMPORARY TABLE TEMP_SF_QUERY_HISTORY AS
 SELECT
     Q.ACCOUNT_NAME,
     Q.ACCOUNT_LOCATOR,
+    Q.REGION,
     Q.QUERY_ID,
     Q.START_TIME,
     Q.END_TIME,
@@ -86,7 +90,8 @@ SELECT
     Q.WAREHOUSE_ID,
     Q.WAREHOUSE_SIZE,
     Q.WAREHOUSE_TYPE,
-    W.WAREHOUSE_WEIGHT,
+    CASE WHEN Q.QUERY_TYPE = 'CALL' THEN 1/8::NUMBER(32,4) ELSE NVL(QUERY_LOAD_PERCENT,100)/100 * W.WAREHOUSE_WEIGHT END AS WAREHOUSE_WEIGHT, --1 cpu for CALL queries and factor WH node count into weight value.
+    Q.QUERY_LOAD_PERCENT,
     Q.CLUSTER_NUMBER,
     Q.QUERY_ACCELERATION_BYTES_SCANNED AS QAS_BYTES_USED,
     Q.TOTAL_ELAPSED_TIME,
@@ -105,10 +110,8 @@ WHERE
     START_TIME < :END_TIME_RANGE
     AND END_TIME >= :START_TIME_RANGE
     AND WAREHOUSE_NAME NOT LIKE 'COMPUTE_SERVICE%' --Snowflake compute service use that is visible, but already billed by services it supports.
-    AND QUERY_TYPE <> 'CALL'--Ignore proc calls as minimal cpu is used and duplicates child queries exec time if compute is used.
     AND NOT (QUERY_TYPE = 'SELECT' AND BYTES_SCANNED = 0) --info schema queries we can ignore as mostly CS time 
-    -- additionally remove execute immediate's as their child queries will have exec time similar to CALL queries.
-    AND WAREHOUSE_SIZE IS NOT NULL --Exclude queries that fail compilation and are just cloud services use.
+    AND Q.WAREHOUSE_SIZE IS NOT NULL --Exclude queries that fail compilation or are just cloud services use.
     ;
 
 
@@ -136,6 +139,7 @@ INSERT INTO SF_CREDITS_BY_QUERY_ORG (
     WAREHOUSE_SIZE,
     WAREHOUSE_TYPE,
     WAREHOUSE_WEIGHT,
+    QUERY_LOAD_PERCENT,
     CLUSTER_NUMBER,
     QAS_BYTES_USED,
     TOTAL_ELAPSED_TIME,
@@ -145,7 +149,7 @@ INSERT INTO SF_CREDITS_BY_QUERY_ORG (
     ELAPSED_TIME_RATIO,
     ALLOCATED_CREDITS_USED,
     ALLOCATED_CREDITS_USED_COMPUTE,
-    ALLOCATED_CREDITS_USED_CLOUD_SERVICES
+    ALLOCATED_CREDITS_USED_CLOUD_SERVICES,
     -- , ALLOCATED_CREDITS_USED_QAS
     )
 WITH SF_WAREHOUSE_METERING_HISTORY AS(
@@ -174,6 +178,7 @@ WITH SF_WAREHOUSE_METERING_HISTORY AS(
     SELECT
         QH.ACCOUNT_NAME,
         QH.ACCOUNT_LOCATOR,
+        QH.REGION,
         QH.QUERY_ID,
         QH.QUERY_TYPE,
         QH.QUERY_TEXT,
@@ -190,6 +195,7 @@ WITH SF_WAREHOUSE_METERING_HISTORY AS(
         QH.WAREHOUSE_SIZE,
         QH.WAREHOUSE_TYPE,
         QH.WAREHOUSE_WEIGHT,
+        QH.QUERY_LOAD_PERCENT,
         QH.CLUSTER_NUMBER,
         QH.QAS_BYTES_USED,
         QH.START_TIME,
@@ -205,8 +211,8 @@ WITH SF_WAREHOUSE_METERING_HISTORY AS(
             LEAST(DD.END_SLICE, QH.END_TIME)
         ) AS DERIVED_ELAPSED_TIME_MS,
         --Add WH weight to help with same hour size changes
-        RATIO_TO_REPORT(DERIVED_ELAPSED_TIME_MS::NUMBER(38, 0)*QH.WAREHOUSE_WEIGHT) OVER (PARTITION BY QH.ACCOUNT_LOCATOR, QH.WAREHOUSE_ID, DD.START_SLICE) AS ELAPSED_TIME_RATIO,
-		RATIO_TO_REPORT(QAS_BYTES_USED) OVER (PARTITION BY QH.ACCOUNT_LOCATOR, QH.WAREHOUSE_ID, DD.START_SLICE) AS QAS_RATIO
+        RATIO_TO_REPORT(DERIVED_ELAPSED_TIME_MS::NUMBER(38, 0)*QH.WAREHOUSE_WEIGHT) OVER (PARTITION BY QH.ACCOUNT_LOCATOR, QH.REGION, QH.WAREHOUSE_ID, DD.START_SLICE) AS ELAPSED_TIME_RATIO,
+		RATIO_TO_REPORT(QAS_BYTES_USED) OVER (PARTITION BY QH.ACCOUNT_LOCATOR, QH.REGION, QH.WAREHOUSE_ID, DD.START_SLICE) AS QAS_RATIO
     FROM
         TEMP_SF_QUERY_HISTORY QH
     JOIN TEMP_TIME_SLICE_BY_INTERVAL DD              
@@ -240,6 +246,7 @@ SELECT
     Q.WAREHOUSE_SIZE,
     Q.WAREHOUSE_TYPE,
     Q.WAREHOUSE_WEIGHT,
+    Q.QUERY_LOAD_PERCENT,
     Q.CLUSTER_NUMBER,
     Q.QAS_BYTES_USED,
     Q.TOTAL_ELAPSED_TIME,
@@ -253,7 +260,9 @@ SELECT
     -- ZEROIFNULL(QAS_RATIO * WMH.CREDITS_USED_QAS) AS ALLOCATED_CREDITS_USED_QAS
 FROM
     SF_WAREHOUSE_METERING_HISTORY WMH
-LEFT JOIN QUERIES_BY_TIME_SLICE Q ON WMH.WAREHOUSE_ID = Q.WAREHOUSE_ID AND WMH.ACCOUNT_LOCATOR = Q.ACCOUNT_LOCATOR
+LEFT JOIN QUERIES_BY_TIME_SLICE Q ON WMH.WAREHOUSE_ID = Q.WAREHOUSE_ID 
+    AND WMH.ACCOUNT_LOCATOR = Q.ACCOUNT_LOCATOR 
+    AND WMH.REGION = Q.REGION
     AND Q.START_SLICE >= WMH.START_TIME 
     AND Q.START_SLICE < DATEADD('HOUR',1,WMH.START_TIME)
 ORDER BY WMH.START_TIME
@@ -281,5 +290,5 @@ EXCEPTION
                             'SQLSTATE', SQLSTATE);
 
 END --END OF PROC
+$$
 ; 
-

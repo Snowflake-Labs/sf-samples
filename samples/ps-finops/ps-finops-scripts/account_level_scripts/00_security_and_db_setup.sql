@@ -40,6 +40,7 @@ BEGIN
         EXECUTE IMMEDIATE 'CREATE ROLE IF NOT EXISTS <% ctx.env.finops_db_admin_role %>';
         EXECUTE IMMEDIATE 'GRANT ROLE <% ctx.env.finops_db_admin_role %> TO ROLE SYSADMIN'; -- OPTIONAL: Give the db admin role to the SYSADMIN role
     END IF;
+    EXECUTE IMMEDIATE 'GRANT ROLE <% ctx.env.finops_db_admin_role %> TO USER ' ||CURRENT_USER(); -- Give the current user the db admin role
 END;
 $$;
 
@@ -192,3 +193,6 @@ GRANT DATABASE ROLE ORGANIZATION_USAGE_VIEWER TO ROLE <% ctx.env.finops_db_admin
 
 -- Optional: Account level setting to allow delegated admin ability to start any Snowflake task:
 -- GRANT EXECUTE TASK ON ACCOUNT TO ROLE <% ctx.env.finops_db_admin_role %>;
+
+-- Grant ability to create serverless tasks on the account:
+GRANT EXECUTE MANAGED TASK ON ACCOUNT TO ROLE <% ctx.env.finops_db_admin_role %>;
