@@ -23,13 +23,15 @@ Transform ad campaign performance by analyzing image content alongside tradition
 ### [CPG Promotion Management](./cpg_promption_management/)
 **AI-powered promotion and feedback analysis for consumer goods**
 
-Unlock ROI from trade promotions by extracting actionable insights from customer feedback, social posts, and call center notes using Snowflake AI SQL. This use case demonstrates how to:
+Unlock ROI from trade promotions by extracting actionable insights from customer feedback, social posts, and call center notes using AISQL. This use case demonstrates how to:
 - Create synthetic tables for promotions and feedback
-- Filter and classify feedback with AI SQL functions
+- Filter and classify feedback with AISQL functions
 - Analyze sentiment and summarize campaign performance
 - Detect competitor activity and generate improved marketing copy
 
 Retail and CPG teams can leverage these techniques to optimize promotional spend, boost compliance, and drive real-time campaign improvements—all directly in SQL.
+
+
 ### [Healthcare Analytics](./healthcare_multimodal_analytics/)
 **Multimodal healthcare data processing**
 
