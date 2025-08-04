@@ -15,15 +15,27 @@ Demonstrate how Snowflake's marketing team uses AISQL to analyze, cleanse, and e
 
 Process large volumes of unstructured customer reviews to identify product issues, analyze sentiment, and automate response generation. This solution helps e-commerce companies understand customer concerns, prioritize product improvements, and scale customer service operations.
 
-### [Healthcare Analytics](./healthcare_multimodal_analytics/)
-**Multimodal healthcare data processing**
-
-Analyze diverse healthcare data including medical images, transcripts, and audio recordings using AI-powered SQL functions. This comprehensive solution supports clinical decision making, enhances population health management, and improves operational efficiency in healthcare organizations.
-
 ### [Ad Campaign Analytics](./ads_image_analytics/)
 **Image-based advertising optimization**
 
 Transform ad campaign performance by analyzing image content alongside traditional metrics. This solution demonstrates image classification, content-based filtering, tagline generation, and sentiment analysis—all using familiar SQL syntax without switching between specialized tools.
+
+### [CPG Promotion Management](./cpg_promption_management/)
+**AI-powered promotion and feedback analysis for consumer goods**
+
+Unlock ROI from trade promotions by extracting actionable insights from customer feedback, social posts, and call center notes using AISQL. This use case demonstrates how to:
+- Create synthetic tables for promotions and feedback
+- Filter and classify feedback with AISQL functions
+- Analyze sentiment and summarize campaign performance
+- Detect competitor activity and generate improved marketing copy
+
+Retail and CPG teams can leverage these techniques to optimize promotional spend, boost compliance, and drive real-time campaign improvements—all directly in SQL.
+
+
+### [Healthcare Analytics](./healthcare_multimodal_analytics/)
+**Multimodal healthcare data processing**
+
+Analyze diverse healthcare data including medical images, transcripts, and audio recordings using AI-powered SQL functions. This comprehensive solution supports clinical decision making, enhances population health management, and improves operational efficiency in healthcare organizations.
 
 ### [Financial Service Equity Research](./financial_service_equity_research/)
 **Automated financial document analysis and insight extraction**
