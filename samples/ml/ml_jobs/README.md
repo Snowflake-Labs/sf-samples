@@ -8,7 +8,7 @@ from any environment. This solution allows you to:
 - Leverage GPU and high-memory CPU instances for resource-intensive tasks
 - Use your preferred development environment (VS Code, external notebooks, etc.)
 - Maintain flexibility with custom dependencies and packages
-- (PuPr) Scale workloads across multiple nodes effortlessly
+- Scale workloads across multiple nodes effortlessly
 
 Whether you're looking to productionize your ML workflows or prefer working in
 your own development environment, Snowflake ML Jobs provides the same powerful
@@ -120,7 +120,7 @@ job2 = submit_directory(
 job3 = submit_from_stage(
     "@test_stage/path/to/repo/",
     compute_pool,
-    entrypoint="@test_stage/path/to/repo/my_script.py",
+    entrypoint="@test_stage/path/to/repo/my_script.py", # support relative path, e.g. my_script.py
     stage_name="payload_stage",
     args=["arg1", "arg2"],  # (Optional) args are passed to script as-is
 )
@@ -129,6 +129,48 @@ job3 = submit_from_stage(
 
 `job1`, `job2` and `job3` are job handles, see [Function Dispatch](#function-dispatch)
 for usage examples.
+
+### Support additional payloads
+When submitting a file, directory, or from a stage, you can also specify additional payloads to be included in the job execution. 
+In addition to the payload location, you must also specify the import path used in the code.
+> Note: currently, only directories can be specified as import sources. Importing individual files is not supported.
+
+```python
+from snowflake.ml.jobs import submit_file, submit_directory, submit_from_stage
+
+job1 = submit_file(
+    "/path/to/repo/my_script.py",
+    compute_pool,
+    stage_name="payload_stage",
+    args=["arg1", "--arg2_key", "arg2_value"],  
+    additional_payloads=[
+      ("src/utils/", "utils"), # The import path is utils
+    ],
+)
+
+
+job2 = submit_directory(
+    "/path/to/repo/",
+    compute_pool,
+    entrypoint="my_script.py",
+    stage_name="payload_stage",
+    args=["arg1", "arg2"], 
+    additional_payloads=[
+      ("src/utils/"), # The import path is src.utils
+    ],
+)
+
+job3 = submit_from_stage(
+    "@test_stage/path/to/repo/",
+    compute_pool,
+    entrypoint="@test_stage/path/to/repo/my_script.py",
+    stage_name="payload_stage",
+    args=["arg1", "arg2"], 
+    additional_payloads=[
+      ("@source_stage/src/utils/sub_utils/", "utils.sub_utils"), # The import path is utils.sub_utils
+    ],
+)
+```
 
 ### Accessing Snowflake from an ML Job
 
@@ -312,7 +354,7 @@ job3 = submit_directory(
 )
 ```
 
-### Multi-Node Capabilities (PuPr)
+### Multi-Node Capabilities
 
 ML Jobs also support running distributed machine learning workloads across [multiple nodes](https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/distributed-ml-jobs),
 allowing you to:
