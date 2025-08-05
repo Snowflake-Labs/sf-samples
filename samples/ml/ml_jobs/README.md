@@ -130,9 +130,11 @@ job3 = submit_from_stage(
 `job1`, `job2` and `job3` are job handles, see [Function Dispatch](#function-dispatch)
 for usage examples.
 
-### Support additional payloads
-When submitting a file, directory, or from a stage, you can also specify additional payloads to be included in the job execution. 
-In addition to the payload location, you must also specify the import path used in the code.
+### Supporting Additional Payloads in Submissions
+
+When submitting a file, directory, or from a stage, additional payloads are supported for use during job execution.
+The import path can be specified explicitly; otherwise, it is inferred from the payload location.
+
 > Note: currently, only directories can be specified as import sources. Importing individual files is not supported.
 
 ```python
