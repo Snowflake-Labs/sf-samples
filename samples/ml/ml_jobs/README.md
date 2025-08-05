@@ -120,7 +120,16 @@ job2 = submit_directory(
 job3 = submit_from_stage(
     "@test_stage/path/to/repo/",
     compute_pool,
-    entrypoint="@test_stage/path/to/repo/my_script.py", # support relative path, e.g. my_script.py
+    entrypoint="@test_stage/path/to/repo/my_script.py", 
+    stage_name="payload_stage",
+    args=["arg1", "arg2"],  # (Optional) args are passed to script as-is
+)
+
+# Support a relative path in the entrypoint when submitting a job from an existing stage
+job4 = submit_from_stage(
+    "@test_stage/path/to/repo/",
+    compute_pool,
+    entrypoint="my_script.py", # the relative path to the source
     stage_name="payload_stage",
     args=["arg1", "arg2"],  # (Optional) args are passed to script as-is
 )
@@ -133,7 +142,7 @@ for usage examples.
 ### Supporting Additional Payloads in Submissions
 
 When submitting a file, directory, or from a stage, additional payloads are supported for use during job execution.
-The import path can be specified explicitly; otherwise, it is inferred from the payload location.
+The import path can be specified explicitly; otherwise, it will be inferred from the location of the additional payload.
 
 > Note: currently, only directories can be specified as import sources. Importing individual files is not supported.
 
