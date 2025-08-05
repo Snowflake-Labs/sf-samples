@@ -142,7 +142,7 @@ for usage examples.
 ### Supporting Additional Payloads in Submissions
 
 When submitting a file, directory, or from a stage, additional payloads are supported for use during job execution.
-The import path can be specified explicitly; otherwise, it will be inferred from the location of the additional payload.
+The import path can be specified explicitly; otherwise, the name of the addtional payload will be used as the import path.
 
 > Note: currently, only directories can be specified as import sources. Importing individual files is not supported.
 
@@ -167,7 +167,7 @@ job2 = submit_directory(
     stage_name="payload_stage",
     args=["arg1", "arg2"], 
     additional_payloads=[
-      ("src/utils/"), # The import path is src.utils
+      ("src/utils/"), # The import path is utils
     ],
 )
 
