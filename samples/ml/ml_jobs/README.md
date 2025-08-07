@@ -370,6 +370,11 @@ Examples showcasing how ML Jobs can be integrated with workflow/DAG frameworks l
 
 ## Known Limitations
 
+1. ML Job submission from inside stored procedures will fail with
+    `TypeError: SnowflakeCursor.execute() got an unexpected keyword argument '_force_qmark_paramstyle`
+    when using `snowflake-ml-python>=1.9.0,<1.11.0`.
+    This will be fixed in `snowflake-ml-python>=1.11.0`,
+    please pin stored procedures to `snowflake-ml-python<1.9.0` for now.
 1. ML Jobs currently only supports Python 3.10. Attempting to use
 other Python versions may throw unexpected errors like `UnpicklingError` or `TypeError`.
 1. Job submission may fail with `Failed to retrieve image <image_name> from the image repository`

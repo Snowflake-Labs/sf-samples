@@ -341,7 +341,7 @@ def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -
         schedule=schedule,
         use_func_return_value=True,
         stage_location=DAG_STAGE,
-        packages=["snowflake-snowpark-python", "snowflake-ml-python", "xgboost"],
+        packages=["snowflake-snowpark-python", "snowflake-ml-python<1.9.0", "xgboost"],  # NOTE: Temporarily pinning to <1.9.0 due to compatibility issues
         config={
             "dataset_name": "mortgage_dataset",
             "model_name": "mortgage_model",
