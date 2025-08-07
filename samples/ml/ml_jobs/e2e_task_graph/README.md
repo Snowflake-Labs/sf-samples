@@ -54,9 +54,8 @@ EXECUTE TASK ON ACCOUNT TO ROLE ENGINEER;
   from Task Graph executions.
     1. Option 1: Email notifications
         1. [Verify the email addresses](https://docs.snowflake.com/en/user-guide/notifications/email-notifications#label-email-notification-verify-address)
-          of intended notification recipients
+            of intended notification recipients
         2. [Create the email notification integration](https://docs.snowflake.com/en/user-guide/notifications/email-notifications#label-create-email-notification-integration)
-
             ```sql
             SET user_email = (SELECT EMAIL FROM SNOWFLAKE.ACCOUNT_USAGE.USERS WHERE NAME = CURRENT_USER());
             CREATE OR REPLACE NOTIFICATION INTEGRATION DEMO_NOTIFICATION_INTEGRATION
@@ -66,16 +65,14 @@ EXECUTE TASK ON ACCOUNT TO ROLE ENGINEER;
                 ENABLED=TRUE;
             GRANT USAGE ON INTEGRATION DEMO_NOTIFICATION_INTEGRATION TO ROLE ENGINEER;
             ```
-
     2. Option 2: Webhook notifications (e.g. Slack, Teams)
         1. Create a webhook with your desired notification channel (e.g. [Slack Webhook](https://api.slack.com/messaging/webhooks))
         2. Configure notification integration with your webhook
-
             ```sql
             CREATE SECRET IF NOT EXISTS DEMO_WEBHOOK_SECRET
                 TYPE = GENERIC_STRING
                 SECRET_STRING = 'T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'; -- (ACTION NEEDED) Put your webhook secret here
-            CREATE NOTIFICATION INTEGRATION IF NOT EXISTS DEMO_NOTIFICATION_INTEGRATION
+            CREATE OR REPLACE NOTIFICATION INTEGRATION DEMO_NOTIFICATION_INTEGRATION
                 TYPE=WEBHOOK
                 ENABLED=TRUE
                 WEBHOOK_URL='https://hooks.slack.com/services/SNOWFLAKE_WEBHOOK_SECRET'
