@@ -52,22 +52,38 @@ EXECUTE TASK ON ACCOUNT TO ROLE ENGINEER;
 5. (Optional) Configure a [notification integration](https://docs.snowflake.com/en/user-guide/notifications/webhook-notifications)
   to enable [sending notifications](https://docs.snowflake.com/en/user-guide/notifications/snowflake-notifications)
   from Task Graph executions.
-   1. Create a webhook with your desired notification channel (e.g. [Slack Webhook](https://api.slack.com/messaging/webhooks))
-   2. Configure notification integration with your webhook
+    1. Option 1: Email notifications
+        1. [Verify the email addresses](https://docs.snowflake.com/en/user-guide/notifications/email-notifications#label-email-notification-verify-address)
+          of intended notification recipients
+        2. [Create the email notification integration](https://docs.snowflake.com/en/user-guide/notifications/email-notifications#label-create-email-notification-integration)
 
-    ```sql
-    CREATE SECRET IF NOT EXISTS DEMO_WEBHOOK_SECRET
-    TYPE = GENERIC_STRING
-    SECRET_STRING = 'T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'; -- (ACTION NEEDED) Put your webhook secret here
-    CREATE NOTIFICATION INTEGRATION IF NOT EXISTS DEMO_WEBHOOK_INTEGRATION
-    TYPE=WEBHOOK
-    ENABLED=TRUE
-    WEBHOOK_URL='https://hooks.slack.com/services/SNOWFLAKE_WEBHOOK_SECRET'
-    WEBHOOK_SECRET=DEMO_WEBHOOK_SECRET
-    WEBHOOK_BODY_TEMPLATE='{"text": "SNOWFLAKE_WEBHOOK_MESSAGE"}'
-    WEBHOOK_HEADERS=('Content-Type'='application/json');
-    GRANT USAGE ON INTEGRATION DEMO_WEBHOOK_INTEGRATION TO ROLE ENGINEER;
-    ```
+            ```sql
+            SET user_email = (SELECT EMAIL FROM SNOWFLAKE.ACCOUNT_USAGE.USERS WHERE NAME = CURRENT_USER());
+            CREATE OR REPLACE NOTIFICATION INTEGRATION DEMO_NOTIFICATION_INTEGRATION
+                TYPE=EMAIL
+                DEFAULT_RECIPIENTS = ($user_email)
+                DEFAULT_SUBJECT = 'Model Training Status'
+                ENABLED=TRUE;
+            GRANT USAGE ON INTEGRATION DEMO_NOTIFICATION_INTEGRATION TO ROLE ENGINEER;
+            ```
+
+    2. Option 2: Webhook notifications (e.g. Slack, Teams)
+        1. Create a webhook with your desired notification channel (e.g. [Slack Webhook](https://api.slack.com/messaging/webhooks))
+        2. Configure notification integration with your webhook
+
+            ```sql
+            CREATE SECRET IF NOT EXISTS DEMO_WEBHOOK_SECRET
+                TYPE = GENERIC_STRING
+                SECRET_STRING = 'T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'; -- (ACTION NEEDED) Put your webhook secret here
+            CREATE NOTIFICATION INTEGRATION IF NOT EXISTS DEMO_NOTIFICATION_INTEGRATION
+                TYPE=WEBHOOK
+                ENABLED=TRUE
+                WEBHOOK_URL='https://hooks.slack.com/services/SNOWFLAKE_WEBHOOK_SECRET'
+                WEBHOOK_SECRET=DEMO_WEBHOOK_SECRET
+                WEBHOOK_BODY_TEMPLATE='{"text": "SNOWFLAKE_WEBHOOK_MESSAGE"}'
+                WEBHOOK_HEADERS=('Content-Type'='application/json');
+            GRANT USAGE ON INTEGRATION DEMO_NOTIFICATION_INTEGRATION TO ROLE ENGINEER;
+            ```
 
 ### Local Setup
 
