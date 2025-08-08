@@ -125,11 +125,11 @@ job3 = submit_from_stage(
     args=["arg1", "arg2"],  # (Optional) args are passed to script as-is
 )
 
-# Support a relative path in the entrypoint when submitting a job from an existing stage
+# Entrypoint may also be a relative path
 job4 = submit_from_stage(
     "@test_stage/path/to/repo/",
     compute_pool,
-    entrypoint="my_script.py", # the relative path to the source
+    entrypoint="my_script.py", # Resolves to @source_stage/ml_project/train.py
     stage_name="payload_stage",
     args=["arg1", "arg2"],  # (Optional) args are passed to script as-is
 )
