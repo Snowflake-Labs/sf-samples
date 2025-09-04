@@ -27,6 +27,11 @@ variable "c_zone" {
   description = "Zone within the region (example value: us-east4-b)"
 }
 
+variable "d_ssh_cidr" {
+  type        = string
+  description = "CIDR that will be allowed for SSH connections to the machine, e.g., 203.0.113.45/32"
+}
+
 resource "google_compute_network" "snowflake_pl_cn" {
   name                    = "snowflake-pl-network"
   auto_create_subnetworks = true
@@ -78,7 +83,7 @@ resource "google_compute_firewall" "allow_ssh" {
   }
 
   target_tags   = ["snowflake-pl-https-server"]
-  source_ranges = ["YOUR_LOCAL_MACHINE_IP/32"] #CHANGEME: Replace with your local machine IP, e.g., "203.0.113.45/32"
+  source_ranges = [var.d_ssh_cidr]
 }
 
 resource "google_compute_firewall" "snowflake_pl_allow_https" {
