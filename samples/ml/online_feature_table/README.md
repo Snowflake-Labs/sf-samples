@@ -23,17 +23,15 @@ from snowflake.ml.feature_store.entities import FeatureView
 
 fs = FeatureStore()
 
-online_cfg = OnlineConfig(enabled=True, target_lag="30 seconds")
-
 fv = FeatureView(
     name="MY_FV",
-    entities=[...],                # one or more entities with join keys
-    feature_df=my_df,              # Snowpark DataFrame with feature transforms
+    entities=[...],              # one or more entities with join keys
+    feature_df=my_df,            # Snowpark DataFrame with feature transforms
     timestamp_col="ts",          # optional
-    refresh_freq="5 minutes",    # offline refresh cadence
+    refresh_freq="5 minutes",    # offline features refresh cadence
     refresh_mode="AUTO",         # AUTO | FULL | INCREMENTAL
     desc="example feature view",
-    online_config=online_cfg,
+    online_config=OnlineConfig(enabled=True, target_lag="30 seconds"),
 )
 
 # Read online features for one or more keys
@@ -75,7 +73,8 @@ ALTER ONLINE FEATURE TABLE MY_ONLINE_FT REFRESH;
 
 - To create: `CREATE ONLINE FEATURE TABLE` on schema, `USAGE` on database/schema/warehouse, and `SELECT` on the source.
 - To query: `USAGE` on database/schema/warehouse and `SELECT` on the online feature table.
-- To operate/alter: `OPERATE` (or `OWNERSHIP`); to view metadata: `MONITOR`.
+- To operate/alter: `OPERATE` (or `OWNERSHIP`).
+- To view metadata: `MONITOR`.
 
 ## Notes
 
