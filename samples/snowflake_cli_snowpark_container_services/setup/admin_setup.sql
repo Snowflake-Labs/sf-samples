@@ -9,11 +9,6 @@ CREATE OR REPLACE WAREHOUSE tutorial_warehouse WITH
   WAREHOUSE_SIZE='X-SMALL';
 GRANT USAGE ON WAREHOUSE tutorial_warehouse TO ROLE test_role;
 
-CREATE SECURITY INTEGRATION IF NOT EXISTS snowservices_ingress_oauth
-  TYPE=oauth
-  OAUTH_CLIENT=snowservices_ingress
-  ENABLED=true;
-
 GRANT BIND SERVICE ENDPOINT ON ACCOUNT TO ROLE test_role;
 
 CREATE COMPUTE POOL tutorial_compute_pool
