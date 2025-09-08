@@ -55,7 +55,7 @@ The solution leverages several Snowflake Cortex AI-SQL functions:
 7. Install the free Snowflake Marketplace [S&P 500 sample ticker data](https://app.snowflake.com/marketplace/listing/GZT1ZA3NHF/similarweb-ltd-s-p-500-by-domain-and-aggregated-by-tickers-sample?search=S%26P+500) dataset in your Snowflake account(s)
     - grant imported privileges to the public role (or an equivalent role)
 
-> See []() for an example of how to set up these prerequisites using SQL commands.
+> See [financial_service_equity_research_setup.sql](./financial_service_equity_research_setup.sql) for an example of how to set up these prerequisites using SQL commands.
 
 ## Usage / Implementation Steps
 
