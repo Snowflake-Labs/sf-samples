@@ -1,9 +1,12 @@
+-- -----------------------------------------------------------------------
+-- SET session variables for lab resources
+-- -----------------------------------------------------------------------
 SET lab_db = 'ai_sql_team_db';
 SET lab_schema = 'ai_sql_team_db.se_sample_data';
 SET lab_stage = 'equitydocs';
 SET lab_warehouse = 'ai_sql_team_wh';
 SET lab_role = 'ai_sql_team_role';
-SET lab_user = 'dgillis';
+SET lab_user = 'your_user_name';  -- replace with your user name
 
 -- use sysadmin role to create lab resources
 USE ROLE sysadmin;
@@ -60,10 +63,11 @@ GRANT ROLE IDENTIFIER($lab_role) TO ROLE accountadmin;
 -- -----------------------------------------------------------------------
 -- ROLE to USER Grants
 -- -----------------------------------------------------------------------
-GRANT ROLE IDENTIFIER($lab_role) TO USER your_username;
+GRANT ROLE IDENTIFIER($lab_role) TO USER IDENTIFIER($lab_user);
 
 -- -----------------------------------------------------------------------
 -- Upload the Equity research PDFs to the Snowflake Stage
 -- -----------------------------------------------------------------------
--- It's easiest to do this in the Snowflake UI, if you want to do it from the command line, you can use the following command:
-snow stage copy "/Users/your_username/Documents/dev/github/sf-samples/samples/aisql/financial_service_equity_research/data/*.pdf" @ai_sql_team_db.se_sample_data.equitydocs --connection your_connection_name
+-- It's easiest to do this in the Snowflake UI, if you want to do it from the command line,
+-- you can use the following command (make sure to replace the path and connection name):
+snow stage copy "/path/to/the/repo/sf-samples/samples/aisql/financial_service_equity_research/data/*.pdf" @ai_sql_team_db.se_sample_data.equitydocs --connection your_connection_name
