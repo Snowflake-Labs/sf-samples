@@ -126,6 +126,22 @@ streamlit run frontend_app.py
 
 ### Email Example
 
+> Dear Valued Customer,  
+> We have reviewed your insurance claim filed on February 14, 2025, under a policy ending June 18, 2025.  
+> Based on the submitted documents and assessment, your claim has been accepted.  
+> Thank you for choosing our services.
+
+---
+
+## Planned Enhancements
+
+- Add PDF summary export
+- Audit log for claims
+- Docker/Streamlit Cloud deployment support
+- Agent-specific logs and scoring
+
+---
+
 ```text
 Dear Valued Customer,
 
