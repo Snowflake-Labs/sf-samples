@@ -1,6 +1,6 @@
-USE ROLE <% ctx.env.finops_db_admin_role%>;
-USE DATABASE <% ctx.env.finops_acct_db %>;
-USE SCHEMA <% ctx.env.finops_acct_schema %>;
+use role <% ctx.env.finops_db_admin_role %>;
+use database <% ctx.env.finops_acct_db %>;
+use schema <% ctx.env.finops_acct_schema %>;
 CREATE OR REPLACE VIEW SERVERLESS_TASK_CC_CREDITS_DAY COMMENT = 'Title: Serverless Task Usage by Cost Center per day. Description: Analyze serverless task credit costs by cost center per day.'
 AS
 SELECT

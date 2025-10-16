@@ -1,8 +1,8 @@
 
 -- Create schema to hold table storage metrics on a daily basis.
-USE ROLE <% ctx.env.finops_db_admin_role%>;
-USE DATABASE <% ctx.env.finops_acct_db %>;
-USE SCHEMA <% ctx.env.finops_acct_schema %>;
+use role <% ctx.env.finops_db_admin_role %>;
+use database <% ctx.env.finops_acct_db %>;
+use schema <% ctx.env.finops_acct_schema %>;
 
 CREATE TRANSIENT TABLE TABLE_STORAGE_DETAILED IF NOT EXISTS (
     TABLE_ID NUMBER(38, 0),

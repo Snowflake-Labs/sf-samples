@@ -14,8 +14,7 @@ env:
   finops_tag_db:            FINOPS_DB # Database name for tag objects used in finops.
   finops_tag_schema:        FINOPS_ACCOUNT # Schema name for tag objects used in finops.
   finops_tag_name:          COST_CENTER # Tag name used in finops.
-  # For Streamlit apps install
-  finops_sis_user:          FINOPS_ADMIN # Streamlit app user
+  # For Streamlit apps installation
   finops_sis_admin:         FINOPS_ADMIN # Streamlit app admin
   finops_sis_db:            FINOPS_DB # Streamlit app database for both tagging and usage apps
   finops_sis_tag_sc:        TAG # Streamlit Tagging app schema location

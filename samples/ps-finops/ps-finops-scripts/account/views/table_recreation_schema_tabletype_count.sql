@@ -1,6 +1,6 @@
-USE ROLE <% ctx.env.finops_db_admin_role%>;
-USE DATABASE <% ctx.env.finops_acct_db %>;
-USE SCHEMA <% ctx.env.finops_acct_schema %>;
+use role <% ctx.env.finops_db_admin_role %>;
+use database <% ctx.env.finops_acct_db %>;
+use schema <% ctx.env.finops_acct_schema %>;
 CREATE OR REPLACE VIEW TABLE_RECREATION_SCHEMA_TABLETYPE_COUNT COMMENT = 'Title: Table Recreation Counts by Schema and Table Type. Description: Analyze tables that are recreated by schema.'
 AS
 WITH MAX_DATE

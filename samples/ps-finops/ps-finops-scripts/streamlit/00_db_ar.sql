@@ -28,17 +28,10 @@ $$;
 
 GRANT USAGE ON WAREHOUSE <% ctx.env.admin_wh %> TO ROLE <% ctx.env.finops_sis_admin %>;
 
---Create data viewer role for finops and Snowflake use
-CREATE ROLE IF NOT EXISTS <% ctx.env.finops_sis_user %>;
-
---Give the viewer role to the db admin role
-GRANT ROLE <% ctx.env.finops_sis_user %> TO ROLE <% ctx.env.finops_sis_admin %>;
-
 
 --Give current user ability to use these new delegated roles.
 GRANT ROLE <% ctx.env.finops_sis_admin %> TO USER identifier($curr_user) ;
 GRANT ROLE <% ctx.env.finops_sis_admin %> TO USER <% ctx.env.finops_admin_user %> ;
-GRANT ROLE <% ctx.env.finops_sis_user %> TO USER identifier($curr_user) ;
 
 
 -- Switch back to delegated admin
@@ -117,7 +110,6 @@ GRANT USAGE ON FUTURE STREAMLITS IN SCHEMA IDENTIFIER($fqn_schema) TO DATABASE R
 GRANT DATABASE ROLE IDENTIFIER($sarR) TO DATABASE ROLE IDENTIFIER($sarW);  -- the Write role inherits all the privileges of the Read role, so no need to duplicate the grants
 GRANT DATABASE ROLE IDENTIFIER($sarW) TO DATABASE ROLE IDENTIFIER($sarC);  -- the Create role inherits all the privileges of the Write role, so no need to duplicate the grants
 GRANT DATABASE ROLE IDENTIFIER($sarA) TO ROLE <% ctx.env.finops_viewer_role %>;
-GRANT DATABASE ROLE IDENTIFIER($sarA) TO ROLE <% ctx.env.finops_sis_user %>;
 GRANT DATABASE ROLE IDENTIFIER($sarC) TO ROLE <% ctx.env.finops_sis_admin %>;
 
 -- USAGE APP SCHEMA RBAC SETUP
@@ -188,7 +180,6 @@ GRANT USAGE ON FUTURE STREAMLITS IN SCHEMA IDENTIFIER($fqn_schema) TO DATABASE R
 GRANT DATABASE ROLE IDENTIFIER($sarR) TO DATABASE ROLE IDENTIFIER($sarW);  -- the Write role inherits all the privileges of the Read role, so no need to duplicate the grants
 GRANT DATABASE ROLE IDENTIFIER($sarW) TO DATABASE ROLE IDENTIFIER($sarC);  -- the Create role inherits all the privileges of the Write role, so no need to duplicate the grants
 GRANT DATABASE ROLE IDENTIFIER($sarA) TO ROLE <% ctx.env.finops_viewer_role %>;
-GRANT DATABASE ROLE IDENTIFIER($sarA) TO ROLE <% ctx.env.finops_sis_user %>;
 GRANT DATABASE ROLE IDENTIFIER($sarC) TO ROLE <% ctx.env.finops_sis_admin %>;
 
 -- Grant usage of finops data.
