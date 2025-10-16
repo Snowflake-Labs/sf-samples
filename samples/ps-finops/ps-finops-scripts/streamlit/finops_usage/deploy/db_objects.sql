@@ -1,4 +1,3 @@
-
 use role <% ctx.env.finops_sis_admin %>;
 use database <% ctx.env.finops_sis_db %>;
 use schema <% ctx.env.finops_sis_usage_sc %>;
