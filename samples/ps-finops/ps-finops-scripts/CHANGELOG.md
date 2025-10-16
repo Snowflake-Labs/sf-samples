@@ -3,6 +3,9 @@
 ## Future ToDo:
  - COSTCENTER table exists in each of the Streamlit app schemas, should we centralize it?
 
+## [1.3.1] - 2025-10-10
+ - Deployment code and security script fixes for Streamlit apps
+
 ## [1.3] - 2025-07-18
  - Map to warehouse_id instead of name in tag_references join in case of name changes and performance.
  - Bug fixes for Streamlit apps not working.
