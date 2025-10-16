@@ -1,44 +1,34 @@
-# ML Jobs (PrPr)
+# ML Jobs
 
-Snowflake ML Jobs enables you to run machine learning workloads inside Snowflake
+[Snowflake ML Jobs](https://docs.snowflake.com/developer-guide/snowflake-ml/ml-jobs/overview)
+enable you to run machine learning workloads inside Snowflake
 [ML Container Runtimes](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml)
 from any environment. This solution allows you to:
 
 - Leverage GPU and high-memory CPU instances for resource-intensive tasks
 - Use your preferred development environment (VS Code, external notebooks, etc.)
 - Maintain flexibility with custom dependencies and packages
-- (Coming soon) Scale workloads across multiple nodes effortlessly
+- Scale workloads across multiple nodes effortlessly
 
 Whether you're looking to productionize your ML workflows or prefer working in
 your own development environment, Snowflake ML Jobs provides the same powerful
-capabilities available in Snowflake Notebooks in a more flexible, integration-friendly
-format.
+capabilities available in Snowflake Notebooks in a more flexible,
+integration-friendly format.
+
+See the [Examples](#examples) section to find end-to-end examples of using ML Jobs.
 
 ## Setup
 
 The Runtime Job API (`snowflake.ml.jobs`) API is available in
-`snowflake-ml-python>=1.7.4`. For multi-node capabilities, you'll need 
-`snowflake-ml-python>=1.8.2`.
+`snowflake-ml-python>=1.9.0`.
 
 ```bash
-pip install snowflake-ml-python>=1.8.2
+pip install snowflake-ml-python>=1.9.0
 ```
 
 > NOTE: The Runtime Job API currently only supports Python 3.10.
   Attempting to use the API with a different Python version may yield
   unexpected errors.
-
-The Runtime Job API jobs requires the `ENABLE_SNOWSERVICES_ASYNC_JOBS`
-to be enabled in your Snowflake account or session.
-
-
-```sql
--- Enable for session
-ALTER SESSION SET ENABLE_SNOWSERVICES_ASYNC_JOBS = TRUE;
-
--- Enable for account (requires ACCOUNTADMIN)
-ALTER ACCOUNT SET ENABLE_SNOWSERVICES_ASYNC_JOBS = TRUE;
-```
 
 ## Getting Started
 
@@ -47,11 +37,14 @@ ALTER ACCOUNT SET ENABLE_SNOWSERVICES_ASYNC_JOBS = TRUE;
 Create a compute pool if you don't already have one ready to use.
 
 ```sql
-CREATE COMPUTE POOL IF NOT EXISTS MY_COMPUTE_POOL -- Customize as desired
+CREATE COMPUTE POOL IF NOT EXISTS DEMO_POOL_CPU -- Customize as desired
     MIN_NODES = 1
     MAX_NODES = 1               -- Increase if more concurrency desired
     INSTANCE_FAMILY = CPU_X64_S -- See https://docs.snowflake.com/en/sql-reference/sql/create-compute-pool
 ```
+
+Your account must have at least one image repository created in order to use Snowflake
+container images. See [Known Limitations](#known-limitations) for more information.
 
 ### Function Dispatch
 
@@ -100,7 +93,7 @@ if __name__ == '__main__':
 ```
 
 ```python
-from snowflake.ml.jobs import submit_file, submit_directory
+from snowflake.ml.jobs import submit_file, submit_directory, submit_from_stage
 
 compute_pool = "MY_COMPUTE_POOL"
 
@@ -121,10 +114,191 @@ job2 = submit_directory(
     stage_name="payload_stage",
     args=["arg1", "arg2"],  # (Optional) args are passed to script as-is
 )
+
+# Submit a job from an existing stage and run its contained entrypoint.
+# This is useful if your code is stored in a Snowflake stage or Git repository.
+job3 = submit_from_stage(
+    "@test_stage/path/to/repo/",
+    compute_pool,
+    entrypoint="@test_stage/path/to/repo/my_script.py", 
+    stage_name="payload_stage",
+    args=["arg1", "arg2"],  # (Optional) args are passed to script as-is
+)
+
+# Entrypoint may also be a relative path
+job4 = submit_from_stage(
+    "@test_stage/path/to/repo/",
+    compute_pool,
+    entrypoint="my_script.py", # Resolves to @source_stage/ml_project/train.py
+    stage_name="payload_stage",
+    args=["arg1", "arg2"],  # (Optional) args are passed to script as-is
+)
+
 ```
 
-`job1` and `job2` are job handles, see [Function Dispatch](#function-dispatch)
+`job1`, `job2` and `job3` are job handles, see [Function Dispatch](#function-dispatch)
 for usage examples.
+
+### Supporting Additional Payloads in Submissions
+
+When submitting a file, directory, or from a stage, additional payloads are supported for use during job execution.
+The import path can be specified explicitly; otherwise, the name of the addtional payload will be used as the import path.
+
+> Note: currently, only directories can be specified as import sources. Importing individual files is not supported.
+
+```python
+from snowflake.ml.jobs import submit_file, submit_directory, submit_from_stage
+
+job1 = submit_file(
+    "/path/to/repo/my_script.py",
+    compute_pool,
+    stage_name="payload_stage",
+    args=["arg1", "--arg2_key", "arg2_value"],  
+    additional_payloads=[
+      ("src/utils/", "utils"), # The import path is utils
+    ],
+)
+
+
+job2 = submit_directory(
+    "/path/to/repo/",
+    compute_pool,
+    entrypoint="my_script.py",
+    stage_name="payload_stage",
+    args=["arg1", "arg2"], 
+    additional_payloads=[
+      ("src/utils/"), # The import path is utils
+    ],
+)
+
+job3 = submit_from_stage(
+    "@test_stage/path/to/repo/",
+    compute_pool,
+    entrypoint="@test_stage/path/to/repo/my_script.py",
+    stage_name="payload_stage",
+    args=["arg1", "arg2"], 
+    additional_payloads=[
+      ("@source_stage/src/utils/sub_utils/", "utils.sub_utils"), # The import path is utils.sub_utils
+    ],
+)
+```
+
+### Accessing Snowflake from an ML Job
+
+ML Jobs are automatically configured with a Snowpark Session in the job context. 
+
+Snowpark Sessions can be passed into an ML Job as an argument using the `snowflake.ml.jobs.remote` decorator.
+> Note: The session argument must either be required or default to None;  Passing a default session instance (e.g., `session=session) is not supported.
+
+```python
+from snowflake.ml.jobs import remote
+from snowflake.snowpark import Session
+
+@remote("MY_COMPUTE_POOL", stage_name="payload_stage")
+def hello_world(session: Session, name: str = "world"):
+    # We recommend importing any needed modules *inside* the function definition
+    from datetime import datetime
+    if session:
+        print(f"current database: {session.get_current_database()}")
+    print(f"{datetime.now()} Hello {name}!")
+```
+
+You can also retrieve the Session instance with the following code:
+
+```python
+# From inside the job payload
+from snowflake.snowpark import Session
+session = Session.builder.getOrCreate()
+
+# Equivalent alternative
+from snowflake.snowpark.context import get_active_session
+session = get_active_session()
+```
+
+Note this should be run from *inside* the ML Job payload, i.e.
+
+```python
+@remote("MY_COMPUTE_POOL", stage_name="MY_PAYLOAD_STAGE")
+def my_ml_job():
+    from snowflake.snowpark import Session
+    session = Session.builder.getOrCreate()
+    ...
+```
+
+### Retrieving Results
+
+You can retrieve the job execution result using the `MLJob.result()` API.
+The API returns the payload's return value or, if execution failed, raises an exception.
+
+> NOTE: File-based jobs may use a special `__return__` variable to return the execution result, 
+otherwise the `.result()` will be `None` on success. See [File-based Dispatch](#file-based-dispatch) for more details.
+
+#### Function Dispatch
+
+```python
+from snowflake.ml.jobs import get_job
+
+job = get_job('MLJOB_00000000_0000_0000_0000_000000000000')
+
+# Blocks until job completion and returns the execution result on success
+# or raises an exception on failure
+result = job.result()
+```
+
+#### File-based Dispatch
+
+```python
+# /path/to/repo/my_script.py
+def main() -> str:
+    return "Hello world"
+
+if __name__ == "__main__":
+    __return__ = main()
+```
+
+```python
+from snowflake.ml.jobs import submit_file, submit_directory, submit_from_stage
+
+# Upload and run a single script
+job = submit_file(
+    "/path/to/repo/my_script.py",
+    "MY_COMPUTE_POOL",
+    stage_name="payload_stage",
+)
+
+result = job.result() # Hello world
+```
+
+### List Jobs
+
+You can retrieve the jobs using the `jobs.list_jobs()` API.
+The API returns a pandas DataFrames containing name, status, message, database_name, schema_name, owner, compute_pool, target_instances, created_time, completed_time
+or, if execution failed, raises an exception.
+
+```python
+from snowflake.ml.jobs import list_jobs
+list_jobs()
+# columns: name, status, message, database_name, schema_name, owner, compute_pool, target_instances, created_time, completed_time
+```
+
+### Job UI in Snowsight
+
+You can monitor current and previous ML Job executions via the new Job UI in Snowsight.
+This provides a centralized view of all your jobs with real-time status updates and detailed execution information.
+
+**Job List View**: Navigate to **Projects** > **Services and Jobs** > **Jobs** to see all your running and completed jobs:
+
+![Job List](images/job-list.png)
+
+**Job Overview**: Click on any job to see detailed information including container status, logs, and execution metrics:
+
+![Job Overview](images/job-overview.png)
+
+The Job UI makes it easy to:
+- Monitor job progress and status
+- View detailed logs and error messages
+- Track resource usage and performance metrics
+- Access job specifications and configuration details
 
 ## Advanced Usage
 
@@ -191,63 +365,23 @@ job3 = submit_directory(
 )
 ```
 
-### Airflow Integration
+### Multi-Node Capabilities
 
-The Runtime Job API can be used in Airflow using the
-[SnowparkOperator](https://airflow.apache.org/docs/apache-airflow-providers-snowflake/stable/operators/snowpark.html).
-
-> NOTE: Make sure `snowflake-ml-python>=1.7.4` is installed in your Airflow worker environment(s)
-
-```python
-import datetime
-from airflow.decorators import dag, task
-from snowflake.ml import remote, submit_file
-
-@dag(start_date=datetime.datetime(2025, 1, 1), schedule="@daily")
-def my_dag():
-    @task.snowpark()
-    def task_from_function():
-        # SnowparkOperator automatically creates a Snowpark Session
-        # which the Runtime Job API can infer from context
-        @remote("HEADLESS_JOB_POOL", stage_name="payload_stage")
-        def my_function():
-            print("Hello world")
-        job = my_function()
-        print("Job %s submitted" % job.id)
-        print("Job %s ended with status %s. Logs:\n" % (job.id, job.wait(), job.get_logs()))
-
-    @task.snowpark()
-    def task_from_file():
-        # SnowparkOperator automatically creates a Snowpark Session
-        # which the Runtime Job API can infer from context
-        job = submit_file(
-            "./my_script.py",
-            "HEADLESS_JOB_POOL",
-            stage_name="payload_stage",
-        )
-        print("Job %s submitted" % job.id)
-        print("Job %s ended with status %s. Logs:\n" % (job.id, job.wait(), job.get_logs()))
-
-    task_from_function()
-    task_from_file()
-
-my_dag()
-```
-
-### Multi-Node Capabilities (PrPr)
-
-ML Jobs (from snowflake-ml-python 1.8.2) now supports multi-node execution, allowing you to:
+ML Jobs also support running distributed machine learning workloads across [multiple nodes](https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/distributed-ml-jobs),
+allowing you to:
 - Scale workloads across multiple compute instances via [Ray](https://docs.ray.io/en/latest/ray-overview/examples.html)
 - Process larger datasets and train more complex models through distributed data connectors and trainers that can efficiently handle data processing and model training across multiple nodes
+- Speed up training through parallelization
 
-To use multi-node capabilities, specify the `num_instances` parameter:
+To use multi-node capabilities, specify the `target_instances` parameter:
 
 ```python
-@remote(compute_pool, stage_name="payload_stage", num_instances=3)
+@remote(compute_pool, stage_name="payload_stage", target_instances=3)
 def my_distributed_function():
     # Your distributed code here
     # Access instance-specific details via Ray
     import ray
+    ray.init(address='auto', ignore_reinit_error=True)
     print(f"Ray nodes: {ray.nodes()}")
 ```
 
@@ -260,41 +394,56 @@ job.get_logs(instance_id=1)  # Node 1
 job.get_logs(instance_id=2)  # Node 2
 ```
 
-See the [Multi-Node Examples](./multi-node/) for detailed examples of distributed workloads.
+## Examples
 
-## Next Steps
+### IDE
 
-- See the [XGBoost Classifier Example](./single-node/xgb-loan-apps/) for a full
-  walkthrough of training and deploying an XGBoost model.
-- See the [PyTorch Classifier Example](./single-node/pytorch-cifar10/) for a full
-  walkthrough of training a PyTorch model with Weights and Biases integration
+Examples showcasing how ML Jobs can be used from an IDE such as VSCode, Cursor, or PyCharm.
+
+- [xgb_classifier](./xgb_classifier) - train a simple XGBoost classifier
+- [pytorch_image_classifier](./pytorch_image_classifier) - train a simple PyTorch model for CIFAR-10
+  image classification. Also demonstrates integration with Weights and Biases for experiment tracking
+- [distributed_xgb_classifier](./distributed_xgb_classifier) - train an XGBoost model using the [Snowflake Container Runtime's distributor APIs](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml#xgboost)
+  for distributed training across multiple nodes 
+
+### Jupyter Notebooks
+
+Examples showcasing how ML Jobs can be used from a notebook environment like Jupyter.
+
+- [xgb_classifier_nb](./xgb_classifier_nb) - train a simple XGBoost classifier
+- [distributed_xgb_classifier_nb](./distributed_xgb_classifier_nb) - train an XGBoost model using the [Snowflake Container Runtime's distributor APIs](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml#xgboost)
+  for distributed training across multiple nodes 
+
+### Pipelines / DAGs
+
+Examples showcasing how ML Jobs can be integrated with workflow/DAG frameworks like Snowflake Task Graphs and Apache Airflow.
+
+- [e2e_task_graph](./e2e_task_graph/) - end-to-end feature engineering and modeling pipeline using Snowflake Task Graph
+- [xgb_classifier_airflow](./xgb_classifier_airflow/) - orchestrate model training and evaluation using Apache Airflow
 
 ## Known Limitations
 
-1. The Headless Runtime currently only supports Python 3.10. Attempting to use 
-other Python versions may throw errors like `UnpicklingError`.
-1. Running a large number of jobs can result in service start failure due to
-`Number of services limit exceeded for the account`. This will be fixed in an upcoming release.
-    - This prevents any kind of SPCS service from starting on the account, including Notebooks and Model Inference
-    - As a temporary workaround, please avoid launching more than 200 concurrent
-    jobs and manually delete completed and failed jobs.
-      ```sql
-      SHOW JOB SERVICES LIKE 'MLJOB%';
-      DROP SERVICE <service_name>;
-      ```
-      ```python
-      from snowflake.ml.jobs import list_jobs, delete_job
-      for row in list_jobs(limit=-1).collect():
-        if row["status"] in {"DONE", "FAILED"}:
-          delete_job(row["id"])
-      ```
-1. Job logs are lost upon compute pool suspension even if the job entity itself has not been deleted.
-This may happen either due to manual suspension `ALTER COMPUTE POOL MY_POOL SUSPEND`
-or auto suspension on idle timeout.
-    - Compute pool auto suspension can be disabled using `ALTER COMPUTE POOL MY_POOL SET AUTO_SUSPEND_SECS = 0`
-    - For more information, see
-      [Compute pool privileges](https://docs.snowflake.com/en/developer-guide/snowpark-container-services/working-with-compute-pool#compute-pool-privileges)
-      and [Compute pool cost](https://docs.snowflake.com/en/developer-guide/snowpark-container-services/accounts-orgs-usage-views#compute-pool-cost)
-1. Job payload stages (specified via `stage_name` param) are not automatically 
-    cleaned up. Please manually clean up  the payload stage(s) to prevent
-    excessive storage costs.
+1. ML Job submission from inside stored procedures will fail with
+    `TypeError: SnowflakeCursor.execute() got an unexpected keyword argument '_force_qmark_paramstyle`
+    when using `snowflake-ml-python>=1.9.0,<1.11.0`.
+    This will be fixed in `snowflake-ml-python>=1.11.0`,
+    please pin stored procedures to `snowflake-ml-python<1.9.0` for now.
+1. ML Jobs currently only supports Python 3.10. Attempting to use
+other Python versions may throw unexpected errors like `UnpicklingError` or `TypeError`.
+1. Job submission may fail with `Failed to retrieve image <image_name> from the image repository`
+if your account has not been properly configured with image registries yet.
+This can be resolved by [creating an image repository](https://docs.snowflake.com/en/sql-reference/sql/create-image-repository)
+anywhere in your account.
+1. Job logs may be subject to delays and may not be immediately available if compute pool has been suspended or the job entity itself has been deleted
+1. ML Jobs are automatically cleaned up after a time-to-live (TTL) of 7 days. However, job payload stages (configured via the `stage_name` parameter) are not automatically cleaned up. Please manually clean up using either the `delete_job()` API or SQL commands. While the job itself will be deleted automatically after TTL, the associated stages still require manual cleanup.
+    
+    ```sql
+    REMOVE <stage_path>
+    ```
+    
+    ```python
+    from snowflake.ml.jobs import list_jobs, delete_job
+    for _, row in list_jobs(limit=-1).iterrows()::
+      if row["status"] in {"DONE", "FAILED"}:
+        delete_job(row["name"])
+    ```

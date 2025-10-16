@@ -1,0 +1,24 @@
+USE ROLE <% ctx.env.finops_db_admin_role%>;
+USE DATABASE <% ctx.env.finops_acct_db %>;
+USE SCHEMA <% ctx.env.finops_acct_schema %>;
+CREATE OR REPLACE VIEW ORG_AUTOCLUSTERING_SCHEMA_CREDITS_DAILY COMMENT = 'Title: Automatic Clustering (AC) Credit Usage by Cost Center. Description: Analyze automatic clustering credits by schema and cost center.'
+AS
+SELECT
+   DATE_TRUNC('DAY', ACH.USAGE_DATE) AS DAY,
+   ach.ACCOUNT_NAME,
+   CONCAT_WS('-', REGION, ach.ACCOUNT_NAME) AS REGION_ACCOUNT_NAME,
+   COALESCE(ts.tag_value, ACH.DATABASE_NAME || '.' || ACH.SCHEMA_NAME) cost_center,
+   ACH.DATABASE_NAME,
+   ACH.SCHEMA_NAME,
+   ROUND(SUM(CREDITS_USED), 2) AS CREDITS_USED_TOTAL,
+   ROUND(SUM(NUM_BYTES_RECLUSTERED) / POWER(2, 30), 1) AS RECLUSTERED_GB,  -- Reclustered Data in GB for this day.
+   ROUND(SUM(NUM_BYTES_RECLUSTERED) / POWER(2, 40), 1) AS RECLUSTERED_TB,  -- Reclustered Data in TB for this day.
+   ROUND(SUM(NUM_ROWS_RECLUSTERED) / POWER(10, 6), 1) AS RECLUSTERED_ROWS_MM  -- How many rows affected by reclustered Data in TB for this day.
+FROM SNOWFLAKE.ORGANIZATION_USAGE.AUTOMATIC_CLUSTERING_HISTORY ACH
+LEFT JOIN SNOWFLAKE.ORGANIZATION_USAGE.TAG_REFERENCES TS
+   ON TS.OBJECT_DATABASE = ACH.DATABASE_NAME
+      AND TS.ACCOUNT_LOCATOR = ACH.ACCOUNT_LOCATOR
+      AND TS.OBJECT_NAME = ACH.SCHEMA_NAME
+      AND TS.TAG_NAME = '<% ctx.env.finops_tag_name %>'
+      AND TS.DOMAIN = 'SCHEMA'
+GROUP BY ALL;

@@ -1,39 +1,33 @@
-
-
----
-
-```markdown
 # Agentic Insurance Claim Processor
 
-This is an end-to-end insurance claim processing application built using agentic AI principles. It processes a driver’s license, a claim form, and a car damage photo through a structured workflow. Each step is handled by an intelligent component: document extraction using Snowflake Cortex Document AI, image and text analysis using Claude (via Amazon Bedrock), policy validation using Snowflake queries, and decision email generation using Mistral. The workflow is managed using LangGraph, simulating how a human agent would evaluate and decide on claims.
+This is an end-to-end insurance claim processing application built using agentic AI principles. It processes a driver’s license, a claim form, and a car damage photo through a structured workflow. Each step is handled by an intelligent component: document extraction using Snowflake Cortex Document AI, image and text analysis using Amazon Nova (via Amazon Bedrock), policy validation using Snowflake queries, and decision email generation using Amazon Nova. The workflow is managed using LangGraph, simulating how a human agent would evaluate and decide on claims.
 
 ---
 
 ## Features
 
-- Extracts data from driver's license, claim form, and car image
-- Uses Snowflake Cortex for structured document field extraction
-- Claude performs car image analysis and cross-document comparison
-- Snowflake is queried for policy details using customer ID
-- Mistral generates professional customer-facing decision emails
-- LangGraph manages workflow step-by-step with full state tracking
+* **Extracts data** from driver's license, claim form, and car image.
+* **Uses Snowflake Cortex Document AI** for structured document field extraction.
+* **Amazon Nova performs image and text analysis** and cross-document comparison.
+* **Snowflake queries** customer records for policy details using customer ID.
+* **Amazon Nova generates professional customer-facing decision emails**.
+* **LangGraph manages the workflow** step-by-step with full state tracking.
 
 ---
 
 ## Tech Stack
 
-| Component       | Tool / Service                          |
-|----------------|------------------------------------------|
-| Workflow Engine | LangGraph (LangChain)                   |
-| Document Parsing| Snowflake Cortex Document AI            |
-| Image + Text AI | Claude 3 Sonnet (via Bedrock)           |
-| Email Generator | Mistral 7B Instruct (via Bedrock)       |
-| Frontend UI     | Streamlit                               |
-| Database        | Snowflake                               |
-| Language        | Python 3.10+                             |
+| Component            | Tool / Service               |
+| -------------------- | ---------------------------- |
+| **Workflow Engine**  | LangGraph (LangChain)        |
+| **Document Parsing** | Snowflake Cortex Document AI |
+| **Image + Text AI**  | Amazon Nova (via Bedrock)    |
+| **Email Generator**  | Amazon Nova (via Bedrock)    |
+| **Frontend UI**      | Streamlit                    |
+| **Database**         | Snowflake                    |
+| **Language**         | Python 3.10+                 |
 
 ---
-
 
 ## Getting Started
 
@@ -71,7 +65,7 @@ SNOWFLAKE_DATABASE=your_database
 SNOWFLAKE_SCHEMA=your_schema
 ```
 
-Or export them directly in terminal:
+Alternatively, export them directly in terminal:
 
 ```bash
 export SNOWFLAKE_ACCOUNT=...
@@ -87,13 +81,33 @@ streamlit run frontend_app.py
 
 ## Workflow Overview
 
-1. Upload documents
-2. Extract driver's license data
-3. Extract claim form data
-4. Analyze car image
-5. Compare fields across all documents
-6. Check if policy is valid for the incident date
-7. Generate final decision email
+1. **Upload Documents**:
+
+   * Upload driver's license, claim form, and car image.
+
+2. **Extract Driver's License Data**:
+
+   * Use Snowflake Cortex Document AI for field extraction.
+
+3. **Extract Claim Form Data**:
+
+   * Process the claim form for relevant details.
+
+4. **Analyze Car Image**:
+
+   * Amazon Nova performs image analysis to assess car damage.
+
+5. **Cross-Document Comparison**:
+
+   * Compare extracted fields from documents (e.g., full name, vehicle color, VIN) for consistency.
+
+6. **Check Policy Validity**:
+
+   * Validate the policy using the customer ID and the incident date.
+
+7. **Generate Final Decision Email**:
+
+   * Amazon Nova generates a personalized email for the customer, detailing the claim decision.
 
 ---
 
@@ -127,3 +141,13 @@ streamlit run frontend_app.py
 - Agent-specific logs and scoring
 
 ---
+
+```text
+Dear Valued Customer,
+
+We have reviewed your insurance claim filed on February 14, 2025, under a policy ending June 18, 2025.
+
+Based on the submitted documents and assessment, your claim has been accepted.
+
+Thank you for choosing our services.
+```

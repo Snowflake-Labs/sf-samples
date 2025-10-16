@@ -1,0 +1,10 @@
+SNOWFLAKE_ACCOUNT=account_locator_or_your_account_name_or_orgname-account_name
+SNOWFLAKE_ACCOUNT_URL=your_account_url_without_https
+SNOWFLAKE_USER=your_user
+SNOWFLAKE_PASSWORD=your_password
+SNOWFLAKE_ROLE=your_role
+SNOWFLAKE_WAREHOUSE=your_warehouse
+SNOWFLAKE_DATABASE=your_database
+SNOWFLAKE_SCHEMA=your_schema
+RSA_PRIVATE_KEY_PATH=path_to_your_key.p8
+PRIVATE_KEY_PASSPHRASE=your_private_key_passphrase

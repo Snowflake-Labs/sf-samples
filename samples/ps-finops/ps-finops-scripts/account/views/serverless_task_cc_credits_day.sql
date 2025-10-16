@@ -1,0 +1,21 @@
+use role <% ctx.env.finops_db_admin_role %>;
+use database <% ctx.env.finops_acct_db %>;
+use schema <% ctx.env.finops_acct_schema %>;
+CREATE OR REPLACE VIEW SERVERLESS_TASK_CC_CREDITS_DAY COMMENT = 'Title: Serverless Task Usage by Cost Center per day. Description: Analyze serverless task credit costs by cost center per day.'
+AS
+SELECT
+   DATE(STH.START_TIME)                            AS DAY,
+   COALESCE(TS.TAG_VALUE, TD.TAG_VALUE, 'UNKNOWN') AS COST_CENTER,
+   'SERVERLESS TASKS'                              AS SERVICE_TYPE,
+   SUM(STH.CREDITS_USED)                           AS CREDITS_USED   -- TOTAL CREDITS USED FOR SERVERLESS TASKS FOR THIS DAY.
+FROM   SNOWFLAKE.ACCOUNT_USAGE.SERVERLESS_TASK_HISTORY STH
+LEFT JOIN SNOWFLAKE.ACCOUNT_USAGE.TAG_REFERENCES TS
+   ON TS.OBJECT_DATABASE = STH.DATABASE_NAME
+   AND TS.OBJECT_NAME = STH.SCHEMA_NAME
+   AND TS.TAG_NAME = '<% ctx.env.finops_tag_name %>'
+   AND TS.DOMAIN = 'SCHEMA'
+LEFT JOIN SNOWFLAKE.ACCOUNT_USAGE.TAG_REFERENCES TD
+   ON TD.OBJECT_DATABASE = STH.DATABASE_NAME
+   AND TD.TAG_NAME = '<% ctx.env.finops_tag_name %>'
+   AND TD.DOMAIN = 'DATABASE'
+GROUP  BY ALL;

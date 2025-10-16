@@ -1,0 +1,10 @@
+                      PROPERTY NAME,VALUE
+
+   Open Catalog Account Locator URL,
+                        S3 Path URI,
+                           Role ARN,
+          Open Catalog IAM User ARN,
+     Snowflake Connection Client ID,
+        Snowflake Connection Secret,
+           STORAGE_AWS_IAM_USER_ARN,
+Spark Connection Client ID & Secret,

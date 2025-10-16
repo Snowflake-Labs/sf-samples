@@ -1,28 +1,25 @@
-# 📁 backend_logic.py (LangGraph – Enhanced Output for UI Display)
 import os
 import re
 import json
 import uuid
 import base64
 import boto3
+import mimetypes
 from datetime import datetime
 from typing import TypedDict, Annotated
 import operator
 
+from dotenv import load_dotenv
 from snowflake.snowpark import Session
-from langchain_core.messages import HumanMessage
-from langchain_community.chat_models import BedrockChat
 from langgraph.graph import StateGraph, START, END
 
-from dotenv import load_dotenv
 load_dotenv()
-
 
 # Constants
 LOCAL_PATH = "/tmp"
 STAGE_NAME = "@doc_ai_stage"
 
-# Load Snowflake credentials securely from environment variables
+# Load Snowflake connection configuration
 conn = {
     "account": os.getenv("SNOWFLAKE_ACCOUNT"),
     "user": os.getenv("SNOWFLAKE_USER"),
@@ -30,15 +27,15 @@ conn = {
     "role": os.getenv("SNOWFLAKE_ROLE"),
     "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
     "database": os.getenv("SNOWFLAKE_DATABASE"),
-    "schema": os.getenv("SNOWFLAKE_SCHEMA")
+    "schema": os.getenv("SNOWFLAKE_SCHEMA"),
 }
 session = Session.builder.configs(conn).create()
 
-# Model setup
-claude = BedrockChat(model_id="us.amazon.nova-lite-v1:0")
-mistral = BedrockChat(model_id="mistral.mistral-7b-instruct-v0:2")
+# Initialize Bedrock runtime client
+bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
 
-# Shared types
+
+# Typed state used by the workflow
 class State(TypedDict):
     dl_path: str
     claim_path: str
@@ -54,7 +51,10 @@ class State(TypedDict):
     email: str
 
 
-def upload_to_stage(file, filename):
+def upload_to_stage(file, filename: str) -> tuple[str, str]:
+    """
+    Uploads a local file to the Snowflake internal stage.
+    """
     local_path = os.path.join(LOCAL_PATH, filename)
     with open(local_path, "wb") as f:
         f.write(file.read())
@@ -62,72 +62,98 @@ def upload_to_stage(file, filename):
     return filename, local_path
 
 
-def upload_all(state: State):
+def upload_all(state: State) -> dict:
+    """
+    Uploads all required documents (DL, claim, car image) to Snowflake stage.
+    """
     files = state.get("files")
-    if not files:
-        raise ValueError("Missing 'files' in workflow state.")
     dl_name, _ = upload_to_stage(files["dl"], f"{uuid.uuid4()}_{files['dl'].name}")
     claim_name, _ = upload_to_stage(files["claim"], f"{uuid.uuid4()}_{files['claim'].name}")
     car_name, car_path = upload_to_stage(files["car"], f"{uuid.uuid4()}_{files['car'].name}")
-    return {
-        "dl_path": dl_name,
-        "claim_path": claim_name,
-        "car_path": car_name,
-        "car_local": car_path,
-        "steps": ["Uploaded"]
-    }
+    return {"dl_path": dl_name, "claim_path": claim_name, "car_path": car_name, "car_local": car_path, "steps": ["Files Uploaded"]}
 
 
-def extract_dl(state: State):
-    path = state["dl_path"]
-    sql = f"SELECT LICENSE_DATA!PREDICT(GET_PRESIGNED_URL(@doc_ai_stage, '{path}'), 1) AS result"
+def extract_dl(state: State) -> dict:
+    """
+    Extracts structured data from the driver's license using Document AI.
+    """
+    sql = f"SELECT LICENSE_DATA!PREDICT(GET_PRESIGNED_URL(@doc_ai_stage, '{state['dl_path']}'), 1) AS result"
     result = json.loads(session.sql(sql).collect()[0]["RESULT"])
-    print("\n🪪 Extracted DL Data:\n", json.dumps(result, indent=2))
-    return {"dl": result, "steps": ["DL Extracted"]}
+    return {"dl": result, "steps": ["Driver's License Extracted"]}
 
 
-def extract_claim(state: State):
-    path = state["claim_path"]
-    sql = f"SELECT CLAIMS_DATA!PREDICT(GET_PRESIGNED_URL(@doc_ai_stage, '{path}'), 3) AS result"
+def extract_claim(state: State) -> dict:
+    """
+    Extracts structured data from the claim form using Document AI and parses additional fields.
+    """
+    sql = f"SELECT CLAIMS_DATA!PREDICT(GET_PRESIGNED_URL(@doc_ai_stage, '{state['claim_path']}'), 3) AS result"
     result = json.loads(session.sql(sql).collect()[0]["RESULT"])
-    for field in ["description", "vehicle"]:
-        text = result.get(field, [{}])[0].get("value", "")
-        match = re.search(r"Color:\s*(.+?)(,|$)", text, re.IGNORECASE)
-        if match:
-            result["vehicle_color"] = [{"value": match.group(1).strip()}]
-            break
-    print("\n📄 Extracted Claim Document Data:\n", json.dumps(result, indent=2))
-    return {"claim": result, "steps": ["Claim Extracted"]}
+
+    # Extract vehicle color from description if available
+    text = result.get("description", [{}])[0].get("value", "")
+    match = re.search(r"Color:\s*(.+?)(,|$)", text, re.IGNORECASE)
+    if match:
+        result["vehicle_color"] = [{"value": match.group(1).strip()}]
+
+    return {"claim": result, "steps": ["Claim Document Extracted"]}
 
 
-def extract_car(state: State):
+def extract_car(state: State) -> dict:
+    """
+    Sends the car image to Bedrock's image reasoning model for analysis.
+    """
     path = state["car_local"]
     ext = path.split(".")[-1]
+    mime_type, _ = mimetypes.guess_type(path)
+    mime_type = mime_type or "image/jpeg"
+
     with open(path, "rb") as f:
         b64_img = base64.b64encode(f.read()).decode("utf-8")
-    prompt = "Analyze the car image and return car type, make and model, visible damage, severity, and color in JSON."
-    msg = [{
-        "role": "user",
-        "content": [
-            {"type": "image", "source": {"type": "base64", "media_type": f"image/{ext}", "data": b64_img}},
-            {"type": "text", "text": prompt}
-        ]
-    }]
-    bedrock = boto3.client(service_name='bedrock-runtime')
-    response = bedrock.invoke_model(
-        body=json.dumps({"anthropic_version": "bedrock-2023-05-31", "max_tokens": 1000, "messages": msg}),
-        modelId='anthropic.claude-3-sonnet-20240229-v1:0')
-    car_result = json.loads(response["body"].read())
-    car_data = json.loads(car_result["content"][0]["text"])
-    print("\n🚘 Extracted Car Image Analysis:\n", json.dumps(car_data, indent=2))
-    return {"car": car_data, "steps": ["Car Analyzed"]}
+
+    payload = {
+        "schemaVersion": "messages-v1",
+        "system": [{"text": "You are a vehicle damage assessment expert. Analyze the image and return structured information."}],
+        "messages": [{
+            "role": "user",
+            "content": [
+                {"image": {"format": ext, "source": {"bytes": b64_img}}},
+                {"text": "Return only this JSON structure: {...}"}
+            ]
+        }],
+        "inferenceConfig": {"maxTokens": 800, "topP": 0.9, "temperature": 0.5}
+    }
+
+    try:
+        response = bedrock.invoke_model(
+            modelId="us.amazon.nova-lite-v1:0",
+            body=json.dumps(payload),
+            contentType="application/json",
+            accept="application/json"
+        )
+        response_body = json.loads(response["body"].read())
+        text_output = response_body.get("output", {}).get("message", {}).get("content", [{}])[0].get("text", "")
+        match = re.search(r"\{\s*\"car_type\".*?\}", text_output, re.DOTALL)
+        car_data = json.loads(match.group(0)) if match else {}
+    except Exception as e:
+        print("Car analysis failed:", e)
+        car_data = {
+            "car_type": "Unknown", "make_and_model": "Unknown", "visible_damage": "Unknown",
+            "color": "Unknown", "severity": "Unknown",
+            "reason": f"Failed to parse image output: {str(e)}"
+        }
+
+    return {"car": car_data, "steps": ["Car Image Analyzed"]}
 
 
-def compare_and_email(state: State):
+def compare_and_email(state: State) -> dict:
+    """
+    Compares the documents and generates a customer-facing email based on damage and policy validation.
+    """
     dl = state["dl"]
     claim = state["claim"]
     car = state["car"]
 
+    # Retrieve customer data from policy view
     customer_id = claim.get("customer_id", [{}])[0].get("value")
     vin_from_db = ""
     policy_end = None
@@ -137,107 +163,100 @@ def compare_and_email(state: State):
             vin_from_db = df.iloc[0]["VEHICLE_NUMBER"]
             policy_end = df.iloc[0]["POLICY_END"]
 
-    prompt = f"""
-You are a document intelligence agent.
+    # Construct comparison prompt
+    comparison_prompt = {
+        "role": "user",
+        "content": [{
+            "text": f"""Compare DL, Claim, and Car analysis for:
+{json.dumps({'dl': dl, 'claim': claim, 'car': car}, indent=2)}
+Customer record VIN: {vin_from_db}
+Return strict JSON comparison of fields: full_name, dl_number, vehicle_color, vin."""
+        }]
+    }
 
-Compare the following fields from three inputs: Driver's License (DL), Claim Document, and Car Image.
-
-Compare these:
-- full_name: DL vs Claim
-- dl_number: DL vs Claim
-- vehicle_color: Car image vs Claim
-- vin: VIN from Claim vs VIN from policy database (Snowflake)
-
-Return strictly the following JSON format (and nothing else):
-
-{{
-  "full_name": {{ "match": true/false, "dl_value": "...", "claim_value": "..." }},
-  "dl_number": {{ "match": true/false, "dl_value": "...", "claim_value": "..." }},
-  "vehicle_color": {{ "match": true/false, "image_value": "...", "claim_value": "..." }},
-  "vin": {{ "match": true/false, "extracted_from_claim": "...", "customer_record_value": "{vin_from_db}" }}
-}}
-
-DL:
-{json.dumps(dl)}
-
-CLAIM:
-{json.dumps(claim)}
-
-CAR:
-{json.dumps(car)}
-"""
-
-    bedrock = boto3.client(service_name='bedrock-runtime')
-    message = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
-    response = bedrock.invoke_model(
-        body=json.dumps({"anthropic_version": "bedrock-2023-05-31", "max_tokens": 2000, "messages": message}),
-        modelId='anthropic.claude-3-sonnet-20240229-v1:0')
+    request_body = {
+        "schemaVersion": "messages-v1",
+        "system": [{"text": "You are a document comparison assistant."}],
+        "messages": [comparison_prompt],
+        "inferenceConfig": {"maxTokens": 1000, "topP": 0.9, "temperature": 0.3}
+    }
 
     try:
-        response_body = json.loads(response["body"].read())
-        content_blocks = response_body.get("content", [])
-        claude_text = ""
-        for block in content_blocks:
-            if block.get("type") == "text":
-                claude_text = block.get("text", "")
-                break
-
-        match = re.search(r"\{.*\}", claude_text, re.DOTALL)
-        if not match:
-            raise ValueError("No valid JSON block found in Claude's response content.")
-        comparison = json.loads(match.group(0))
-
+        response = bedrock.invoke_model(
+            modelId="us.amazon.nova-lite-v1:0",
+            body=json.dumps(request_body),
+            contentType="application/json",
+            accept="application/json"
+        )
+        output_text = json.loads(response["body"].read())["output"]["message"]["content"][0]["text"]
+        match = re.search(r"\{.*\}", output_text, re.DOTALL)
+        comparison = json.loads(match.group(0)) if match else {}
     except Exception as e:
-        print("⚠️ Failed to extract comparison JSON from Claude response:", e)
+        print("Comparison failed:", e)
         comparison = {}
 
-    print("\n✅ Parsed Comparison Data:\n", json.dumps(comparison, indent=2))
-    print("\n📄 Full Claim Data:\n", json.dumps(claim, indent=2))
-    print("\n🪪 Full DL Data:\n", json.dumps(dl, indent=2))
-    print("\n🚘 Full Car Image Analysis:\n", json.dumps(car, indent=2))
-
+    # Claim policy validity
     incident_date = claim.get("incident_date", [{}])[0].get("value")
     incident_date = datetime.strptime(incident_date, "%Y-%m-%d").date() if incident_date else None
     policy_end_date = policy_end.date() if isinstance(policy_end, datetime) else policy_end
-    valid = incident_date and policy_end_date and incident_date <= policy_end_date
-    decision = "✅ Claim Accepted" if valid else "❌ Claim Rejected due to expired policy"
+    decision = "Claim Accepted" if incident_date and policy_end_date and incident_date <= policy_end_date else "Claim Rejected due to expired policy"
 
-    mistral_prompt = f"""
-Write a short professional email to a customer summarizing their insurance claim review.
-
-Comparison:
-{json.dumps(comparison, indent=2)}
-
+    # Generate summary email
+    email_prompt = {
+        "role": "user",
+        "content": [{
+            "text": f"""Summarize insurance claim review:
+Comparison: {json.dumps(comparison, indent=2)}
 Incident Date: {incident_date}
 Policy End: {policy_end_date}
 Decision: {decision}
-"""
-    email = mistral.invoke([HumanMessage(content=mistral_prompt)]).content
+Repair Recommendation: {json.dumps(car.get("repair_recommendation", {}), indent=2)}"""
+        }]
+    }
 
-    print("\n📧 Email Draft:\n", email)
+    try:
+        request_body["messages"] = [email_prompt]
+        email_response = bedrock.invoke_model(
+            modelId="us.amazon.nova-lite-v1:0",
+            body=json.dumps(request_body),
+            contentType="application/json",
+            accept="application/json"
+        )
+        email = json.loads(email_response["body"].read())["output"]["message"]["content"][0]["text"]
+    except Exception as e:
+        print("Email generation failed:", e)
+        email = "[Email generation failed]"
 
     return {
         "comparison": comparison,
         "decision": decision,
         "email": email,
-        "steps": ["Merged"]
+        "steps": ["Documents Compared"],
+        "dl": dl,
+        "claim": claim,
+        "car": car
     }
 
 
-def run_claim_processing_workflow(files):
+def run_claim_processing_workflow(files: dict) -> dict:
+    """
+    Executes the full workflow using LangGraph.
+    """
     class WorkflowState(State):
         files: dict
+
     builder = StateGraph(WorkflowState)
+    builder.set_entry_point("upload")
     builder.add_node("upload", upload_all)
     builder.add_node("extract_dl", extract_dl)
     builder.add_node("extract_claim", extract_claim)
     builder.add_node("extract_car", extract_car)
     builder.add_node("compare_email", compare_and_email)
-    builder.set_entry_point("upload")
     builder.add_edge("upload", "extract_dl")
     builder.add_edge("extract_dl", "extract_claim")
     builder.add_edge("extract_claim", "extract_car")
     builder.add_edge("extract_car", "compare_email")
     builder.add_edge("compare_email", END)
+
     graph = builder.compile()
     return graph.invoke({"files": files, "steps": []})

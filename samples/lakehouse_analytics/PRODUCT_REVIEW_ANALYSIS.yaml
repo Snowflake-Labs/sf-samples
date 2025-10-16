@@ -1,0 +1,290 @@
+name: Product_Review_Analysis
+tables:
+  - name: PRODUCT_DESCRIPTION_2K
+    base_table:
+      database: cld_amazon_reviews
+      schema: product_reviews_db
+      table: PRODUCT_DESCRIPTION_2K
+    primary_key:
+      columns:
+        - ASIN
+    dimensions:
+      - name: ASIN
+        synonyms:
+          - product_id
+          - amazon_asin
+          - product_asin
+          - item_id
+          - product_identifier
+          - amazon_product_id
+        description: Amazon Standard Identification Number (ASIN) that uniquely identifies each product.
+        expr: ASIN
+        data_type: VARCHAR(16777216)
+        sample_values:
+          - '0007331010'
+          - '0004687019'
+          - '0004704991'
+      - name: BRAND
+        synonyms:
+          - product_brand
+          - manufacturer
+          - company
+          - brand_name
+          - product_company
+        description: The brand or manufacturer of the product.
+        expr: BRAND
+        data_type: VARCHAR(16777216)
+        sample_values:
+          - Amazon
+          - Sony
+          - Apple
+      - name: CATEGORIES
+        synonyms:
+          - product_category
+          - category
+          - product_type
+          - classification
+          - group
+        description: The category or type of the product.
+        expr: CATEGORIES
+        data_type: VARCHAR(16777216)
+        sample_values:
+          - Books
+          - Electronics
+          - Clothing
+    facts:
+      - name: PRICE
+        synonyms:
+          - product_price
+          - cost
+          - amount
+          - product_cost
+        description: The price of the product in the local currency.
+        expr: PRICE
+        data_type: FLOAT
+        sample_values:
+          - 17.99
+          - 24.99
+          - 12.5
+      - name: SALESRANK_BOOKS
+        synonyms:
+          - books_rank
+          - books_sales_rank
+          - books_bestseller_rank
+        description: The sales rank of the product within the Books category.
+        expr: SALESRANK_BOOKS
+        data_type: NUMBER(38,0)
+        sample_values:
+          - 8760167
+          - 2069480
+          - 12473629
+      - name: SALESRANK_CLOTHING
+        synonyms:
+          - clothing_rank
+          - clothing_sales_rank
+          - clothing_bestseller_rank
+        description: The sales rank of the product within the Clothing category.
+        expr: SALESRANK_CLOTHING
+        data_type: NUMBER(38,0)
+        sample_values:
+          - 12345
+          - 67890
+          - 11111
+      - name: SALESRANK_MOVIES_TV
+        synonyms:
+          - movies_tv_rank
+          - movies_tv_sales_rank
+          - movies_tv_bestseller_rank
+        description: The sales rank of the product within the Movies & TV category.
+        expr: SALESRANK_MOVIES_TV
+        data_type: NUMBER(38,0)
+        sample_values:
+          - 5000
+          - 10000
+          - 15000
+      - name: SALESRANK_MUSIC
+        synonyms:
+          - music_rank
+          - music_sales_rank
+          - music_bestseller_rank
+        description: The sales rank of the product within the Music category.
+        expr: SALESRANK_MUSIC
+        data_type: NUMBER(38,0)
+        sample_values:
+          - 2000
+          - 4000
+          - 6000
+      - name: SALESRANK_MUSICAL_INSTRUMENTS
+        synonyms:
+          - musical_instruments_rank
+          - musical_instruments_sales_rank
+          - musical_instruments_bestseller_rank
+        description: The sales rank of the product within the Musical Instruments category.
+        expr: SALESRANK_MUSICAL_INSTRUMENTS
+        data_type: NUMBER(38,0)
+        sample_values:
+          - 1000
+          - 2000
+          - 3000
+      - name: SALESRANK_SPORTS_OUTDOORS
+        synonyms:
+          - sports_outdoors_rank
+          - sports_outdoors_sales_rank
+          - sports_outdoors_bestseller_rank
+        description: The sales rank of the product within the Sports & Outdoors category.
+        expr: SALESRANK_SPORTS_OUTDOORS
+        data_type: NUMBER(38,0)
+        sample_values:
+          - 8000
+          - 16000
+          - 24000
+      - name: SALESRANK_TOYS_GAMES
+        synonyms:
+          - toys_games_rank
+          - toys_games_sales_rank
+          - toys_games_bestseller_rank
+        description: The sales rank of the product within the Toys & Games category.
+        expr: SALESRANK_TOYS_GAMES
+        data_type: NUMBER(38,0)
+        sample_values:
+          - 3000
+          - 6000
+          - 9000
+  - name: PRODUCT_REVIEWS_100K
+    base_table:
+      database: cld_amazon_reviews
+      schema: product_reviews_db
+      table: PRODUCT_REVIEWS_100K
+    primary_key:
+      columns:
+        - REVIEWERID
+        - ASIN
+    dimensions:
+      - name: REVIEWERID
+        synonyms:
+          - reviewer_id
+          - user_id
+          - customer_id
+          - reviewer_identifier
+          - user_identifier
+        description: Unique identifier for the reviewer who wrote the review.
+        expr: REVIEWERID
+        data_type: VARCHAR(16777216)
+        sample_values:
+          - A3AF8FFZAZYNE5
+          - AH2L9G3DQHHAJ
+          - A2IIIDRK3PRRZY
+      - name: ASIN
+        synonyms:
+          - product_id
+          - amazon_asin
+          - product_asin
+          - item_id
+          - product_identifier
+          - amazon_product_id
+        description: Amazon Standard Identification Number (ASIN) that uniquely identifies each product.
+        expr: ASIN
+        data_type: VARCHAR(16777216)
+        sample_values:
+          - 78
+          - 116
+          - 868
+    facts:
+      - name: HELPFUL
+        synonyms:
+          - helpful_votes
+          - helpful_count
+          - helpful_rating
+          - helpful_score
+        description: Number of helpful votes received by the review.
+        expr: HELPFUL
+        data_type: VARCHAR(16777216)
+        sample_values:
+          - 1,1
+          - 5,5
+          - 10,10
+      - name: REVIEWTEXT
+        synonyms:
+          - review_text
+          - review_content
+          - review_body
+          - review_description
+          - review_details
+        description: The full text content of the customer review.
+        expr: REVIEWTEXT
+        data_type: VARCHAR(16777216)
+        sample_values:
+          - Conversations with God Book 1 is the single most extraordinary book I have ever read!!!
+          - Interesting Grisham tale of a lawyer that takes millions of dollars from his firm.
+      - name: SUMMARY
+        synonyms:
+          - review_summary
+          - review_title
+          - review_headline
+          - review_subject
+        description: A brief summary or title of the review.
+        expr: SUMMARY
+        data_type: VARCHAR(16777216)
+        sample_values:
+          - Impactful!
+          - Show me the money!
+          - Listing is all screwed up
+      - name: OVERALL
+        synonyms:
+          - rating
+          - star_rating
+          - review_rating
+          - product_rating
+          - star_score
+        description: The overall rating given by the reviewer (1-5 stars).
+        expr: OVERALL
+        data_type: INTEGER
+        sample_values:
+          - 5
+          - 4
+          - 1
+    time_dimensions:
+      - name: REVIEWTIME
+        synonyms:
+          - review_date
+          - review_timestamp
+          - review_day
+          - review_calendar_date
+        description: The date when the review was written.
+        expr: REVIEWTIME
+        data_type: VARCHAR(16777216)
+        sample_values:
+          - 08 11, 2004
+          - 04 27, 2002
+          - 03 24, 2014
+      - name: UNIXREVIEWTIME
+        synonyms:
+          - unix_review_time
+          - unix_timestamp
+          - epoch_time
+          - unix_date
+        description: The Unix timestamp when the review was written.
+        expr: UNIXREVIEWTIME
+        data_type: BIGINT
+        sample_values:
+          - 1092182400
+          - 1019865600
+          - 1395619200
+relationships:
+  - name: rating_by_categories
+    left_table: PRODUCT_REVIEWS_100K
+    right_table: PRODUCT_DESCRIPTION_2K
+    relationship_columns:
+      - left_column: ASIN
+        right_column: ASIN
+    relationship_type: many_to_one
+    join_type: inner
+verified_queries:
+  - name: product_review_volume_by_category_and_avg_ratings
+    question: |+
+      What is the product review volume by category and what are the average ratings per category?
+
+    use_as_onboarding_question: false
+    sql: SELECT B."CATEGORIES", COUNT(*) as product_volume, AVG("OVERALL") as avg_rating FROM "product_reviews_100k" as A JOIN "product_description_2k" as B ON A."ASIN" = B."ASIN" GROUP BY B."CATEGORIES" ORDER BY product_volume DESC
+    verified_by: Data Analyst
+    verified_at: 1752091901

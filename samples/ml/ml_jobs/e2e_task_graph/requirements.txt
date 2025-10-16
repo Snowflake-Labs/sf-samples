@@ -1,0 +1,4 @@
+snowflake-ml-python>=1.9.0
+snowflake-snowpark-python
+snowflake-core
+xgboost==2.1.3
