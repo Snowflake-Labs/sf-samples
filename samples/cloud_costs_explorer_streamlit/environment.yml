@@ -1,0 +1,9 @@
+name: finance_cloud_costs_explorer
+channels:
+- snowflake
+dependencies:
+- python=3.11.9
+- streamlit=1.39.0
+- snowflake-snowpark-python
+- sqlparse
+- plotly

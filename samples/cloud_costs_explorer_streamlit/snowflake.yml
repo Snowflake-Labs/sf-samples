@@ -1,0 +1,21 @@
+definition_version: 1.1
+streamlit:
+  name: <% ctx.env.name %>
+  database: finance
+  schema: streamlit
+  env_file: environment.yml
+  main_file: streamlit_app.py
+  pages_dir: pages/
+  additional_source_files:
+    - .metadata
+    - .streamlit/config.toml
+    - pages.toml
+    - snowflake.yml
+  title: <% ctx.env.title %>
+env:
+  role: finance_development_modeling_rl
+  name: cloud_costs_template
+  app_warehouse: finance_streamlit_xs_wh
+  query_warehouse: finance_streamlit_wh
+  share_with_roles: finance_development_modeling_rl, fpa_rl
+  title: Cloud Costs Explorer
