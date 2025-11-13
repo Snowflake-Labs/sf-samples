@@ -290,19 +290,13 @@ def get_feature_view(
         # Apply the UDF to encode the categorical column
         df = df.with_column(output_col, label_encoder_udf(F.col(cat_col)))
 
-    # First try to retrieve an existing entity definition, if not define a new one and register
-    try:
-        # retrieve existing entity
-        loan_id_entity = fs.get_entity("LOAN_ENTITY")
-    except ValueError:
-        # define new entity
-        loan_id_entity = feature_store.Entity(
-            name="LOAN_ENTITY",
-            join_keys=["LOAN_ID"],
-            desc="Features defined on a per loan level",
-        )
-        # register
-        fs.register_entity(loan_id_entity)
+    # Define and register entity. If the entity already exists, then registering it again is a no-op
+    loan_id_entity = feature_store.Entity(
+      name="LOAN_ENTITY",
+      join_keys=["LOAN_ID"],
+      desc="Features defined on a per loan level",
+    )
+    fs.register_entity(loan_id_entity)
 
     # Create a dataframe with just the ID, timestamp, and engineered features. We will use this to define our feature view
     feature_df = df.select(
