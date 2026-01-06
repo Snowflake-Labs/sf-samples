@@ -131,7 +131,7 @@ class RunConfig:
         run_config = dict(run_id=run_id)
 
         graph_config = ctx.get_task_graph_config()
-        merged = run_config | (graph_config or {}) | kwargs
+        merged = run_config | graph_config | kwargs
 
         # Get expected fields from RunConfig
         expected_fields = set(cls.__annotations__)
@@ -240,7 +240,7 @@ def promote_model(session: Session) -> str:
         session (Session): Snowflake session object
 
     Returns:
-        tuple[str, str]: (fully_qualified_model_name, version_name)
+        str: Tuple of (fully_qualified_model_name, version_name) as string
     """
     ctx = TaskContext(session)
     config = RunConfig.from_task_context(ctx)
