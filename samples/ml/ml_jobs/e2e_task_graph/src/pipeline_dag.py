@@ -1,4 +1,3 @@
-import io
 import json
 import os
 import time
@@ -12,13 +11,13 @@ from snowflake.core.task.context import TaskContext
 from snowflake.core.task.dagv1 import DAG, DAGOperation, DAGTask, DAGTaskBranch
 from snowflake.ml.data import DatasetInfo
 from snowflake.ml.dataset import load_dataset
-from snowflake.ml.jobs import MLJob
 from snowflake.snowpark import Session
+from snowflake.ml.jobs import MLJobDefinition
 
 import cli_utils
 import data
 import modeling
-from constants import (DAG_STAGE, DATA_TABLE_NAME, DB_NAME, SCHEMA_NAME,
+from constants import (COMPUTE_POOL,DAG_STAGE, DATA_TABLE_NAME, DB_NAME, JOB_STAGE, SCHEMA_NAME,
                        WAREHOUSE)
 
 ARTIFACT_DIR = "run_artifacts"
@@ -132,7 +131,7 @@ class RunConfig:
         run_config = dict(run_id=run_id)
 
         graph_config = ctx.get_task_graph_config()
-        merged = run_config | graph_config | kwargs
+        merged = run_config | (graph_config or {}) | kwargs
 
         # Get expected fields from RunConfig
         expected_fields = set(cls.__annotations__)
@@ -180,56 +179,28 @@ def prepare_datasets(session: Session) -> str:
     return json.dumps(dataset_info)
 
 
-def train_model(session: Session) -> str:
+# NOTE: Remove `target_instances=2` to run training on a single node
+#  See https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/distributed-ml-jobs
+def train_model_sql(session: Session) -> str:
     """
-    DAG task to train a machine learning model.
-
-    This function is executed as part of the DAG workflow to train a model using the prepared datasets.
-    It retrieves dataset information from the previous task, trains the model, evaluates it on both
-    training and test sets, and saves the model to a stage for later use.
+    Returns the SQL statement to train a model using ML Jobs.
 
     Args:
         session (Session): Snowflake session object
 
     Returns:
-        str: JSON string containing model path and evaluation metrics
+        str: SQL statement to train a model using ML Jobs
     """
-    ctx = TaskContext(session)
-    config = RunConfig.from_task_context(ctx)
-
-    # Load the datasets
-    serialized = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
-    dataset_info = {
-        key: DatasetInfo(**obj_dict) for key, obj_dict in serialized.items()
-    }
-
-    # Train the model
-    model = modeling.train_model(session, dataset_info["train"])
-    if isinstance(model, MLJob):
-        model = model.result()
-
-    # Evaluate the model
-    train_metrics = modeling.evaluate_model(
-        session, model, dataset_info["train"], prefix="train"
+    job_definition = MLJobDefinition.register(
+        source = './src/',
+        entrypoint = 'train_model.py',
+        compute_pool = COMPUTE_POOL,
+        stage_name = JOB_STAGE,
+        imports=[("/Users/ajiang/PycharmProjects/snowml/snowflake/ml", "snowflake.ml")],
+        session = session,
+        target_instances = 2,
     )
-    test_metrics = modeling.evaluate_model(
-        session, model, dataset_info["test"], prefix="test"
-    )
-    metrics = {**train_metrics, **test_metrics}
-
-    # Save model to stage and return the metrics as a JSON string
-    model_pkl = cp.dumps(model)
-    model_path = os.path.join(config.artifact_dir, "model.pkl")
-    put_result = session.file.put_stream(
-        io.BytesIO(model_pkl), model_path, overwrite=True
-    )
-
-    result_dict = {
-        "model_path": os.path.join(config.artifact_dir, put_result.target),
-        "metrics": metrics,
-    }
-    return json.dumps(result_dict)
-
+    return job_definition.to_sql(use_async=False)
 
 def check_model_quality(session: Session) -> str:
     """
@@ -250,7 +221,6 @@ def check_model_quality(session: Session) -> str:
 
     metrics = json.loads(ctx.get_predecessor_return_value("TRAIN_MODEL"))["metrics"]
 
-    # If model is good, promote model
     threshold = config.metric_threshold
     if metrics[config.metric_name] >= threshold:
         return "promote_model"
@@ -270,7 +240,7 @@ def promote_model(session: Session) -> str:
         session (Session): Snowflake session object
 
     Returns:
-        str: Tuple of (fully_qualified_model_name, version_name) as string
+        tuple[str, str]: (fully_qualified_model_name, version_name)
     """
     ctx = TaskContext(session)
     config = RunConfig.from_task_context(ctx)
@@ -341,7 +311,9 @@ def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -
         schedule=schedule,
         use_func_return_value=True,
         stage_location=DAG_STAGE,
-        packages=["snowflake-snowpark-python", "snowflake-ml-python<1.9.0", "xgboost"],  # NOTE: Temporarily pinning to <1.9.0 due to compatibility issues
+        # Pin `xgboost` to reduce training/logging runtime drift (ML Jobs vs Task Graph runtime).
+        packages=["snowflake-snowpark-python", "xgboost==2.1.3", "snowflake-ml-python"],
+        imports=[("/Users/ajiang/PycharmProjects/snowml/snowflake/ml", "snowflake.ml")],
         config={
             "dataset_name": "mortgage_dataset",
             "model_name": "mortgage_model",
@@ -369,10 +341,11 @@ def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -
                 );
             """,
         )
-        cleanup_task = DAGTask("cleanup_task", definition=cleanup, is_finalizer=True)
+        train_model_task = DAGTask("TRAIN_MODEL", definition=train_model_sql(session))
+        _cleanup_task = DAGTask("cleanup_task", definition=cleanup, is_finalizer=True)
 
         # Build the DAG
-        prepare_data >> train_model >> evaluate_model >> [promote_model_task, alert_task]
+        prepare_data >> train_model_task >> evaluate_model >> [promote_model_task, alert_task]
 
     return dag
 
