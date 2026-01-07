@@ -1,2 +1,2 @@
-arctic_training[snowflake]>=0.7.1
-vllm>=0.11.0
+snowflake-ml-python>=1.21.0
+datasets

@@ -2,16 +2,30 @@ type: sft
 code: ./train.py
 micro_batch_size: 1
 epochs: 2
+train_log_metrics_path: /tmp/train_log_metrics_path.json
 
 model:
   name_or_path: Qwen/Qwen3-1.7B
+  peft_config:
+    peft_type: Lora
+    lora_alpha: 16
+    lora_dropout: 0.05
+    r: 8
+    target_modules:
+      - q_proj
+      - k_proj
+      - v_proj
+      - o_proj
+      - down_proj
+      - up_proj
+      - gate_proj
 
 data:
   sources:
     - type: soap
       path: ./soap_dataset
       split: train
-  max_length: 8Ki
+  max_length: 6Ki
   ignore_empty_think: true
   pack_samples: true
 
@@ -28,4 +42,4 @@ optimizer:
 checkpoint:
   - type: huggingface
     save_end_of_training: true
-    output_dir: ./ckpt/Qwen3-1.7B-finetune/
+    output_dir: /mnt/job_stage/output/

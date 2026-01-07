@@ -1,5 +1,11 @@
-from datasets import load_dataset
+import os
+import sys
 
+# Allow imports from ../src (sibling directory)
+# This is needed because Python only searches the script's own directory by default
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+
+from datasets import load_dataset
 from prompt_utils import extract_SOAP_response
 
 if __name__ == "__main__":
