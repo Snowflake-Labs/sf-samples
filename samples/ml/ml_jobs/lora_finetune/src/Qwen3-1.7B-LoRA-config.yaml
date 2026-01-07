@@ -23,8 +23,7 @@ model:
 data:
   sources:
     - type: soap
-      path: ./soap_dataset
-      split: train
+      table_name: soap_data_train
   max_length: 6Ki
   ignore_empty_think: true
   pack_samples: true

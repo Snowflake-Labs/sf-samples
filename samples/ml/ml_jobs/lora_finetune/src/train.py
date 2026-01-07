@@ -1,37 +1,30 @@
+import os
 import argparse
 import json
 import pprint
 
-from arctic_training.config.data import DataSourceConfig
-from arctic_training.data.source import DataSource
+from arctic_training.data.snowflake_source import SnowflakeSourceConfig, SnowflakeDataSource
 from arctic_training.logging import logger
-from datasets import Dataset, load_from_disk
+from datasets import Dataset
 
 from prompt_utils import create_user_prompt, SYSTEM_PROMPT
 
 
-class SOAPDataSourceConfig(DataSourceConfig):
-    path: str
-
-
-class SOAPDataSource(DataSource):
+class SOAPDataSource(SnowflakeDataSource):
     name: str = "soap"
-    config: SOAPDataSourceConfig
 
-    def load(self, config: SOAPDataSourceConfig, split: str) -> Dataset:
-        ds = load_from_disk(config.path)[split]
+    def load(self, config: SnowflakeSourceConfig, split: str) -> Dataset:
+        ds = super().load(config, split=split)
         messages = []
         for row in ds:
             try:
-                messages.append(
-                    {
-                        "messages": [
-                            {"role": "system", "content": SYSTEM_PROMPT},
-                            {"role": "user", "content": create_user_prompt(row["dialogue"])},
-                            {"role": "assistant", "content": json.dumps(dict(S=row["S"], O=row["O"], A=row["A"], P=row["P"]))},
-                        ]
-                    }
-                )
+                messages.append({
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": create_user_prompt(row["dialogue"])},
+                        {"role": "assistant", "content": json.dumps(dict(S=row["S"], O=row["O"], A=row["A"], P=row["P"]))},
+                    ]
+                })
             except Exception as e:
                 logger.warning(f"Skipping row due to error: {e}")
                 continue
