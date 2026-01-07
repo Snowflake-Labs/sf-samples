@@ -23,7 +23,7 @@ def submit_job(
 
     return jobs.submit_directory(
         payload_dir,
-        entrypoint=["arctic_training", "--launcher=ray", recipe],
+        entrypoint=["arctic_training", recipe],
         compute_pool=compute_pool,
         stage_name=stage_name,
         external_access_integrations=external_access_integrations,
