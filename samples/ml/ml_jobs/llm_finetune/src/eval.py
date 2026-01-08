@@ -37,13 +37,23 @@ def resolve_path_global_step(path: Optional[str]) -> Optional[str]:
 
 def load_and_run_vllm(model: str, convos: list, lora: Optional[str] = None) -> list:
     llm = LLM(model=model, enforce_eager=True, enable_lora=True, tensor_parallel_size=torch.cuda.device_count())
-    chat_kwargs = dict(
-        sampling_params=SamplingParams(temperature=0.0, max_tokens=8192),
-        chat_template_kwargs=dict(enable_thinking=False),
-        lora_request=None if lora is None else LoRARequest("lora_adapter", 1, lora),
-    )
+    tokenizer = llm.get_tokenizer()
 
-    outputs = llm.chat(convos, **chat_kwargs)
+    # Manually apply chat template with enable_thinking=False (vllm 0.8.5 compatible)
+    prompts = [
+        tokenizer.apply_chat_template(
+            convo,
+            tokenize=False,
+            add_generation_prompt=True,
+            enable_thinking=False,
+        )
+        for convo in convos
+    ]
+
+    sampling_params = SamplingParams(temperature=0.0, max_tokens=8192)
+    lora_request = None if lora is None else LoRARequest("lora_adapter", 1, lora)
+
+    outputs = llm.generate(prompts, sampling_params, lora_request=lora_request)
     time.sleep(5)  # ensure all async ops complete
     llm.llm_engine.engine_core.shutdown()
 
