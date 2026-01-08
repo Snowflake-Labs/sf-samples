@@ -41,6 +41,7 @@ if __name__ == '__main__':
     parser.add_argument('--schema', help='Snowflake schema (defaults to session default schema)')
     parser.add_argument('--stage-name', default='payload_stage', help='Stage name for job artifacts')
     parser.add_argument('-e', '--external-access-integrations', nargs="+", required=True, help='External access integrations are required for PyPI and HuggingFace access')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
     args = parser.parse_args()
 
     session = Session.builder.getOrCreate()
@@ -63,4 +64,5 @@ if __name__ == '__main__':
 
     print(f"Job submitted with ID: {job.id}")
     print(f"Job finished with status: {job.wait()}")
-    print(f"Job logs:\n{job.get_logs()}")
+    if args.verbose:
+        print(f"Job logs:\n{job.get_logs()}")
