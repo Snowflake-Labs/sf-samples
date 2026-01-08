@@ -8,11 +8,11 @@ from pathlib import Path
 from typing import Optional
 from snowflake.snowpark import Session
 from snowflake.ml.fileset.sfcfs import SFFileSystem
+from snowflake.ml.data import DataConnector
 
 os.environ["VLLM_LOGGING_LEVEL"] = "ERROR" # Must be set before importing vLLM
 
 import torch
-from datasets import load_from_disk
 from vllm import LLM, SamplingParams
 from vllm.lora.request import LoRARequest
 
@@ -67,6 +67,7 @@ def main():
     parser.add_argument("model_name_or_path", help="Generator model path/name")
     parser.add_argument("--lora_path", default=None, help="LoRA adapter path if any")
     parser.add_argument("--judge_model_name_or_path", default="Qwen/Qwen3-8B", help="Judge model path/name.")
+    parser.add_argument("-d", "--data_table", default="soap_data_test", help="Data table name")
     args = parser.parse_args()
 
     # Get the Snowflake session
@@ -78,7 +79,10 @@ def main():
         setattr(args, name, resolved_value)
 
     # Load dataset test split
-    ds = load_from_disk("./soap_dataset")["test"]
+    ds = DataConnector.from_sql(
+        f"SELECT * FROM {args.data_table}",
+        session=session,
+    ).to_huggingface_dataset()
 
     # --------- 1) Generator ----------
     gen_convos = [
