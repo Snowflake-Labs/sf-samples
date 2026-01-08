@@ -28,4 +28,4 @@ optimizer:
 checkpoint:
   - type: huggingface
     save_end_of_training: true
-    output_dir: /mnt/job_stage/output/
+    output_dir: /mnt/job_stage/output/model/

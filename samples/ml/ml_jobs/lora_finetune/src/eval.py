@@ -2,9 +2,12 @@ import argparse
 import json
 import os
 import time
+import tempfile
 from itertools import cycle
 from pathlib import Path
 from typing import Optional
+from snowflake.snowpark import Session
+from snowflake.ml.fileset.sfcfs import SFFileSystem
 
 os.environ["VLLM_LOGGING_LEVEL"] = "ERROR" # Must be set before importing vLLM
 
@@ -47,6 +50,18 @@ def load_and_run_vllm(model: str, convos: list, lora: Optional[str] = None) -> l
     return outputs
 
 
+def resolve_stage_path(session: Session, path: str) -> str:
+    if not isinstance(path, str) or not path.startswith("@"):
+        return path
+
+    # Download @DB.SCHEMA.STAGE/path to /tmp/DB.SCHEMA.STAGE/path
+    dest_path = f"/tmp/{path[1:].rstrip('/')}/"
+    fs = SFFileSystem(snowpark_session=session)
+    fs.get(path, dest_path, recursive=True)
+
+    return dest_path
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_name_or_path", help="Generator model path/name")
@@ -54,9 +69,13 @@ def main():
     parser.add_argument("--judge_model_name_or_path", default="Qwen/Qwen3-8B", help="Judge model path/name.")
     args = parser.parse_args()
 
+    # Get the Snowflake session
+    session = Session.builder.getOrCreate()
+
     # Resolve checkpoint paths to latest global_step if applicable
     for name, value in vars(args).items():
-        setattr(args, name, resolve_path_global_step(value))
+        resolved_value = resolve_path_global_step(resolve_stage_path(session, value))
+        setattr(args, name, resolved_value)
 
     # Load dataset test split
     ds = load_from_disk("./soap_dataset")["test"]
@@ -70,7 +89,11 @@ def main():
         for d in ds["dialogue"]
     ]
 
-    gen_outputs = load_and_run_vllm(args.model_name_or_path, gen_convos, args.lora_path)
+    gen_outputs = load_and_run_vllm(
+        args.model_name_or_path,
+        gen_convos,
+        args.lora_path if args.lora_path else None,
+    )
     preds = []
     for out in gen_outputs:
         try:
@@ -90,7 +113,10 @@ def main():
                 ]
             )
 
-    judge_outputs = load_and_run_vllm(args.judge_model_name_or_path, judge_convos)
+    judge_outputs = load_and_run_vllm(
+        args.judge_model_name_or_path,
+        judge_convos,
+    )
     scores = []
     for out in judge_outputs:
         try:
