@@ -1,16 +1,16 @@
 type: sft
 code: ./train.py
 micro_batch_size: 1
-epochs: 2
+epochs: 1
 train_log_metrics_path: /tmp/train_log_metrics_path.json
 
 model:
   name_or_path: Qwen/Qwen3-1.7B
   peft_config:
     peft_type: Lora
-    lora_alpha: 16
-    lora_dropout: 0.05
-    r: 8
+    lora_alpha: 32
+    lora_dropout: 0.0
+    r: 16
     target_modules:
       - q_proj
       - k_proj
@@ -36,7 +36,7 @@ deepspeed:
 
 optimizer:
   type: cpu_adam
-  lr: 1e-5
+  lr: 5e-4
 
 checkpoint:
   - type: huggingface
