@@ -183,13 +183,13 @@ def prepare_datasets(session: Session) -> str:
 #  See https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/distributed-ml-jobs
 def train_model(session: Session) -> MLJobDefinition:
     """
-    Returns the MLJobDefinition to train a model using ML Jobs.
+    Returns the MLJobDefinition to train a model.
 
     Args:
         session (Session): Snowflake session object
 
     Returns:
-        MLJobDefinition: MLJobDefinition to train a model using ML Jobs
+        MLJobDefinition: MLJobDefinition to train a model
     """
     job_definition = MLJobDefinition.register(
         source = './src',
