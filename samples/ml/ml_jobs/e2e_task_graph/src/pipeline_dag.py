@@ -189,7 +189,7 @@ def train_model(session: Session) -> MLJobDefinition:
         session (Session): Snowflake session object
 
     Returns:
-        str: SQL statement to train a model using ML Jobs
+        MLJobDefinition: MLJobDefinition to train a model using ML Jobs
     """
     job_definition = MLJobDefinition.register(
         source = './src',
@@ -311,8 +311,7 @@ def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -
         schedule=schedule,
         use_func_return_value=True,
         stage_location=DAG_STAGE,
-        # Pin `xgboost` to reduce training/logging runtime drift (ML Jobs vs Task Graph runtime).
-        packages=["snowflake-snowpark-python", "xgboost", "snowflake-ml-python", ],
+        packages=["snowflake-snowpark-python", "snowflake-ml-python", "xgboost"],
         config={
             "dataset_name": "mortgage_dataset",
             "model_name": "mortgage_model",
