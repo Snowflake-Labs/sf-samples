@@ -181,9 +181,9 @@ def prepare_datasets(session: Session) -> str:
 
 # NOTE: Remove `target_instances=2` to run training on a single node
 #  See https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/distributed-ml-jobs
-def train_model_sql(session: Session) -> str:
+def train_model(session: Session) -> MLJobDefinition:
     """
-    Returns the SQL statement to train a model using ML Jobs.
+    Returns the MLJobDefinition to train a model using ML Jobs.
 
     Args:
         session (Session): Snowflake session object
@@ -192,15 +192,15 @@ def train_model_sql(session: Session) -> str:
         str: SQL statement to train a model using ML Jobs
     """
     job_definition = MLJobDefinition.register(
-        source = './src/',
+        source = './src',
         entrypoint = 'train_model.py',
         compute_pool = COMPUTE_POOL,
         stage_name = JOB_STAGE,
-        imports=[("/Users/ajiang/PycharmProjects/snowml/snowflake/ml", "snowflake.ml")],
         session = session,
         target_instances = 2,
+        requirements = ['xgboost==3.1.2'],
     )
-    return job_definition.to_sql(use_async=False)
+    return job_definition
 
 def check_model_quality(session: Session) -> str:
     """
@@ -312,8 +312,7 @@ def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -
         use_func_return_value=True,
         stage_location=DAG_STAGE,
         # Pin `xgboost` to reduce training/logging runtime drift (ML Jobs vs Task Graph runtime).
-        packages=["snowflake-snowpark-python", "xgboost==2.1.3", "snowflake-ml-python"],
-        imports=[("/Users/ajiang/PycharmProjects/snowml/snowflake/ml", "snowflake.ml")],
+        packages=["snowflake-snowpark-python", "xgboost", "snowflake-ml-python", ],
         config={
             "dataset_name": "mortgage_dataset",
             "model_name": "mortgage_model",
@@ -341,7 +340,7 @@ def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -
                 );
             """,
         )
-        train_model_task = DAGTask("TRAIN_MODEL", definition=train_model_sql(session))
+        train_model_task = DAGTask("TRAIN_MODEL", definition=train_model(session))
         _cleanup_task = DAGTask("cleanup_task", definition=cleanup, is_finalizer=True)
 
         # Build the DAG

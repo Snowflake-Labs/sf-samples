@@ -6,6 +6,7 @@ import os
 import json
 import cloudpickle as cp
 import io
+
 from pipeline_dag import RunConfig
 from modeling import evaluate_model
 
@@ -52,7 +53,7 @@ def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
         )
         estimator = XGBEstimator(
             params=model_params,
-            scaling_config=XGBScalingConfig(num_workers=2),
+            scaling_config=XGBScalingConfig(),
         )
     else:
         # Single node training - can use standard XGBClassifier
@@ -65,6 +66,11 @@ def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
 
 
 if __name__ == "__main__":
+    index = int(os.environ.get("SNOWFLAKE_JOB_INDEX", 0))
+    if index != 0:
+        print(f"Worker node (index {index}) - exiting")
+        exit(0)
+
     ctx = TaskContext(session)
     config = RunConfig.from_task_context(ctx)
 
@@ -75,6 +81,8 @@ if __name__ == "__main__":
     }
     artifact_dir = config.artifact_dir
     model_obj = train_model(session, dataset_info["train"])
+    if not hasattr(model_obj, 'feature_weights'):
+        model_obj.feature_weights = None
     train_metrics = evaluate_model(
         session, model_obj, dataset_info["train"], prefix="train"
     )
