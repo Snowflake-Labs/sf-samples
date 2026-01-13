@@ -190,7 +190,6 @@ def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
 #       See https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/distributed-ml-jobs
 @remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
 def train_model_remote(session: Session, input_data: DataSource) -> XGBClassifier:
-    """Run `train_model` remotely on Snowpark Container Services."""
     return train_model(session, input_data)
 
 
