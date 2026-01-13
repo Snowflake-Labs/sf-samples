@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from snowflake.snowpark import Session
 
+import cloudpickle as cp
 import modeling
 from constants import DATA_TABLE_NAME
 
@@ -41,6 +42,8 @@ def run_pipeline(
     )
 
     print("Training model...")
+
+    cp.register_pickle_by_value(modeling)
     model_obj = modeling.train_model_remote(session, train_ds.read.data_sources[0]).result()
 
     print("Evaluating model...")
