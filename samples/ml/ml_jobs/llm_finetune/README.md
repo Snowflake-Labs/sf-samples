@@ -180,14 +180,30 @@ The evaluation script:
 
 ## Results
 
-| Section | Qwen3-1.7B (Baseline) | Full Fine-Tune | LoRA Adapter |
-|---------|----------------------|----------------|--------------|
-| S       | 35.6%                | **73.6%**      | **64.4%**    |
-| O       | 52.4%                | **72.4%**      | **56.8%**    |
-| A       | 52.8%                | **69.2%**      | **50.8%**    |
-| P       | 54.8%                | **70.8%**      | **64.8%**    |
+> Note: Exact numbers may vary between runs due to factors like data shuffling and numerical stability.
 
-Both fine-tuning approaches significantly improve accuracy across all SOAP sections, with full fine-tuning achieving the best results and LoRA providing a strong trade-off between performance and efficiency.
+| Section | Qwen3-1.7B (Baseline) | Full Fine-Tune | LoRA Adapter |
+|---------|-----------------------|-----------------|---------------|
+| S       | 31.6%                 | 59.2%          | 58.0%        |
+| O       | 41.2%                 | 56.0%          | 50.8%        |
+| A       | 40.8%                 | 52.8%          | 48.4%        |
+| P       | 46.4%                 | 60.4%          | 58.0%        |
+
+Both fine-tuning approaches show improvements over the baseline, with LoRA achieving comparable results to full fine-tuning at a fraction of the training time and memory cost.
+
+### Improving Performance
+
+This sample uses conservative settings optimized for quick iteration on smaller GPU instances. For production use cases, consider the following improvements:
+
+- **Use a larger base model**: Larger models like Qwen3-4B or Qwen3-8B typically achieve higher accuracy. Update `model.name_or_path` in the config file and provision a compute pool with more GPU memory (e.g., `GPU_NV_L`).
+
+- **Increase `max_length`**: The `max_length` setting filters out training examples longer than the configured maximum length. Increasing this value retains more data but requires additional GPU memory.
+
+- **Train for more epochs**: Increasing `epochs` in the config may improve convergence, though watch for overfitting on small datasets.
+
+- **Adjust LoRA rank**: Higher `r` values (e.g., 16 or 32) in the LoRA config capture more fine-grained adaptations at the cost of increased memory and training time.
+
+- **Use multi-node training**: For larger models or datasets, configure `target_instances > 1` to distribute training across multiple GPU nodes.
 
 ## Key Features
 
@@ -276,7 +292,7 @@ Monitor training progress by fetching job logs:
 ```python
 from snowflake.ml.jobs import get_job
 
-job = get_job("MLJOB_00000000_0000_0000_0000_000000000000")
+job = get_job("ARCTIC_TRAINING_XXXXXXXXX")
 print(job.get_logs())
 ```
 

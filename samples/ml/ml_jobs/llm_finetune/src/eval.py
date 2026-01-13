@@ -19,7 +19,6 @@ from vllm.lora.request import LoRARequest
 from prompt_utils import (
     create_judge_prompt,
     create_user_prompt,
-    extract_SOAP_response,
     JUDGE_SYSTEM_PROMPT,
     SYSTEM_PROMPT,
 )
