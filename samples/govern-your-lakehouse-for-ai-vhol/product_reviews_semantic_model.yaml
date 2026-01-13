@@ -9,7 +9,7 @@ tables:
       Product reviews table containing customer feedback, ratings, and review details.
       Each row represents a single review for a product.
     base_table:
-      database: VINO_LAKEHOUSE_VHOL
+      database: LAKEHOUSE_VHOL
       schema: PUBLIC
       table: PRODUCT_REVIEWS_ICEBERG
     
@@ -117,7 +117,7 @@ verified_queries:
     verified_by: system
     sql: |
       SELECT AVG(OVERALL) as average_rating
-      FROM VINO_LAKEHOUSE_VHOL.PUBLIC.PRODUCT_REVIEWS_ICEBERG
+      FROM LAKEHOUSE_VHOL.PUBLIC.PRODUCT_REVIEWS_ICEBERG
 
   - name: review_count_by_rating
     question: How many reviews are there for each rating?
@@ -125,7 +125,7 @@ verified_queries:
     verified_by: system
     sql: |
       SELECT OVERALL as rating, COUNT(*) as review_count
-      FROM VINO_LAKEHOUSE_VHOL.PUBLIC.PRODUCT_REVIEWS_ICEBERG
+      FROM LAKEHOUSE_VHOL.PUBLIC.PRODUCT_REVIEWS_ICEBERG
       GROUP BY OVERALL
       ORDER BY OVERALL DESC
 
@@ -135,4 +135,4 @@ verified_queries:
     verified_by: system
     sql: |
       SELECT COUNT(*) as total_reviews
-      FROM VINO_LAKEHOUSE_VHOL.PUBLIC.PRODUCT_REVIEWS_ICEBERG
+      FROM LAKEHOUSE_VHOL.PUBLIC.PRODUCT_REVIEWS_ICEBERG

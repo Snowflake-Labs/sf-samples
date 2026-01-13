@@ -1,5 +1,9 @@
+USE LAKEHOUSE_VHOL.PUBLIC;
+USE WAREHOUSE VHOL_XS;
+USE ROLE ACCOUNTADMIN;
+
 -- 1. Create stage 
-CREATE STAGE IF NOT EXISTS VINO_LAKEHOUSE_VHOL.PUBLIC.SEMANTIC_MODELS;
+CREATE STAGE IF NOT EXISTS LAKEHOUSE_VHOL.PUBLIC.SEMANTIC_MODELS;
 
 -- TODO: manually upload the yaml file to the stage
 
@@ -35,10 +39,10 @@ CREATE OR REPLACE AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.AMAZON_PRODUCT_REVIEWS_AGE
     ],
     "tool_resources": {
       "product_reviews": {
-        "semantic_model_file": "@VINO_LAKEHOUSE_VHOL.PUBLIC.SEMANTIC_MODELS/product_reviews_semantic_model.yaml",
+        "semantic_model_file": "@LAKEHOUSE_VHOL.PUBLIC.SEMANTIC_MODELS/product_reviews_semantic_model.yaml",
         "execution_environment": {
           "type": "warehouse",
-          "warehouse": "VINO_XS"
+          "warehouse": "VHOL_XS"
         }
       }
     }
