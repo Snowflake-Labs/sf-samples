@@ -1,0 +1,138 @@
+name: product_reviews_semantic_model
+description: >
+  Semantic model for analyzing product reviews from an Iceberg table.
+  Contains customer reviews with ratings, text feedback, and reviewer information.
+
+tables:
+  - name: PRODUCT_REVIEWS_ICEBERG
+    description: >
+      Product reviews table containing customer feedback, ratings, and review details.
+      Each row represents a single review for a product.
+    base_table:
+      database: VINO_LAKEHOUSE_VHOL
+      schema: PUBLIC
+      table: PRODUCT_REVIEWS_ICEBERG
+    
+    dimensions:
+      - name: asin
+        synonyms:
+          - product_id
+          - amazon_product_id
+          - product_identifier
+        description: Amazon Standard Identification Number - unique product identifier
+        expr: ASIN
+        data_type: VARCHAR
+        
+      - name: reviewer_id
+        synonyms:
+          - customer_id
+          - user_id
+        description: Unique identifier for the reviewer
+        expr: REVIEWERID
+        data_type: VARCHAR
+        
+      - name: reviewer_name
+        synonyms:
+          - customer_name
+          - user_name
+          - reviewer
+        description: Name of the person who wrote the review
+        expr: REVIEWERNAME
+        data_type: VARCHAR
+        
+      - name: review_text
+        synonyms:
+          - review_content
+          - feedback
+          - review_body
+          - comment
+        description: Full text content of the review
+        expr: REVIEWTEXT
+        data_type: VARCHAR
+        
+      - name: review_summary
+        synonyms:
+          - summary
+          - review_title
+          - title
+          - headline
+        description: Brief summary or title of the review
+        expr: SUMMARY
+        data_type: VARCHAR
+        
+      - name: review_time
+        synonyms:
+          - review_date
+          - date
+          - posted_date
+        description: Human-readable date when the review was posted
+        expr: REVIEWTIME
+        data_type: VARCHAR
+        
+      - name: helpful
+        synonyms:
+          - helpfulness
+          - helpful_votes
+          - usefulness
+        description: Helpfulness rating of the review (format may be "X of Y found helpful")
+        expr: HELPFUL
+        data_type: VARCHAR
+
+    time_dimensions:
+      - name: review_timestamp
+        synonyms:
+          - review_unix_time
+          - timestamp
+          - posted_timestamp
+        description: Unix timestamp when the review was posted
+        expr: TO_TIMESTAMP(UNIXREVIEWTIME)
+        data_type: TIMESTAMP
+
+    measures:
+      - name: overall_rating
+        synonyms:
+          - rating
+          - stars
+          - score
+          - review_rating
+        description: Overall rating given by the reviewer (typically 1-5 scale)
+        expr: OVERALL
+        data_type: FLOAT
+        default_aggregation: avg
+        
+      - name: review_count
+        synonyms:
+          - number_of_reviews
+          - total_reviews
+          - count
+        description: Count of reviews
+        expr: "1"
+        data_type: NUMBER
+        default_aggregation: sum
+
+verified_queries:
+  - name: average_rating
+    question: What is the average overall rating?
+    verified_at: 1736812800
+    verified_by: system
+    sql: |
+      SELECT AVG(OVERALL) as average_rating
+      FROM VINO_LAKEHOUSE_VHOL.PUBLIC.PRODUCT_REVIEWS_ICEBERG
+
+  - name: review_count_by_rating
+    question: How many reviews are there for each rating?
+    verified_at: 1736812800
+    verified_by: system
+    sql: |
+      SELECT OVERALL as rating, COUNT(*) as review_count
+      FROM VINO_LAKEHOUSE_VHOL.PUBLIC.PRODUCT_REVIEWS_ICEBERG
+      GROUP BY OVERALL
+      ORDER BY OVERALL DESC
+
+  - name: total_reviews
+    question: How many total reviews are there?
+    verified_at: 1736812800
+    verified_by: system
+    sql: |
+      SELECT COUNT(*) as total_reviews
+      FROM VINO_LAKEHOUSE_VHOL.PUBLIC.PRODUCT_REVIEWS_ICEBERG
