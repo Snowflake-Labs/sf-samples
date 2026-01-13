@@ -143,23 +143,13 @@ def prepare_datasets(
     return (ds, train_ds, test_ds)
 
 
-# NOTE: Remove `target_instances=2` to run training on a single node
-#       See https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/distributed-ml-jobs
-@remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
 def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
     """
     Train a model on the training dataset.
 
-    This function trains an XGBoost classifier on the provided training data. It extracts
-    features and labels from the input data, configures the model with predefined parameters,
-    and trains the model. This function is executed remotely on Snowpark Container Services.
-
-    Args:
-        session (Session): Snowflake session object
-        input_data (DataSource): Data source containing training data with features and labels
-
-    Returns:
-        XGBClassifier: Trained XGBoost classifier model
+    This is the shared, "pure" training implementation used by both:
+    - the local pipeline (via `train_model_remote(...).result()`)
+    - the ML Job entrypoint (which already runs inside SPCS)
     """
     input_data_df = DataConnector.from_sources(session, [input_data]).to_pandas()
 
@@ -196,7 +186,15 @@ def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
     estimator.fit(X_train, y_train)
 
     # Convert distributed estimator to standard XGBClassifier if needed
-    return getattr(estimator, '_sklearn_estimator', estimator)
+    return getattr(estimator, "_sklearn_estimator", estimator)
+
+
+# NOTE: Remove `target_instances=2` to run training on a single node
+#       See https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/distributed-ml-jobs
+@remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
+def train_model_remote(session: Session, input_data: DataSource) -> XGBClassifier:
+    """Run `train_model` remotely on Snowpark Container Services."""
+    return train_model(session, input_data)
 
 
 def evaluate_model(

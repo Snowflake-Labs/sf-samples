@@ -178,30 +178,6 @@ def prepare_datasets(session: Session) -> str:
     }
     return json.dumps(dataset_info)
 
-
-# NOTE: Remove `target_instances=2` to run training on a single node
-#  See https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/distributed-ml-jobs
-def train_model(session: Session) -> MLJobDefinition:
-    """
-    Returns the MLJobDefinition to train a model.
-
-    Args:
-        session (Session): Snowflake session object
-
-    Returns:
-        MLJobDefinition: MLJobDefinition to train a model
-    """
-    job_definition = MLJobDefinition.register(
-        source = './src',
-        entrypoint = 'train_model.py',
-        compute_pool = COMPUTE_POOL,
-        stage_name = JOB_STAGE,
-        session = session,
-        target_instances = 2,
-        requirements = ['xgboost==3.1.2'],
-    )
-    return job_definition
-
 def check_model_quality(session: Session) -> str:
     """
     DAG task to check model quality and determine next action.
@@ -322,6 +298,15 @@ def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -
     ) as dag:
         # Need to wrap first function in a DAGTask to make >> operator work properly
         prepare_data = DAGTask("prepare_data", definition=prepare_datasets)
+        train_job_definition = MLJobDefinition.register(
+            source="./src",
+            entrypoint="train_model.py",
+            compute_pool=COMPUTE_POOL,
+            stage_name=JOB_STAGE,
+            session=session,
+            target_instances=2,  # NOTE: remove to run on a single node
+        )
+        train_model_task = DAGTask("TRAIN_MODEL", definition=train_job_definition)
         evaluate_model = DAGTaskBranch(
             "check_model_quality", definition=check_model_quality
         )
@@ -339,7 +324,6 @@ def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -
                 );
             """,
         )
-        train_model_task = DAGTask("TRAIN_MODEL", definition=train_model(session))
         _cleanup_task = DAGTask("cleanup_task", definition=cleanup, is_finalizer=True)
 
         # Build the DAG

@@ -41,7 +41,7 @@ def run_pipeline(
     )
 
     print("Training model...")
-    model_obj = modeling.train_model(session, train_ds.read.data_sources[0]).result()
+    model_obj = modeling.train_model_remote(session, train_ds.read.data_sources[0]).result()
 
     print("Evaluating model...")
     train_metrics = modeling.evaluate_model(
