@@ -189,7 +189,7 @@ This visual interface makes it easy to:
 
 ### Model Training on SPCS using ML Jobs
 
-The Task Graph runs model training on Snowpark Container Services (SPCS) via a Snowflake ML Job entrypoint (`src/train_model.py`), which calls `modeling.train_model(...)` and returns metrics and a serialized model path back to the DAG.
+The Task Graph runs model training on SPCS via a Snowflake ML Job entrypoint (`src/train_model.py`), which calls `modeling.train_model(...)` and returns metrics and a serialized model path back to the DAG.
 
 ```python
 train_job_definition = MLJobDefinition.register(

@@ -147,9 +147,6 @@ def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
     """
     Train a model on the training dataset.
 
-    This is the shared, "pure" training implementation used by both:
-    - the local pipeline (via `train_model_remote(...).result()`)
-    - the ML Job entrypoint (which already runs inside SPCS)
     """
     input_data_df = DataConnector.from_sources(session, [input_data]).to_pandas()
 
