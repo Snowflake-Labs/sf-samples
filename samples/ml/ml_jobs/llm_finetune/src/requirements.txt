@@ -1,0 +1,9 @@
+arctic_training[snowflake]>=0.7.1
+
+# VLLM is pre-installed in the Container Runtime
+# But we need to override the torch versions for compatibility
+# This will be fixed in a future image release
+# vllm
+torch===2.6.0
+torchaudio===2.6.0
+torchvision===0.21.0

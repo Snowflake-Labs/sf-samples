@@ -1,0 +1,31 @@
+type: sft
+code: ./train.py
+micro_batch_size: 1
+epochs: 2
+train_log_metrics_path: /tmp/train_log_metrics_path.json
+
+model:
+  name_or_path: Qwen/Qwen3-1.7B
+
+data:
+  sources:
+    - type: soap
+      table_name: soap_data_train
+  max_length: 5Ki
+  ignore_empty_think: true
+  pack_samples: true
+
+deepspeed:
+  zero_optimization:
+    stage: 3
+    offload_optimizer:
+      device: cpu
+
+optimizer:
+  type: cpu_adam
+  lr: 1e-5
+
+checkpoint:
+  - type: huggingface
+    save_end_of_training: true
+    output_dir: /mnt/job_stage/output/model/
