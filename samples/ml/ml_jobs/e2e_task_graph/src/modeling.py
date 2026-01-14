@@ -186,13 +186,6 @@ def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
     return getattr(estimator, "_sklearn_estimator", estimator)
 
 
-# NOTE: Remove `target_instances=2` to run training on a single node
-#       See https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/distributed-ml-jobs
-@remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
-def train_model_remote(session: Session, input_data: DataSource) -> XGBClassifier:
-    return train_model(session, input_data)
-
-
 def evaluate_model(
     session: Session,
     model: XGBClassifier,

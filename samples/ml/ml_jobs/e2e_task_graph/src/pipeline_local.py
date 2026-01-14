@@ -1,10 +1,13 @@
+from dataclasses import asdict
+import json
 import logging
 from datetime import datetime
+from snowflake.ml import jobs
 from snowflake.snowpark import Session
 
 import cloudpickle as cp
 import modeling
-from constants import DATA_TABLE_NAME
+from constants import COMPUTE_POOL, DATA_TABLE_NAME, JOB_STAGE
 
 logging.getLogger().setLevel(logging.ERROR)
 
@@ -40,25 +43,30 @@ def run_pipeline(
         create_assets=False,
         force_refresh=force_refresh,
     )
-
+    dataset_info = {
+        "full": asdict(ds.read.data_sources[0]),
+        "train": asdict(train_ds.read.data_sources[0]),
+        "test": asdict(test_ds.read.data_sources[0]),
+    }
     print("Training model...")
 
-    cp.register_pickle_by_value(modeling)
-    model_obj = modeling.train_model_remote(session, train_ds.read.data_sources[0]).result()
-
-    print("Evaluating model...")
-    train_metrics = modeling.evaluate_model(
-        session, model_obj, train_ds.read.data_sources[0], prefix="train"
+   
+    job = jobs.submit_directory(
+        dir_path="./src",
+        entrypoint="train_model.py",
+        compute_pool=COMPUTE_POOL,
+        stage_name=JOB_STAGE,
+        session=session,
+        args=["--dataset-info", json.dumps(dataset_info)],
+        target_instances=2,
     )
-    test_metrics = modeling.evaluate_model(
-        session, model_obj, test_ds.read.data_sources[0], prefix="test"
-    )
-    metrics = {**train_metrics, **test_metrics}
 
+    job.wait()
+    model_obj = job.result()["model_obj"]
+    metrics = job.result()["metrics"]
     key_metric = "test_accuracy"
     threshold = 0.7
     current_score = metrics[key_metric]
-    print(f"Current score: {current_score}. Threshold for promotion: {threshold}.")
 
     if no_register:
         print("Model registration disabled via --no-register flag.")

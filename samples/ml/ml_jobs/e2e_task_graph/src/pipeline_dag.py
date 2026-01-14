@@ -17,7 +17,7 @@ from snowflake.ml.jobs import MLJobDefinition
 import cli_utils
 import data
 import modeling
-from constants import (COMPUTE_POOL,DAG_STAGE, DATA_TABLE_NAME, DB_NAME, JOB_STAGE, SCHEMA_NAME,
+from constants import (COMPUTE_POOL, DAG_STAGE, DATA_TABLE_NAME, DB_NAME, JOB_STAGE, SCHEMA_NAME,
                        WAREHOUSE)
 
 ARTIFACT_DIR = "run_artifacts"
@@ -324,7 +324,7 @@ def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -
                 );
             """,
         )
-        _cleanup_task = DAGTask("cleanup_task", definition=cleanup, is_finalizer=True)
+        cleanup_task = DAGTask("cleanup_task", definition=cleanup, is_finalizer=True)
 
         # Build the DAG
         prepare_data >> train_model_task >> evaluate_model >> [promote_model_task, alert_task]
