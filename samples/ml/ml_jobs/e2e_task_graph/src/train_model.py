@@ -1,4 +1,3 @@
-from ast import arg
 from snowflake.ml.data import DatasetInfo
 from snowflake.core.task.context import TaskContext
 from snowflake.snowpark import Session

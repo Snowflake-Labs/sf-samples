@@ -183,7 +183,7 @@ def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
     estimator.fit(X_train, y_train)
 
     # Convert distributed estimator to standard XGBClassifier if needed
-    return getattr(estimator, "_sklearn_estimator", estimator)
+    return getattr(estimator, "_sklearn_estimator", estimator) or estimator
 
 
 def evaluate_model(
