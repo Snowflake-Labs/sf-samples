@@ -73,20 +73,7 @@ CREATE WAREHOUSE IF NOT EXISTS DEMO_WH;
 GRANT USAGE ON WAREHOUSE DEMO_WH TO ROLE ENGINEER;
 ```
 
-3. Create an external access integration for PyPI and Hugging Face access:
-
-```sql
--- Requires ACCOUNTADMIN
-CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION PYPI_HF_EAI
-    ALLOWED_NETWORK_RULES = (
-        snowflake.external_access.pypi_rule,
-        snowflake.external_access.huggingface_rule
-    )
-    ENABLED = true;
-GRANT USAGE ON INTEGRATION PYPI_HF_EAI TO ROLE ENGINEER;
-```
-
-4. Configure database privileges. Subsequent steps will create resources inside this database:
+3. Configure database privileges. Subsequent steps will create resources inside this database:
 
 ```sql
 -- OPTIONAL: Create a separate database for easy cleanup
@@ -96,6 +83,29 @@ GRANT USAGE ON DATABASE LLM_DEMO TO ROLE ENGINEER;
 GRANT CREATE SCHEMA ON DATABASE LLM_DEMO TO ROLE ENGINEER;
 GRANT CREATE STAGE ON SCHEMA LLM_DEMO.PUBLIC TO ROLE ENGINEER;
 GRANT CREATE TABLE ON SCHEMA LLM_DEMO.PUBLIC TO ROLE ENGINEER;
+```
+
+4. Create an external access integration for PyPI and Hugging Face access if you don't already have one:
+
+```sql
+-- Requires ACCOUNTADMIN privileges
+CREATE OR REPLACE NETWORK RULE LLM_DEMO.PUBLIC.HUGGINGFACE_RULE
+  MODE = 'EGRESS'
+  TYPE = 'HOST_PORT'
+  VALUE_LIST = (
+    'huggingface.co:443',
+    'www.huggingface.co:443',
+    'cdn-lfs.huggingface.co:443',
+    'cdn-lfs-us-1.huggingface.co:443'
+  );
+
+CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION PYPI_HF_EAI
+  ALLOWED_NETWORK_RULES = (
+    SNOWFLAKE.EXTERNAL_ACCESS.PYPI_RULE,  -- Predefined rule from Snowflake
+    LLM_DEMO.PUBLIC.HUGGINGFACE_RULE,     -- Custom rule defined above
+  )
+  ENABLED = true;
+GRANT USAGE ON INTEGRATION PYPI_HF_EAI TO ROLE ENGINEER;
 ```
 
 ### Local Setup
@@ -272,18 +282,9 @@ If you encounter OOM errors during training:
 2. Use LoRA instead of full fine-tuning
 3. Request a larger GPU instance family (e.g., `GPU_NV_L` instead of `GPU_NV_M`)
 
-### Job Submission Failures
+### Network Access Errors
 
-Ensure your external access integration includes both PyPI and Hugging Face rules:
-
-```sql
-CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION PYPI_HF_EAI
-    ALLOWED_NETWORK_RULES = (
-        snowflake.external_access.pypi_rule,
-        snowflake.external_access.huggingface_rule
-    )
-    ENABLED = true;
-```
+Ensure you have configured external access integration(s) to allow the required network access rules.
 
 ### Viewing Job Logs
 
