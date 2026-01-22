@@ -31,7 +31,6 @@ cp.register_pickle_by_value(modeling)
 cp.register_pickle_by_value(data)
 cp.register_pickle_by_value(ops)
 cp.register_pickle_by_value(run_config)
-cp.register_pickle_by_value(sys.modules[__name__])
 
 ARTIFACT_DIR = "run_artifacts"
 
