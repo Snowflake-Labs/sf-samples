@@ -7,8 +7,6 @@ import pipeline_dag
 from constants import DATA_TABLE_NAME
 import modeling
 import ops
-import run_config
-import cloudpickle as cp
 logging.getLogger().setLevel(logging.ERROR)
 
 
@@ -121,7 +119,6 @@ if __name__ == "__main__":
         session_builder = session_builder.config("connection_name", args.connection)
     session = session_builder.getOrCreate()
     modeling.ensure_environment(session)
-    cp.register_pickle_by_value(run_config)
 
     run_pipeline(
         session,

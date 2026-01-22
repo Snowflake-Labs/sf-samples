@@ -142,7 +142,7 @@ def prepare_datasets(session: Session) -> str:
     }
     return json.dumps(dataset_info)
 
-@remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=1, database= "SNOWBANK", schema= "DEV")
+@remote(COMPUTE_POOL, stage_name=JOB_STAGE)
 def train_model(dataset_info: Optional[str] = None) -> Optional[str]:
     session = Session.builder.getOrCreate()
     ctx = None
