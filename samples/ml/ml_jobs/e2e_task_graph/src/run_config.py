@@ -1,14 +1,9 @@
-import os
-
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
 from snowflake.core.task.context import TaskContext
 from snowflake.snowpark import Session
-from constants import DAG_STAGE
-
-ARTIFACT_DIR = "run_artifacts"
 
 @dataclass(frozen=True)
 class RunConfig:
@@ -17,10 +12,6 @@ class RunConfig:
     model_name: str
     metric_name: str
     metric_threshold: float
-
-    @property
-    def artifact_dir(self) -> str:
-        return os.path.join(DAG_STAGE, ARTIFACT_DIR, self.run_id)  # noqa: F821
 
     @classmethod
     def from_task_context(cls, ctx: TaskContext, **kwargs: Any) -> "RunConfig":

@@ -120,7 +120,6 @@ Run the ML pipeline locally without task graph orchestration:
 
 ```bash
 python src/pipeline_local.py
-python src/pipeline_local.py --no-register  # Skip model registration for faster experimentation
 ```
 
 You can monitor the corresponding ML Job for model training via the [Job UI in Snowsight](../README.md#job-ui-in-snowsight).
@@ -213,6 +212,6 @@ def check_model_quality(session: Session) -> str:
 Successful models are automatically registered and promoted to production:
 
 ```python
-mv = register_model(session, model, model_name, version, train_ds, metrics)
+# get model version from train model
 promote_model(session, mv)  # Sets as default version
 ```

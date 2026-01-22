@@ -1,7 +1,4 @@
-import io
 import json
-import os
-import sys
 import time
 from dataclasses import asdict
 from datetime import timedelta
@@ -32,7 +29,6 @@ cp.register_pickle_by_value(data)
 cp.register_pickle_by_value(ops)
 cp.register_pickle_by_value(run_config)
 
-ARTIFACT_DIR = "run_artifacts"
 
 session = Session.builder.getOrCreate()
 def _ensure_environment(session: Session):
@@ -146,7 +142,7 @@ def prepare_datasets(session: Session) -> str:
     }
     return json.dumps(dataset_info)
 
-@remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
+@remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=1, database= "SNOWBANK", schema= "DEV")
 def train_model(dataset_info: Optional[str] = None) -> Optional[str]:
     session = Session.builder.getOrCreate()
     ctx = None
@@ -156,6 +152,7 @@ def train_model(dataset_info: Optional[str] = None) -> Optional[str]:
         dataset_info_dicts = json.loads(dataset_info)
     try:
         ctx = TaskContext(session)
+        print("ctx", ctx)
         config = run_config.RunConfig.from_task_context(ctx)
         dataset_info_dicts = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
     except SnowparkSQLException:
@@ -166,19 +163,21 @@ def train_model(dataset_info: Optional[str] = None) -> Optional[str]:
     }
     train_ds=load_dataset(
             session,
-            datasets["train"].fully_qualified_name,
-            datasets["train"].version,
+            datasets["full"].fully_qualified_name,
+            datasets["full"].version,
     )
     model_obj = modeling.train_model(session, datasets["train"])
+    train_metrics = modeling.evaluate_model(
+        session, model_obj, train_ds.read.data_sources[0], prefix="train"
+    )
     version = f"v{uuid.uuid4().hex}"
-    mv = modeling.register_model(session, model_obj, config.model_name if config and config.model_name else "mortgage_model", version, train_ds, metrics={}) if config else modeling.register_model(session, model_obj, "mortgage_model", version, train_ds, metrics={})
-    if ctx:
+    mv = modeling.register_model(session, model_obj, config.model_name if config and config.model_name else "mortgage_model", version, train_ds, metrics={}) if config else modeling.register_model(session, model_obj, "mortgage_model", version, train_ds, metrics=train_metrics)
+    if ctx and config:
         ctx.set_return_value(json.dumps({"model_name": mv.fully_qualified_model_name, "version_name": mv.version_name}))
     return json.dumps({"model_name": mv.fully_qualified_model_name, "version_name": mv.version_name})
 
 def evaluate_model(session: Session) -> Optional[str]:
     ctx = TaskContext(session)
-    config = run_config.RunConfig.from_task_context(ctx)
     serialized = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
     dataset_info = {
         key: DatasetInfo(**obj_dict) for key, obj_dict in serialized.items()
@@ -193,18 +192,7 @@ def evaluate_model(session: Session) -> Optional[str]:
     )
     metrics = {**train_metrics, **test_metrics}
 
-    # Save model to stage and return the metrics as a JSON string
-    model_pkl = cp.dumps(model)
-    model_path = os.path.join(config.artifact_dir, "model.pkl")
-    put_result = session.file.put_stream(
-        io.BytesIO(model_pkl), model_path, overwrite=True
-    )
-
-    result_dict = {
-        "model_path": os.path.join(config.artifact_dir, put_result.target),
-        "metrics": metrics,
-    }
-    return json.dumps(result_dict)
+    return json.dumps(metrics)
 
 
 def check_model_quality(session: Session) -> str:
@@ -224,7 +212,7 @@ def check_model_quality(session: Session) -> str:
     ctx = TaskContext(session)
     config = run_config.RunConfig.from_task_context(ctx)
 
-    metrics = json.loads(ctx.get_predecessor_return_value("EVALUATE_MODEL"))["metrics"]
+    metrics = json.loads(ctx.get_predecessor_return_value("EVALUATE_MODEL"))
 
     threshold = config.metric_threshold
     if metrics[config.metric_name] >= threshold:
@@ -248,28 +236,8 @@ def promote_model(session: Session) -> str:
         str: Tuple of (fully_qualified_model_name, version_name) as string
     """
     ctx = TaskContext(session)
-    config = run_config.RunConfig.from_task_context(ctx)
-
-    train_result = json.loads(ctx.get_predecessor_return_value("TRAIN_MODEL"))
-    model_path = train_result["model_path"]
-    with session.file.get_stream(model_path, decompress=True) as stream:
-        model = cp.loads(stream.read())
-
-    serialized = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
-    source_data = {key: DatasetInfo(**obj_dict) for key, obj_dict in serialized.items()}
-    mv = modeling.register_model(
-        session,
-        model,
-        model_name=config.model_name,
-        version_name=config.run_id,
-        train_ds=load_dataset(
-            session,
-            source_data["full"].fully_qualified_name,
-            source_data["full"].version,
-        ),
-        metrics=train_result["metrics"],
-    )
-
+    model_info = json.loads(ctx.get_predecessor_return_value("TRAIN_MODEL"))
+    mv = ops.get_model(session, model_info["model_name"], model_info["version_name"])
     modeling.promote_model(session, mv)
 
     return (mv.fully_qualified_model_name, mv.version_name)
@@ -289,7 +257,6 @@ def cleanup(session: Session) -> None:
     ctx = TaskContext(session)
     config = run_config.RunConfig.from_task_context(ctx)
 
-    session.sql(f"REMOVE {config.artifact_dir}").collect()
     modeling.clean_up(session, config.dataset_name, config.model_name)
 
 

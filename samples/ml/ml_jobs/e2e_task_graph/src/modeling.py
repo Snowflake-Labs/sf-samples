@@ -191,8 +191,7 @@ def train_model(session: Session, input_data: Optional[DataSource] = None) -> XG
         estimator = XGBClassifier(**model_params)
 
     estimator.fit(X_train, y_train)
-
-    # Convert distributed estimator to standard XGBClassifier if needed
+            
     return getattr(estimator, '_sklearn_estimator', estimator)
 
 
@@ -228,7 +227,12 @@ def evaluate_model(
 
     X_test = input_data_df.drop(exclude_cols, axis=1)
     expected = input_data_df[label_col].squeeze()
-    actual = model.predict(X_test)
+    # inside evaluate_model
+    if isinstance(model, ModelVersion):
+        preds_df = model.run(X_test, function_name="predict")
+        actual =  preds_df.iloc[:, -1]
+    else:
+        actual = model.predict(X_test)
 
     metric_types = [
         f1_score,

@@ -169,4 +169,4 @@ def promote_model(
 
 def get_model(session: Session, model_name: str, version_name: str) -> ModelVersion:
     registry = get_model_registry(session)
-    return registry.get_model(model_name).get_version(version_name)
+    return registry.get_model(model_name).version(version_name)
