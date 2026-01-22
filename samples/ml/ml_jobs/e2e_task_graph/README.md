@@ -189,18 +189,13 @@ This visual interface makes it easy to:
 
 ### Model Training on SPCS using ML Jobs
 
-The Task Graph runs model training on SPCS via a Snowflake ML Job entrypoint (`src/train_model.py`), which calls `modeling.train_model(...)` and returns metrics and a serialized model path back to the DAG.
+The `train_model` function uses the `@remote` decorator to run multi-node training on Snowpark Container Services:
 
 ```python
-train_job_definition = MLJobDefinition.register(
-    source="./src",
-    entrypoint="train_model.py",
-    compute_pool=COMPUTE_POOL,
-    stage_name=JOB_STAGE,
-    session=session,
-    target_instances=2,
-)
-train_model_task = DAGTask("TRAIN_MODEL", definition=train_job_definition)
+
+@remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
+def train_model(input_data: DataSource) -> XGBClassifier:
+    # Training logic runs on distributed compute
 ```
 
 ### Conditional Model Promotion
