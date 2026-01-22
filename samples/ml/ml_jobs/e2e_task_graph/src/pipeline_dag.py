@@ -1,9 +1,12 @@
+import io
 import json
 import os
+import sys
 import time
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta
+from dataclasses import asdict
+from datetime import timedelta
 from typing import Any, Optional
+import uuid
 
 import cloudpickle as cp
 from snowflake.core import CreateMode, Root
@@ -11,18 +14,28 @@ from snowflake.core.task.context import TaskContext
 from snowflake.core.task.dagv1 import DAG, DAGOperation, DAGTask, DAGTaskBranch
 from snowflake.ml.data import DatasetInfo
 from snowflake.ml.dataset import load_dataset
+from snowflake.snowpark.exceptions import SnowparkSQLException
 from snowflake.snowpark import Session
-from snowflake.ml.jobs import MLJobDefinition
+from snowflake.ml.jobs import remote
+import modeling
+import data
+import ops
+import run_config
 
 import cli_utils
-import data
-import modeling
 from constants import (COMPUTE_POOL, DAG_STAGE, DATA_TABLE_NAME, DB_NAME, JOB_STAGE, SCHEMA_NAME,
                        WAREHOUSE)
 
+# Ensure local modules are bundled for remote job execution.
+cp.register_pickle_by_value(modeling)
+cp.register_pickle_by_value(data)
+cp.register_pickle_by_value(ops)
+cp.register_pickle_by_value(run_config)
+cp.register_pickle_by_value(sys.modules[__name__])
+
 ARTIFACT_DIR = "run_artifacts"
 
-
+session = Session.builder.getOrCreate()
 def _ensure_environment(session: Session):
     """
     Ensure the environment is properly set up for DAG execution.
@@ -40,7 +53,6 @@ def _ensure_environment(session: Session):
     _ = data.get_raw_data(session, DATA_TABLE_NAME, create_if_not_exists=True)
 
     # Register local modules for inclusion in ML Job payloads
-    cp.register_pickle_by_value(modeling)
 
 
 def _wait_for_run_to_complete(session: Session, dag: DAG) -> str:
@@ -107,49 +119,6 @@ def _wait_for_run_to_complete(session: Session, dag: DAG) -> str:
 
     return dag_result
 
-
-@dataclass(frozen=True)
-class RunConfig:
-    run_id: str
-    dataset_name: str
-    model_name: str
-    metric_name: str
-    metric_threshold: float
-
-    @property
-    def artifact_dir(self) -> str:
-        return os.path.join(DAG_STAGE, ARTIFACT_DIR, self.run_id)
-
-    @classmethod
-    def from_task_context(cls, ctx: TaskContext, **kwargs: Any) -> "RunConfig":
-        run_schedule = ctx.get_current_task_graph_original_schedule()
-        run_id = "v" + (
-            run_schedule.strftime("%Y%m%d_%H%M%S")
-            if isinstance(run_schedule, datetime)
-            else str(run_schedule)
-        )
-        run_config = dict(run_id=run_id)
-
-        graph_config = ctx.get_task_graph_config()
-        merged = run_config | graph_config | kwargs
-
-        # Get expected fields from RunConfig
-        expected_fields = set(cls.__annotations__)
-
-        # Find unexpected keys
-        unexpected_keys = [key for key in merged.keys() if key not in expected_fields]
-        for key in unexpected_keys:
-            print(f"Warning: Unexpected config key '{key}' will be ignored")
-
-        filtered = {k: v for k, v in merged.items() if k in expected_fields}
-        return cls(**filtered)
-
-    @classmethod
-    def from_session(cls, session: Session) -> "RunConfig":
-        ctx = TaskContext(session)
-        return cls.from_task_context(ctx)
-
-
 def prepare_datasets(session: Session) -> str:
     """
     DAG task to prepare datasets for model training.
@@ -165,7 +134,7 @@ def prepare_datasets(session: Session) -> str:
         str: JSON string containing serialized dataset information for downstream tasks
     """
     ctx = TaskContext(session)
-    config = RunConfig.from_task_context(ctx)
+    config = run_config.RunConfig.from_task_context(ctx)
 
     ds, train_ds, test_ds = modeling.prepare_datasets(
         session, DATA_TABLE_NAME, config.dataset_name
@@ -177,6 +146,67 @@ def prepare_datasets(session: Session) -> str:
         "test": asdict(test_ds.read.data_sources[0]),
     }
     return json.dumps(dataset_info)
+
+@remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2, database= "SNOWBANK", schema= "DEV")
+def train_model(dataset_info: Optional[str] = None) -> Optional[str]:
+    session = Session.builder.getOrCreate()
+    ctx = None
+    config = None
+
+    if dataset_info:
+        dataset_info_dicts = json.loads(dataset_info)
+    try:
+        ctx = TaskContext(session)
+        config = run_config.RunConfig.from_task_context(ctx)
+        dataset_info_dicts = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
+    except SnowparkSQLException:
+        print("there is no predecessor return value, fallback to local mode")
+
+    datasets = {
+        key: DatasetInfo(**info_dict) for key, info_dict in dataset_info_dicts.items()
+    }
+    train_ds=load_dataset(
+            session,
+            datasets["train"].fully_qualified_name,
+            datasets["train"].version,
+    )
+    model_obj = modeling.train_model(session, datasets["train"])
+    version = f"v{uuid.uuid4().hex}"
+    mv = modeling.register_model(session, model_obj, config.model_name if config and config.model_name else "mortgage_model", version, train_ds, metrics={}) if config else modeling.register_model(session, model_obj, "mortgage_model", version, train_ds, metrics={})
+    if ctx:
+        ctx.set_return_value(json.dumps({"model_name": mv.fully_qualified_model_name, "version_name": mv.version_name}))
+    return json.dumps({"model_name": mv.fully_qualified_model_name, "version_name": mv.version_name})
+
+def evaluate_model(session: Session) -> Optional[str]:
+    ctx = TaskContext(session)
+    config = run_config.RunConfig.from_task_context(ctx)
+    serialized = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
+    dataset_info = {
+        key: DatasetInfo(**obj_dict) for key, obj_dict in serialized.items()
+    }
+    model_info = json.loads(ctx.get_predecessor_return_value("TRAIN_MODEL"))
+    model = ops.get_model(session, model_info["model_name"], model_info["version_name"])
+    train_metrics = modeling.evaluate_model(
+        session, model, dataset_info["train"], prefix="train"
+    )
+    test_metrics = modeling.evaluate_model(
+        session, model, dataset_info["test"], prefix="test"
+    )
+    metrics = {**train_metrics, **test_metrics}
+
+    # Save model to stage and return the metrics as a JSON string
+    model_pkl = cp.dumps(model)
+    model_path = os.path.join(config.artifact_dir, "model.pkl")
+    put_result = session.file.put_stream(
+        io.BytesIO(model_pkl), model_path, overwrite=True
+    )
+
+    result_dict = {
+        "model_path": os.path.join(config.artifact_dir, put_result.target),
+        "metrics": metrics,
+    }
+    return json.dumps(result_dict)
+
 
 def check_model_quality(session: Session) -> str:
     """
@@ -193,9 +223,9 @@ def check_model_quality(session: Session) -> str:
         str: "promote_model" if model meets threshold, "send_alert" otherwise
     """
     ctx = TaskContext(session)
-    config = RunConfig.from_task_context(ctx)
+    config = run_config.RunConfig.from_task_context(ctx)
 
-    metrics = json.loads(ctx.get_predecessor_return_value("TRAIN_MODEL"))["metrics"]
+    metrics = json.loads(ctx.get_predecessor_return_value("EVALUATE_MODEL"))["metrics"]
 
     threshold = config.metric_threshold
     if metrics[config.metric_name] >= threshold:
@@ -219,7 +249,7 @@ def promote_model(session: Session) -> str:
         str: Tuple of (fully_qualified_model_name, version_name) as string
     """
     ctx = TaskContext(session)
-    config = RunConfig.from_task_context(ctx)
+    config = run_config.RunConfig.from_task_context(ctx)
 
     train_result = json.loads(ctx.get_predecessor_return_value("TRAIN_MODEL"))
     model_path = train_result["model_path"]
@@ -258,7 +288,7 @@ def cleanup(session: Session) -> None:
         session (Session): Snowflake session object
     """
     ctx = TaskContext(session)
-    config = RunConfig.from_task_context(ctx)
+    config = run_config.RunConfig.from_task_context(ctx)
 
     session.sql(f"REMOVE {config.artifact_dir}").collect()
     modeling.clean_up(session, config.dataset_name, config.model_name)
@@ -298,16 +328,9 @@ def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -
     ) as dag:
         # Need to wrap first function in a DAGTask to make >> operator work properly
         prepare_data = DAGTask("prepare_data", definition=prepare_datasets)
-        train_job_definition = MLJobDefinition.register(
-            source="./src",
-            entrypoint="train_model.py",
-            compute_pool=COMPUTE_POOL,
-            stage_name=JOB_STAGE,
-            session=session,
-            target_instances=2,  # NOTE: remove to run on a single node
-        )
-        train_model_task = DAGTask("TRAIN_MODEL", definition=train_job_definition)
-        evaluate_model = DAGTaskBranch(
+        train_model_task = DAGTask("TRAIN_MODEL", definition=train_model)
+        evaluate_model_task = DAGTask("EVALUATE_MODEL", definition=evaluate_model)
+        check_model_quality_task = DAGTaskBranch(
             "check_model_quality", definition=check_model_quality
         )
         promote_model_task = DAGTask("promote_model", definition=promote_model)
@@ -327,7 +350,7 @@ def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -
         cleanup_task = DAGTask("cleanup_task", definition=cleanup, is_finalizer=True)
 
         # Build the DAG
-        prepare_data >> train_model_task >> evaluate_model >> [promote_model_task, alert_task]
+        prepare_data >> train_model_task >> evaluate_model_task >> check_model_quality_task >> [promote_model_task, alert_task]
 
     return dag
 

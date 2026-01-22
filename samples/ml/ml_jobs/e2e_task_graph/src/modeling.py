@@ -1,12 +1,12 @@
 import os
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 import cloudpickle as cp
 import data
 import ops
 from constants import (
-    COMPUTE_POOL,
     DAG_STAGE,
     DB_NAME,
     JOB_STAGE,
@@ -17,7 +17,6 @@ from constants import (
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from snowflake.ml.data import DataConnector, DatasetInfo, DataSource
 from snowflake.ml.dataset import Dataset, load_dataset
-from snowflake.ml.jobs import remote
 from snowflake.ml.model import ModelVersion
 from snowflake.snowpark import Session
 from snowflake.snowpark.exceptions import SnowparkSQLException
@@ -143,12 +142,23 @@ def prepare_datasets(
     return (ds, train_ds, test_ds)
 
 
-def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
+def train_model(session: Session, input_data: Optional[DataSource] = None) -> XGBClassifier:
     """
     Train a model on the training dataset.
 
+    This function trains an XGBoost classifier on the provided training data. It extracts
+    features and labels from the input data, configures the model with predefined parameters,
+    and trains the model. This function is executed remotely on Snowpark Container Services.
+
+    Args:
+        session (Session): Snowflake session object
+        input_data (DataSource): Data source containing training data with features and labels
+
+    Returns:
+        XGBClassifier: Trained XGBoost classifier model
     """
     input_data_df = DataConnector.from_sources(session, [input_data]).to_pandas()
+    
 
     assert isinstance(input_data, DatasetInfo), "Input data must be a DatasetInfo"
     exclude_cols = input_data.exclude_cols
@@ -183,7 +193,7 @@ def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
     estimator.fit(X_train, y_train)
 
     # Convert distributed estimator to standard XGBClassifier if needed
-    return getattr(estimator, "_sklearn_estimator", estimator) or estimator
+    return getattr(estimator, '_sklearn_estimator', estimator)
 
 
 def evaluate_model(

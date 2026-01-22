@@ -2,13 +2,14 @@ from dataclasses import asdict
 import json
 import logging
 from datetime import datetime
-from snowflake.ml import jobs
 from snowflake.snowpark import Session
 
-import cloudpickle as cp
+import pipeline_dag
+from constants import DATA_TABLE_NAME
 import modeling
-from constants import COMPUTE_POOL, DATA_TABLE_NAME, JOB_STAGE
-
+import ops
+import run_config
+import cloudpickle as cp
 logging.getLogger().setLevel(logging.ERROR)
 
 
@@ -51,22 +52,22 @@ def run_pipeline(
     print("Training model...")
 
    
-    job = jobs.submit_directory(
-        dir_path="./src",
-        entrypoint="train_model.py",
-        compute_pool=COMPUTE_POOL,
-        stage_name=JOB_STAGE,
-        session=session,
-        args=["--dataset-info", json.dumps(dataset_info)],
-        target_instances=2,
+    job = pipeline_dag.train_model(json.dumps(dataset_info))
+    model_info = json.loads(job.result())
+    model_obj = ops.get_model(session, model_info["model_name"], model_info["version_name"])
+    print("Evaluating model...")
+    train_metrics = modeling.evaluate_model(
+        session, model_obj, train_ds.read.data_sources[0], prefix="train"
     )
+    test_metrics = modeling.evaluate_model(
+        session, model_obj, test_ds.read.data_sources[0], prefix="test"
+    )
+    metrics = {**train_metrics, **test_metrics}
 
-    job.wait()
-    model_obj = job.result()["model_obj"]
-    metrics = job.result()["metrics"]
     key_metric = "test_accuracy"
     threshold = 0.7
     current_score = metrics[key_metric]
+    print(f"Current score: {current_score}. Threshold for promotion: {threshold}.")
 
     if no_register:
         print("Model registration disabled via --no-register flag.")
@@ -130,6 +131,7 @@ if __name__ == "__main__":
         session_builder = session_builder.config("connection_name", args.connection)
     session = session_builder.getOrCreate()
     modeling.ensure_environment(session)
+    cp.register_pickle_by_value(run_config)
 
     run_pipeline(
         session,
