@@ -142,8 +142,22 @@ def prepare_datasets(session: Session) -> str:
     }
     return json.dumps(dataset_info)
 
-@remote(COMPUTE_POOL, stage_name=JOB_STAGE)
+@remote(COMPUTE_POOL, stage_name=JOB_STAGE, database=DB_NAME, schema=SCHEMA_NAME)
 def train_model(dataset_info: Optional[str] = None) -> Optional[str]:
+    '''
+    ML Job to train a model on the training dataset and register it in the model registry.
+
+    This function trains an XGBoost classifier on the provided training data and registers it in the model registry. 
+    This function is executed remotely on Snowpark Container Services.
+
+    Args:
+        dataset_info (Optional[str]): JSON string containing serialized dataset information for training. If this function is called in a DAG task, 
+        this argument is passed from the previous DAG task, otherwise it is passed manually.
+
+    Returns:
+        Optional[str]: JSON string containing serialized model information for registration. If this function is called in a DAG task, 
+        this return value is passed to the next DAG task, otherwise it is as ML Job result.
+    '''
     session = Session.builder.getOrCreate()
     ctx = None
     config = None
@@ -152,7 +166,6 @@ def train_model(dataset_info: Optional[str] = None) -> Optional[str]:
         dataset_info_dicts = json.loads(dataset_info)
     try:
         ctx = TaskContext(session)
-        print("ctx", ctx)
         config = run_config.RunConfig.from_task_context(ctx)
         dataset_info_dicts = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
     except SnowparkSQLException:
@@ -177,6 +190,18 @@ def train_model(dataset_info: Optional[str] = None) -> Optional[str]:
     return json.dumps({"model_name": mv.fully_qualified_model_name, "version_name": mv.version_name})
 
 def evaluate_model(session: Session) -> Optional[str]:
+    '''
+    Evaluate a model on the training and test datasets.
+
+    This function evaluates a trained model on the training and test datasets and returns the performance metrics.
+
+    Args:
+        session (Session): Snowflake session object
+
+    Returns:
+        Optional[str]: JSON string containing serialized performance metrics for the model. If this function is called in a DAG task, 
+        this return value is passed to the next DAG task.
+    '''
     ctx = TaskContext(session)
     serialized = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
     dataset_info = {

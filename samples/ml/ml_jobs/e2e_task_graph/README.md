@@ -186,14 +186,24 @@ This visual interface makes it easy to:
 - **Branching Logic**: Using `DAGTaskBranch` for conditional execution paths
 - **Finalizer Tasks**: Ensuring cleanup always runs regardless of success/failure
 
-### Model Training on SPCS using ML Jobs
+### Model Training on SPCS Using ML Jobs
 
-The `train_model` function uses the `@remote` decorator to run multi-node training on Snowpark Container Services:
-
+The `train_model` function is decorated with `@remote` to execute multi-node training on Snowpark Container Services (SPCS):
 ```python
 @remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
 def train_model(input_data: DataSource) -> Optional[str]:
     # Training logic runs on distributed compute
+```
+
+The Task SDK lets you use that ML Job definition directly when creating a DAG task. For additional ML Job definition examples, see `../README.md`.
+
+```python
+@remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
+def train_model(input_data: DataSource) -> Optional[str]:
+    ...
+
+train_model_task = DAGTask("TRAIN_MODEL", definition=train_model)
+
 ```
 
 ### Conditional Model Promotion
