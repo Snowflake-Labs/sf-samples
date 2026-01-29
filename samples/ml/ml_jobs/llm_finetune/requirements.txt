@@ -1,0 +1,2 @@
+snowflake-ml-python>=1.21.0
+datasets
