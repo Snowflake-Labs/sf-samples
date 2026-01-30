@@ -283,15 +283,12 @@ Summary:
         coalesce(col("VISIT_CONTEXT"), lit("")),
         lit("""
 
-Generate output as a JSON object with exactly two keys:
+Generate output as a JSON object with exactly five keys:
 1. "dialogue": A realistic, detailed conversation between doctor and patient (and guardian if applicable). Include greetings, symptom discussion, examination findings, diagnosis explanation, and treatment plan discussion.
-2. "soap": A properly formatted SOAP note with sections labeled as "S:", "O:", "A:", "P:" (each on its own line, followed by the content).
-
-The SOAP note should follow this format exactly:
-S: [Subjective findings - patient's complaints, symptoms, history]
-O: [Objective findings - vital signs, physical exam, lab results]
-A: [Assessment - diagnosis and clinical reasoning]
-P: [Plan - treatment, medications, follow-up]
+2. "S": Subjective findings - patient's complaints, symptoms, history as reported by the patient
+3. "O": Objective findings - vital signs, physical exam findings, lab results, observations
+4. "A": Assessment - diagnosis and clinical reasoning
+5. "P": Plan - treatment, medications, follow-up instructions
 
 Return ONLY the JSON object, no other text.""")
     )
@@ -306,7 +303,7 @@ Return ONLY the JSON object, no other text.""")
         sql_expr(f"REGEXP_REPLACE(AI_COMPLETE('{model}', PROMPT), '^```[a-zA-Z]*|```$|[[:cntrl:]]', ' ', 1, 0, 'm')")
     )
 
-    # Parse JSON response once, then extract dialogue and soap fields
+    # Parse JSON response once, then extract dialogue and SOAP section fields
     # Filter out rows where parsing failed (NULL values)
     print("  Parsing responses and extracting fields...")
     parsed_df = df_with_response.with_column(
@@ -315,9 +312,16 @@ Return ONLY the JSON object, no other text.""")
     )
     result_df = parsed_df.select(
         sql_expr("PARSED_JSON:dialogue::STRING").alias("DIALOGUE"),
-        sql_expr("PARSED_JSON:soap::STRING").alias("SOAP")
+        sql_expr("PARSED_JSON:S::STRING").alias("S"),
+        sql_expr("PARSED_JSON:O::STRING").alias("O"),
+        sql_expr("PARSED_JSON:A::STRING").alias("A"),
+        sql_expr("PARSED_JSON:P::STRING").alias("P")
     ).filter(
-        col("DIALOGUE").is_not_null() & col("SOAP").is_not_null()
+        col("DIALOGUE").is_not_null() &
+        col("S").is_not_null() &
+        col("O").is_not_null() &
+        col("A").is_not_null() &
+        col("P").is_not_null()
     )
 
     print(f"Detail generation complete. Generated {result_df.count()} rows.")
