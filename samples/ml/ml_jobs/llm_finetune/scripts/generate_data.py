@@ -7,15 +7,11 @@ Uses a two-step pipeline with a predefined diversity grid to ensure sample uniqu
 
 import argparse
 import itertools
-import json
 import random
-import re
-from functools import reduce
 from typing import Dict, List, Optional, Tuple
 
-from snowflake.cortex import complete
 from snowflake.snowpark import DataFrame, Session
-from snowflake.snowpark.functions import col, lit, concat, coalesce, sql_expr
+from snowflake.snowpark.functions import col, lit, concat, coalesce, sql_expr, listagg, count as sf_count
 
 
 # =============================================================================
@@ -60,66 +56,8 @@ VISIT_CONTEXTS = [
 
 
 # =============================================================================
-# Prompt Templates
-# =============================================================================
-
-SUMMARY_GENERATION_PROMPT = """\
-Generate {count} unique clinical visit summaries. Each summary should be exactly one sentence.
-
-For each summary, include:
-- Doctor's full name (with title, e.g., Dr. Sarah Chen)
-- Patient's full name
-- Guardian name (only if patient is a minor, otherwise omit)
-- Chief complaint / reported symptoms
-- Preliminary or confirmed diagnosis
-
-Constraints for this batch:
-{constraints}
-
-Output as a JSON array of objects with keys: "doctor", "patient", "guardian" (null if not applicable), "symptoms", "diagnosis", "summary"
-
-Return ONLY the JSON array, no other text."""
-
-
-# =============================================================================
 # Helper Functions
 # =============================================================================
-
-def clean_json_string(s: str) -> str:
-    """Clean a string for JSON parsing by removing/escaping invalid control characters."""
-    # Remove control characters except for \n, \r, \t which are valid in JSON strings
-    # Control characters are 0x00-0x1F except 0x09 (tab), 0x0A (newline), 0x0D (carriage return)
-    cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', s)
-    return cleaned
-
-
-def parse_json_safely(s: str) -> dict:
-    """
-    Attempt to parse JSON with multiple fallback strategies for malformed LLM output.
-    """
-    # Strategy 1: Direct parse after cleaning
-    cleaned = clean_json_string(s)
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        pass
-
-    # Strategy 2: Try with strict=False (allows control characters in strings)
-    try:
-        return json.loads(cleaned, strict=False)
-    except json.JSONDecodeError:
-        pass
-
-    # Strategy 3: Replace problematic escape sequences
-    # Sometimes LLMs produce invalid escapes like \' instead of '
-    try:
-        fixed = re.sub(r"\\(?![\"\\\/bfnrtu])", r"\\\\", cleaned)
-        return json.loads(fixed, strict=False)
-    except json.JSONDecodeError:
-        pass
-
-    # Give up
-    raise json.JSONDecodeError("Could not parse JSON with any strategy", s, 0)
 
 
 def parse_splits(splits_str: str) -> Tuple[float, float, float]:
@@ -167,72 +105,6 @@ def build_diversity_grid(num_samples: int) -> List[Dict[str, str]]:
 # Core Functions
 # =============================================================================
 
-def _generate_summaries_batch(
-    session: Session,
-    model: str,
-    diversity_batch: List[Dict[str, str]],
-    batch_idx: int
-) -> List[Dict]:
-    """
-    Generate clinical visit summaries for a batch of diversity combinations.
-    Returns a list of dicts with summary fields.
-    """
-    # Build constraints description for this batch
-    constraints_lines = []
-    for i, combo in enumerate(diversity_batch):
-        constraints_lines.append(
-            f"{i+1}. Specialty: {combo['specialty']}, "
-            f"Condition: {combo['condition_type']}, "
-            f"Age: {combo['age_group']}, "
-            f"Context: {combo['visit_context']}"
-        )
-
-    constraints = "\n".join(constraints_lines)
-    prompt = SUMMARY_GENERATION_PROMPT.format(
-        count=len(diversity_batch),
-        constraints=constraints
-    )
-
-    try:
-        response = complete(model=model, prompt=prompt, session=session)
-
-        # Parse JSON response
-        # Try to find JSON array in response
-        response_text = response.strip()
-        if response_text.startswith("```"):
-            # Remove markdown code blocks if present
-            response_text = re.sub(r"```(?:json)?\n?", "", response_text)
-            response_text = response_text.strip()
-
-        # Find JSON array in response (handle potential extra text)
-        start_idx = response_text.find("[")
-        end_idx = response_text.rfind("]") + 1
-        if start_idx != -1 and end_idx > start_idx:
-            response_text = response_text[start_idx:end_idx]
-
-        # Parse with fallback strategies
-        summaries = parse_json_safely(response_text)
-
-        # Attach diversity metadata to each summary
-        for i, summary in enumerate(summaries):
-            if i < len(diversity_batch):
-                summary.update(diversity_batch[i])
-
-        return summaries
-
-    except json.JSONDecodeError as e:
-        print(f"  Warning: Batch {batch_idx} JSON parse failed: {e}")
-        print(f"    Response preview: {response_text[:300] if 'response_text' in dir() else 'N/A'}...")
-        return []
-    except Exception as e:
-        # Try to get more details from the exception
-        error_msg = str(e)
-        if hasattr(e, 'response') and hasattr(e.response, 'text'):
-            error_msg += f" - Response: {e.response.text[:500]}"
-        print(f"  Warning: Batch {batch_idx} failed: {error_msg}")
-        return []
-
-
 def generate_summaries(
     num_samples: int,
     model: str,
@@ -240,7 +112,9 @@ def generate_summaries(
     session: Optional[Session] = None
 ) -> DataFrame:
     """
-    Generate clinical visit summaries as a Snowpark DataFrame.
+    Generate clinical visit summaries as a Snowpark DataFrame using SQL-based AI_COMPLETE.
+
+    Uses SPLIT_TO_TABLE with LATERAL to expand batch LLM responses into individual samples.
 
     Args:
         num_samples: Number of summaries to generate
@@ -263,35 +137,105 @@ def generate_summaries(
     print(f"Building diversity grid for {num_samples} samples...")
     diversity_grid = build_diversity_grid(num_samples)
 
-    # Generate summaries in batches
-    print(f"Generating summaries in batches of {batch_size}...")
+    # Add batch indexing to each entry
+    for i, entry in enumerate(diversity_grid):
+        entry["batch_id"] = i // batch_size
+        entry["idx_in_batch"] = (i % batch_size) + 1
+
+    # Create DataFrame with diversity grid
     num_batches = (num_samples + batch_size - 1) // batch_size
-    batch_dfs = []
+    print(f"Creating diversity DataFrame ({num_batches} batches)...")
+    diversity_df = session.create_dataframe(diversity_grid)
 
-    for batch_idx in range(num_batches):
-        start_idx = batch_idx * batch_size
-        end_idx = min(start_idx + batch_size, num_samples)
-        batch = diversity_grid[start_idx:end_idx]
+    # Build constraint string for each row
+    constraint_col = concat(
+        col("IDX_IN_BATCH").cast("STRING"),
+        lit(". Specialty: "), col("SPECIALTY"),
+        lit(", Condition: "), col("CONDITION_TYPE"),
+        lit(", Age: "), col("AGE_GROUP"),
+        lit(", Context: "), col("VISIT_CONTEXT")
+    )
+    df_with_constraints = diversity_df.with_column("CONSTRAINT_STR", constraint_col)
 
-        print(f"  Batch {batch_idx + 1}/{num_batches} ({len(batch)} samples)...")
-        summaries = _generate_summaries_batch(session, model, batch, batch_idx)
+    # Aggregate constraints by batch using LISTAGG
+    print("Aggregating constraints into batch prompts...")
+    batch_df = df_with_constraints.group_by("BATCH_ID").agg(
+        listagg("CONSTRAINT_STR", lit("\n")).within_group("IDX_IN_BATCH").alias("CONSTRAINTS"),
+        sf_count("*").alias("BATCH_COUNT")
+    )
 
-        if summaries:
-            # Create DataFrame for this batch
-            batch_df = session.create_dataframe(summaries)
-            batch_dfs.append(batch_df)
-            print(f"    Generated {len(summaries)} summaries")
-        else:
-            print(f"    Warning: No summaries generated for batch {batch_idx}")
+    # Build prompt for each batch - LLM echoes diversity metadata in each summary
+    prompt_col = concat(
+        lit("Generate "), col("BATCH_COUNT").cast("STRING"),
+        lit(""" unique clinical visit summaries. Each summary should be exactly one sentence.
 
-    if not batch_dfs:
-        raise RuntimeError("No summaries were generated")
+For each summary, include:
+- Doctor's full name (with title, e.g., Dr. Sarah Chen)
+- Patient's full name
+- Guardian name (only if patient is a minor, otherwise null)
+- Chief complaint / reported symptoms
+- Preliminary or confirmed diagnosis
+- Echo back the exact specialty, condition_type, age_group, and visit_context from the constraints
 
-    # Union all batch DataFrames
-    print(f"Combining {len(batch_dfs)} batches...")
-    result_df = reduce(lambda a, b: a.union_all(b), batch_dfs)
+Constraints for this batch:
+"""),
+        col("CONSTRAINTS"),
+        lit("""
 
-    print(f"Summary generation complete")
+Output each summary as a separate JSON object. Separate each JSON object with the delimiter "|||NEXT|||".
+Each JSON object must have these keys: doctor, patient, guardian, symptoms, diagnosis, summary, specialty, condition_type, age_group, visit_context
+
+Example format:
+{"doctor": "Dr. Smith", "patient": "John Doe", "guardian": null, "symptoms": "chest pain", "diagnosis": "angina", "summary": "Dr. Smith evaluated John Doe for chest pain and diagnosed angina.", "specialty": "Cardiology", "condition_type": "Acute illness", "age_group": "Young adult (18-35 years)", "visit_context": "New patient intake"}|||NEXT|||{"doctor": "Dr. Jones", ...}
+
+Return ONLY the JSON objects separated by |||NEXT|||, no markdown code blocks, no other text.""")
+    )
+
+    df_with_prompt = batch_df.with_column("PROMPT", prompt_col)
+
+    # Call AI_COMPLETE with REGEXP_REPLACE to clean markdown artifacts
+    print(f"Calling AI_COMPLETE with model '{model}'...")
+    df_with_response = df_with_prompt.with_column(
+        "RESPONSE",
+        sql_expr(f"REGEXP_REPLACE(AI_COMPLETE('{model}', PROMPT), '^```[a-zA-Z]*|```$|[[:cntrl:]]', ' ', 1, 0, 'm')")
+    )
+
+    # Use SPLIT_TO_TABLE with LATERAL to expand batch responses into individual samples
+    print("Expanding batch responses using SPLIT_TO_TABLE...")
+    expanded_df = df_with_response.join_table_function(
+        "split_to_table",
+        col("RESPONSE"),
+        lit("|||NEXT|||")
+    )
+
+    # Clean control characters and parse JSON once per sample
+    print("Parsing individual samples...")
+    parsed_df = expanded_df.with_column(
+        "PARSED_JSON",
+        sql_expr("TRY_PARSE_JSON(VALUE)")
+    )
+
+    # Extract all fields from the single parsed JSON object
+    result_df = parsed_df.select(
+        sql_expr("PARSED_JSON:doctor::STRING").alias("DOCTOR"),
+        sql_expr("PARSED_JSON:patient::STRING").alias("PATIENT"),
+        sql_expr("PARSED_JSON:guardian::STRING").alias("GUARDIAN"),
+        sql_expr("PARSED_JSON:symptoms::STRING").alias("SYMPTOMS"),
+        sql_expr("PARSED_JSON:diagnosis::STRING").alias("DIAGNOSIS"),
+        sql_expr("PARSED_JSON:summary::STRING").alias("SUMMARY"),
+        sql_expr("PARSED_JSON:specialty::STRING").alias("SPECIALTY"),
+        sql_expr("PARSED_JSON:condition_type::STRING").alias("CONDITION_TYPE"),
+        sql_expr("PARSED_JSON:age_group::STRING").alias("AGE_GROUP"),
+        sql_expr("PARSED_JSON:visit_context::STRING").alias("VISIT_CONTEXT")
+    ).filter(
+        col("DOCTOR").is_not_null()
+    )
+
+    result_count = result_df.count()
+    print(f"Summary generation complete. Generated {result_count} samples.")
+    if result_count < num_samples:
+        print(f"  Warning: Only {result_count} valid samples generated, expected {num_samples}")
+
     return result_df
 
 
@@ -362,12 +306,16 @@ Return ONLY the JSON object, no other text.""")
         sql_expr(f"REGEXP_REPLACE(AI_COMPLETE('{model}', PROMPT), '^```[a-zA-Z]*|```$|[[:cntrl:]]', ' ', 1, 0, 'm')")
     )
 
-    # Parse JSON response and extract dialogue and soap fields
+    # Parse JSON response once, then extract dialogue and soap fields
     # Filter out rows where parsing failed (NULL values)
     print("  Parsing responses and extracting fields...")
-    result_df = df_with_response.select_expr(
-        "TRY_PARSE_JSON(RESPONSE):dialogue::STRING as DIALOGUE",
-        "TRY_PARSE_JSON(RESPONSE):soap::STRING as SOAP"
+    parsed_df = df_with_response.with_column(
+        "PARSED_JSON",
+        sql_expr("TRY_PARSE_JSON(RESPONSE)")
+    )
+    result_df = parsed_df.select(
+        sql_expr("PARSED_JSON:dialogue::STRING").alias("DIALOGUE"),
+        sql_expr("PARSED_JSON:soap::STRING").alias("SOAP")
     ).filter(
         col("DIALOGUE").is_not_null() & col("SOAP").is_not_null()
     )
