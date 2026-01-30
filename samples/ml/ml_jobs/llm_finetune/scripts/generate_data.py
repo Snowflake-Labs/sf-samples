@@ -110,18 +110,21 @@ def generate_scenarios(
     num_samples: int,
     model: str,
     batch_size: Optional[int] = None,
-    session: Optional[Session] = None
+    session: Optional[Session] = None,
+    debug: bool = False
 ) -> DataFrame:
     """
     Generate clinical visit scenarios as a Snowpark DataFrame using SQL-based AI_COMPLETE.
 
-    Uses SPLIT_TO_TABLE with LATERAL to expand batch LLM responses into individual samples.
+    Uses SPLIT_TO_TABLE to expand batch LLM responses into individual prose summaries,
+    then joins back to the diversity grid to attach metadata.
 
     Args:
         num_samples: Number of scenarios to generate
         model: Cortex model to use for generation
         batch_size: Number of scenarios per batch (default: 100)
         session: Snowpark session (default: get or create)
+        debug: If True, run validation counts and print warnings
 
     Returns:
         Snowpark DataFrame with summary columns
@@ -225,26 +228,27 @@ Return ONLY the JSON objects separated by |||NEXT|||, no markdown code blocks, n
         col("DOCTOR").is_not_null()
     )
 
-    result_count = result_df.count()
-    if result_count < num_samples:
-        print(f"Warning: Only {result_count} valid samples generated, expected {num_samples}")
+    if debug:
+        result_count = result_df.count()
+        if result_count < num_samples:
+            print(f"  Warning: Only {result_count} valid scenarios generated, expected {num_samples}")
 
     return result_df
 
 
-def generate_full_data(summaries: DataFrame, model: str) -> DataFrame:
+def generate_full_data(scenarios: DataFrame, model: str, debug: bool = False) -> DataFrame:
     """
-    Generate detailed dialogues and SOAP notes from summaries using SQL AI_COMPLETE.
+    Generate detailed dialogues and SOAP notes from scenario summaries using SQL AI_COMPLETE.
 
     Args:
-        summaries: Snowpark DataFrame with summary columns
+        scenarios: Snowpark DataFrame with SUMMARY and diversity metadata columns
         model: Cortex model to use for generation
+        debug: If True, run validation counts and print warnings
 
     Returns:
-        Snowpark DataFrame with dialogue and soap columns
+        Snowpark DataFrame with dialogue and SOAP section columns
     """
     # Build the detail generation prompt for each row
-    # Column names are uppercased by Snowflake
     prompt_template = concat(
         lit("""Based on the following clinical visit summary, generate a realistic doctor-patient dialogue and a comprehensive SOAP note.
 
@@ -281,7 +285,7 @@ Generate output as a JSON object with exactly five keys:
 Return ONLY the JSON object, no other text.""")
     )
 
-    df_with_prompt = summaries.with_column("PROMPT", prompt_template)
+    df_with_prompt = scenarios.with_column("PROMPT", prompt_template)
 
     # Call AI_COMPLETE using SQL expression and store the response
     df_with_response = df_with_prompt.with_column(
@@ -309,10 +313,11 @@ Return ONLY the JSON object, no other text.""")
         col("P").is_not_null()
     )
 
-    result_count = result_df.count()
-    expected_count = summaries.count()
-    if result_count != expected_count:
-        print(f"Warning: Only {result_count} valid samples generated, expected {expected_count}")
+    if debug:
+        result_count = result_df.count()
+        expected_count = scenarios.count()
+        if result_count != expected_count:
+            print(f"  Warning: Only {result_count} valid samples generated, expected {expected_count}")
 
     return result_df
 
@@ -320,8 +325,9 @@ Return ONLY the JSON object, no other text.""")
 def save_as_table(
     data: DataFrame,
     table_name: str,
-    split_weights: List[float]
-) -> None:
+    split_weights: List[float],
+    session: Session
+) -> int:
     """
     Split data and save to Snowflake tables.
 
@@ -329,6 +335,10 @@ def save_as_table(
         data: Snowpark DataFrame to save
         table_name: Base table name (used as prefix)
         split_weights: List of 3 weights for train/validation/test splits
+        session: Snowpark session for querying table counts
+
+    Returns:
+        Total number of rows saved across all splits
     """
     if len(split_weights) != 3:
         raise ValueError(f"split_weights must have exactly 3 values, got {len(split_weights)}")
@@ -336,9 +346,16 @@ def save_as_table(
     split_names = ["TRAIN", "VALIDATION", "TEST"]
     split_dfs = data.random_split(split_weights)
 
+    total_rows = 0
     for split_name, split_df in zip(split_names, split_dfs):
         full_table_name = f"{table_name}_{split_name}"
         split_df.write.save_as_table(full_table_name, mode="overwrite")
+        # Query the saved table to get actual row count
+        count = session.table(full_table_name).count()
+        total_rows += count
+        print(f"  {split_name}: {count} rows")
+
+    return total_rows
 
 
 def main():
@@ -378,6 +395,11 @@ def main():
         default=42,
         help='Random seed for reproducibility (default: 42)'
     )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Enable debug mode with intermediate count checks'
+    )
 
     args = parser.parse_args()
 
@@ -397,21 +419,22 @@ def main():
         num_samples=args.num_samples,
         model=args.model,
         batch_size=args.batch_size,
-        session=session
+        session=session,
+        debug=args.debug
     )
     print(f"  Done in {time.time() - t0:.1f}s")
 
     # Step 2: Generate detailed dialogues and SOAP notes
     print("Generating dialogues and SOAP notes...")
     t0 = time.time()
-    full_data_df = generate_full_data(scenarios_df, args.model)
+    full_data_df = generate_full_data(scenarios_df, args.model, debug=args.debug)
     print(f"  Done in {time.time() - t0:.1f}s")
 
     # Step 3: Split and save to tables
     print(f"Saving to {args.table_name}_{{TRAIN,VALIDATION,TEST}}...")
     t0 = time.time()
-    save_as_table(full_data_df, args.table_name, split_weights)
-    print(f"  Done in {time.time() - t0:.1f}s")
+    total_rows = save_as_table(full_data_df, args.table_name, split_weights, session)
+    print(f"  Total: {total_rows} rows in {time.time() - t0:.1f}s")
 
 
 if __name__ == "__main__":
