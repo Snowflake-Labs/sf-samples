@@ -24,7 +24,7 @@ data:
   sources:
     - type: soap
       table_name: soap_data_train
-  max_length: 6Ki
+  max_length: 4Ki
   ignore_empty_think: true
   pack_samples: true
 

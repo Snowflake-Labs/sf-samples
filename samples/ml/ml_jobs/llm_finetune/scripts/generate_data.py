@@ -169,8 +169,8 @@ Examples:
     parser.add_argument(
         '--num_samples',
         type=int,
-        default=10000,
-        help='Number of samples to generate (default: 10000)'
+        default=1000,
+        help='Number of samples to generate (default: 1000)'
     )
     parser.add_argument(
         '--splits',

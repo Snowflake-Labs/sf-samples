@@ -46,7 +46,14 @@ This enables running any CLI tool (like `arctic_training`) as the job entrypoint
 
 ## Dataset
 
-The sample uses the [omi-health/medical-dialogue-to-soap-summary](https://huggingface.co/datasets/omi-health/medical-dialogue-to-soap-summary) dataset from Hugging Face. It contains doctor-patient transcripts paired with clinical SOAP note summaries. The goal is to train models to accurately extract and structure clinical information from conversational medical dialogues into the standardized SOAP format.
+This sample generates synthetic clinical visit dialogues paired with SOAP note summaries. The goal is to train models to accurately extract and structure clinical information from conversational medical dialogues into the standardized SOAP format.
+
+The data generation script supports two modes:
+
+- **Heuristic mode** (default): Fast template-based generation using predefined medical scenarios
+- **Cortex mode**: High-quality LLM-generated data using Snowflake Cortex
+
+See [Step 1: Generate the Dataset](#step-1-generate-the-dataset) for usage details and [Data Generation Modes](#data-generation-modes) for a comparison of tradeoffs.
 
 ## Prerequisites
 
@@ -128,18 +135,24 @@ pip install -r requirements.txt
 
 ### Step 1: Generate the Dataset
 
-Generate synthetic SOAP data using Snowflake Cortex LLM and upload to Snowflake:
+Generate synthetic SOAP data and upload to Snowflake:
 
+**Heuristic Mode (Recommended for quick iteration):**
 ```bash
-python scripts/generate_data.py --database LLM_DEMO --schema PUBLIC --num_samples 1000
+python scripts/generate_data.py --mode heuristic --database LLM_DEMO --schema PUBLIC
+```
+
+**Cortex LLM Mode (Higher quality, slower):**
+```bash
+python scripts/generate_data.py --mode cortex --database LLM_DEMO --schema PUBLIC
 ```
 
 This script:
-- Generates synthetic clinical visit dialogues and SOAP summaries using Cortex LLM
+- Generates synthetic clinical visit dialogues and SOAP summaries
 - Uses a diversity grid to ensure sample uniqueness across specialties, conditions, and age groups
 - Uploads train, validation, and test splits to Snowflake tables (`SOAP_DATA_TRAIN`, `SOAP_DATA_VALIDATION`, `SOAP_DATA_TEST`)
 
-> **Note:** You can adjust `--num_samples` (default: 10000) and `--model` (default: llama3.1-70b) as needed. Use `--help` to see all available options.
+> **Note:** You can adjust `--num_samples` (default: 1000), `--mode` (heuristic or cortex), and `--model` (for cortex mode, default: llama3.1-70b). Use `--help` to see all available options.
 
 ### Step 2: Run Training
 
@@ -216,6 +229,65 @@ This sample uses conservative settings optimized for quick iteration on smaller 
 - **Adjust LoRA rank**: Higher `r` values (e.g., 16 or 32) in the LoRA config capture more fine-grained adaptations at the cost of increased memory and training time.
 
 - **Use multi-node training**: For larger models or datasets, configure `target_instances > 1` to distribute training across multiple GPU nodes.
+
+## Data Generation Modes
+
+The data generation script (`scripts/generate_data.py`) supports two modes for creating synthetic training data:
+
+### Heuristic Mode (Default)
+
+Fast template-based generation using predefined medical scenarios, conditions, and dialogue patterns.
+
+```bash
+python scripts/generate_data.py --mode heuristic --num_samples 10000
+```
+
+**Advantages:**
+- **Speed**: Generates ~20,000 samples per second
+- **Cost**: No LLM API calls required
+- **Reproducibility**: Deterministic output with fixed random seed
+- **Offline**: Works without network access
+
+**Limitations:**
+- Limited diversity in phrasing and vocabulary
+- Templated dialogues may lack natural conversation flow
+- Medical scenarios are constrained to predefined patterns
+
+### Cortex LLM Mode
+
+High-quality generation using Snowflake Cortex LLMs (e.g., Llama 3.1 70B).
+
+```bash
+python scripts/generate_data.py --mode cortex --num_samples 1000 --model llama3.1-70b
+```
+
+**Advantages:**
+- **Quality**: Natural, diverse dialogues with varied phrasing
+- **Richness**: More realistic medical terminology and clinical reasoning
+- **Creativity**: Novel scenarios beyond predefined templates
+
+**Limitations:**
+- **Speed**: ~10-30 seconds per sample depending on model and batch size
+- **Cost**: Incurs Cortex LLM credit usage
+- **Variability**: Some samples may fail JSON parsing and be filtered out
+
+### Choosing a Mode
+
+| Use Case | Recommended Mode |
+|----------|------------------|
+| Quick prototyping and testing | Heuristic |
+| CI/CD pipeline validation | Heuristic |
+| Production training data | Cortex |
+| Benchmarking model architectures | Heuristic (for consistency) |
+| Maximizing model quality | Cortex |
+
+### Important Disclaimers
+
+> **⚠️ Synthetic Data Warning**: Both generation modes produce **synthetic medical data** that should NOT be used for actual clinical decision-making. The generated dialogues and SOAP notes are for demonstration and model training purposes only.
+
+> **⚠️ LLM-Generated Content**: When using Cortex mode, the generated data inherits the limitations of the underlying LLM, including potential inaccuracies in medical terminology or clinical reasoning. Always validate generated data for your specific use case.
+
+> **⚠️ Evaluation Considerations**: Models trained on synthetic data may not generalize well to real-world medical dialogues. Consider supplementing with real (properly anonymized) data for production deployments.
 
 ## Key Features
 
