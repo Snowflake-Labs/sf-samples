@@ -8,6 +8,7 @@ Uses a two-step pipeline with a predefined diversity grid to ensure sample uniqu
 import argparse
 import itertools
 import random
+import time
 from typing import Dict, List, Optional, Tuple
 
 from snowflake.snowpark import DataFrame, Session
@@ -105,21 +106,21 @@ def build_diversity_grid(num_samples: int) -> List[Dict[str, str]]:
 # Core Functions
 # =============================================================================
 
-def generate_summaries(
+def generate_scenarios(
     num_samples: int,
     model: str,
     batch_size: Optional[int] = None,
     session: Optional[Session] = None
 ) -> DataFrame:
     """
-    Generate clinical visit summaries as a Snowpark DataFrame using SQL-based AI_COMPLETE.
+    Generate clinical visit scenarios as a Snowpark DataFrame using SQL-based AI_COMPLETE.
 
     Uses SPLIT_TO_TABLE with LATERAL to expand batch LLM responses into individual samples.
 
     Args:
-        num_samples: Number of summaries to generate
+        num_samples: Number of scenarios to generate
         model: Cortex model to use for generation
-        batch_size: Number of summaries per batch (default: 100)
+        batch_size: Number of scenarios per batch (default: 100)
         session: Snowpark session (default: get or create)
 
     Returns:
@@ -134,7 +135,6 @@ def generate_summaries(
     batch_size = min(batch_size, num_samples)
 
     # Build diversity grid
-    print(f"Building diversity grid for {num_samples} samples...")
     diversity_grid = build_diversity_grid(num_samples)
 
     # Add batch indexing to each entry
@@ -143,8 +143,6 @@ def generate_summaries(
         entry["idx_in_batch"] = (i % batch_size) + 1
 
     # Create DataFrame with diversity grid
-    num_batches = (num_samples + batch_size - 1) // batch_size
-    print(f"Creating diversity DataFrame ({num_batches} batches)...")
     diversity_df = session.create_dataframe(diversity_grid)
 
     # Build constraint string for each row
@@ -158,7 +156,6 @@ def generate_summaries(
     df_with_constraints = diversity_df.with_column("CONSTRAINT_STR", constraint_col)
 
     # Aggregate constraints by batch using LISTAGG
-    print("Aggregating constraints into batch prompts...")
     batch_df = df_with_constraints.group_by("BATCH_ID").agg(
         listagg("CONSTRAINT_STR", lit("\n")).within_group("IDX_IN_BATCH").alias("CONSTRAINTS"),
         sf_count("*").alias("BATCH_COUNT")
@@ -194,14 +191,12 @@ Return ONLY the JSON objects separated by |||NEXT|||, no markdown code blocks, n
     df_with_prompt = batch_df.with_column("PROMPT", prompt_col)
 
     # Call AI_COMPLETE with REGEXP_REPLACE to clean markdown artifacts
-    print(f"Calling AI_COMPLETE with model '{model}'...")
     df_with_response = df_with_prompt.with_column(
         "RESPONSE",
         sql_expr(f"REGEXP_REPLACE(AI_COMPLETE('{model}', PROMPT), '^```[a-zA-Z]*|```$|[[:cntrl:]]', ' ', 1, 0, 'm')")
     )
 
     # Use SPLIT_TO_TABLE with LATERAL to expand batch responses into individual samples
-    print("Expanding batch responses using SPLIT_TO_TABLE...")
     expanded_df = df_with_response.join_table_function(
         "split_to_table",
         col("RESPONSE"),
@@ -209,7 +204,6 @@ Return ONLY the JSON objects separated by |||NEXT|||, no markdown code blocks, n
     )
 
     # Clean control characters and parse JSON once per sample
-    print("Parsing individual samples...")
     parsed_df = expanded_df.with_column(
         "PARSED_JSON",
         sql_expr("TRY_PARSE_JSON(VALUE)")
@@ -232,9 +226,8 @@ Return ONLY the JSON objects separated by |||NEXT|||, no markdown code blocks, n
     )
 
     result_count = result_df.count()
-    print(f"Summary generation complete. Generated {result_count} samples.")
     if result_count < num_samples:
-        print(f"  Warning: Only {result_count} valid samples generated, expected {num_samples}")
+        print(f"Warning: Only {result_count} valid samples generated, expected {num_samples}")
 
     return result_df
 
@@ -250,11 +243,6 @@ def generate_full_data(summaries: DataFrame, model: str) -> DataFrame:
     Returns:
         Snowpark DataFrame with dialogue and soap columns
     """
-    # Derive session from DataFrame
-    session = summaries.session
-
-    print("Generating detailed dialogues and SOAP notes using AI_COMPLETE...")
-
     # Build the detail generation prompt for each row
     # Column names are uppercased by Snowflake
     prompt_template = concat(
@@ -293,11 +281,9 @@ Generate output as a JSON object with exactly five keys:
 Return ONLY the JSON object, no other text.""")
     )
 
-    print("  Adding prompt column...")
     df_with_prompt = summaries.with_column("PROMPT", prompt_template)
 
     # Call AI_COMPLETE using SQL expression and store the response
-    print(f"  Calling AI_COMPLETE with model '{model}'...")
     df_with_response = df_with_prompt.with_column(
         "RESPONSE",
         sql_expr(f"REGEXP_REPLACE(AI_COMPLETE('{model}', PROMPT), '^```[a-zA-Z]*|```$|[[:cntrl:]]', ' ', 1, 0, 'm')")
@@ -305,7 +291,6 @@ Return ONLY the JSON object, no other text.""")
 
     # Parse JSON response once, then extract dialogue and SOAP section fields
     # Filter out rows where parsing failed (NULL values)
-    print("  Parsing responses and extracting fields...")
     parsed_df = df_with_response.with_column(
         "PARSED_JSON",
         sql_expr("TRY_PARSE_JSON(RESPONSE)")
@@ -324,9 +309,11 @@ Return ONLY the JSON object, no other text.""")
         col("P").is_not_null()
     )
 
-    print(f"Detail generation complete. Generated {result_df.count()} rows.")
-    if result_df.count() != summaries.count():
-        print(f"  Warning: Only {result_df.count()} valid samples were generated, expected {summaries.count()}")
+    result_count = result_df.count()
+    expected_count = summaries.count()
+    if result_count != expected_count:
+        print(f"Warning: Only {result_count} valid samples generated, expected {expected_count}")
+
     return result_df
 
 
@@ -347,19 +334,11 @@ def save_as_table(
         raise ValueError(f"split_weights must have exactly 3 values, got {len(split_weights)}")
 
     split_names = ["TRAIN", "VALIDATION", "TEST"]
-
-    print(f"Splitting data with weights {split_weights}...")
     split_dfs = data.random_split(split_weights)
 
     for split_name, split_df in zip(split_names, split_dfs):
         full_table_name = f"{table_name}_{split_name}"
-        print(f"  Saving {split_name} split to {full_table_name}...")
-        split_df.write.save_as_table(
-            full_table_name,
-            mode="overwrite"
-        )
-
-    print("Data saved successfully")
+        split_df.write.save_as_table(full_table_name, mode="overwrite")
 
 
 def main():
@@ -391,7 +370,7 @@ def main():
         '--batch_size',
         type=int,
         default=100,
-        help='Summaries per batch for summary generation (default: 100)'
+        help='Scenarios per batch for scenario generation (default: 100)'
     )
     parser.add_argument(
         '--seed',
@@ -408,30 +387,31 @@ def main():
     # Parse splits into weights
     train_ratio, dev_ratio, test_ratio = parse_splits(args.splits)
     split_weights = [train_ratio, dev_ratio, test_ratio]
-    print(f"Splits: train={train_ratio:.0%}, validation={dev_ratio:.0%}, test={test_ratio:.0%}")
 
-    # Create Snowflake session
-    print("Connecting to Snowflake...")
     session = Session.builder.getOrCreate()
 
-    # Step 1: Generate summaries
-    print(f"\n=== Step 1: Generating {args.num_samples} summaries ===")
-    summaries_df = generate_summaries(
+    # Step 1: Generate scenarios
+    print(f"Generating {args.num_samples} scenarios...")
+    t0 = time.time()
+    scenarios_df = generate_scenarios(
         num_samples=args.num_samples,
         model=args.model,
         batch_size=args.batch_size,
         session=session
     )
+    print(f"  Done in {time.time() - t0:.1f}s")
 
     # Step 2: Generate detailed dialogues and SOAP notes
-    print(f"\n=== Step 2: Generating dialogues and SOAP notes ===")
-    full_data_df = generate_full_data(summaries_df, args.model)
+    print("Generating dialogues and SOAP notes...")
+    t0 = time.time()
+    full_data_df = generate_full_data(scenarios_df, args.model)
+    print(f"  Done in {time.time() - t0:.1f}s")
 
     # Step 3: Split and save to tables
-    print(f"\n=== Step 3: Splitting and saving to tables ===")
+    print(f"Saving to {args.table_name}_{{TRAIN,VALIDATION,TEST}}...")
+    t0 = time.time()
     save_as_table(full_data_df, args.table_name, split_weights)
-
-    print("\nDone!")
+    print(f"  Done in {time.time() - t0:.1f}s")
 
 
 if __name__ == "__main__":
