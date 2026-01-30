@@ -163,8 +163,8 @@ Examples:
     # Output configuration
     parser.add_argument(
         '--table_name',
-        default='SYNTHETIC_SOAP_DATA',
-        help='Base table name for output (default: SYNTHETIC_SOAP_DATA)'
+        default='SOAP_DATA',
+        help='Base table name for output (default: SOAP_DATA)'
     )
     parser.add_argument(
         '--num_samples',

@@ -21,7 +21,7 @@ class SOAPDataSource(SnowflakeDataSource):
                 messages.append({
                     "messages": [
                         {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": create_user_prompt(row["dialogue"])},
+                        {"role": "user", "content": create_user_prompt(row["DIALOGUE"])},
                         {"role": "assistant", "content": json.dumps(dict(S=row["S"], O=row["O"], A=row["A"], P=row["P"]))},
                     ]
                 })

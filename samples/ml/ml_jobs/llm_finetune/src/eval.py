@@ -99,7 +99,7 @@ def main():
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": create_user_prompt(d)},
         ]
-        for d in ds["dialogue"]
+        for d in ds["DIALOGUE"]
     ]
 
     gen_outputs = load_and_run_vllm(
@@ -122,7 +122,7 @@ def main():
             judge_convos.append(
                 [
                     {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
-                    {"role": "user", "content": create_judge_prompt(sample["dialogue"], k, ground_truth[k], pred[k])},
+                    {"role": "user", "content": create_judge_prompt(sample["DIALOGUE"], k, ground_truth[k], pred[k])},
                 ]
             )
 

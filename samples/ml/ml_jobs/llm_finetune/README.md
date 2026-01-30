@@ -126,18 +126,20 @@ pip install -r requirements.txt
 
 ## How to Run
 
-### Step 1: Prepare the Dataset
+### Step 1: Generate the Dataset
 
-Download and upload the dataset to Snowflake:
+Generate synthetic SOAP data using Snowflake Cortex LLM and upload to Snowflake:
 
 ```bash
-python scripts/prepare_data.py --database LLM_DEMO --schema PUBLIC
+python scripts/generate_data.py --database LLM_DEMO --schema PUBLIC --num_samples 1000
 ```
 
 This script:
-- Downloads the medical dialogue dataset from Hugging Face
-- Parses SOAP sections from the raw text
-- Uploads train and test splits to Snowflake tables (`SOAP_DATA_TRAIN`, `SOAP_DATA_TEST`)
+- Generates synthetic clinical visit dialogues and SOAP summaries using Cortex LLM
+- Uses a diversity grid to ensure sample uniqueness across specialties, conditions, and age groups
+- Uploads train, validation, and test splits to Snowflake tables (`SOAP_DATA_TRAIN`, `SOAP_DATA_VALIDATION`, `SOAP_DATA_TEST`)
+
+> **Note:** You can adjust `--num_samples` (default: 10000) and `--model` (default: llama3.1-70b) as needed. Use `--help` to see all available options.
 
 ### Step 2: Run Training
 
