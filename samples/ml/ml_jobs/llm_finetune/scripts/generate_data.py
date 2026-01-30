@@ -112,7 +112,6 @@ def run_cortex_generation(args, session: Session, split_weights: List[float]) ->
     scenarios_df = generate_scenarios(
         num_samples=args.num_samples,
         model=args.model,
-        batch_size=args.batch_size,
         session=session,
         debug=args.debug
     )
@@ -181,14 +180,8 @@ Examples:
     # Cortex LLM-specific options
     parser.add_argument(
         '--model',
-        default='llama3.1-70b',
-        help='Cortex model for generation, only used with --mode=cortex (default: llama3.1-70b)'
-    )
-    parser.add_argument(
-        '--batch_size',
-        type=int,
-        default=100,
-        help='Scenarios per batch for scenario generation, only used with --mode=cortex (default: 100)'
+        default='llama3.3-70b',
+        help='Cortex model for generation, only used with --mode=cortex (default: llama3.3-70b)'
     )
     parser.add_argument(
         '--debug',
