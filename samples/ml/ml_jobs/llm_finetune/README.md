@@ -152,7 +152,7 @@ This script:
 - Uses a diversity grid to ensure sample uniqueness across specialties, conditions, and age groups
 - Uploads train, validation, and test splits to Snowflake tables (`SOAP_DATA_TRAIN`, `SOAP_DATA_VALIDATION`, `SOAP_DATA_TEST`)
 
-> **Note:** You can adjust `--num_samples` (default: 1000), `--mode` (heuristic or cortex), and `--model` (for cortex mode, default: llama3.1-70b). Use `--help` to see all available options.
+> **Note:** You can adjust `--num_samples` (default: 1000), `--mode` (heuristic or cortex), and `--model` (for cortex mode, default: llama3.3-70b). Use `--help` to see all available options.
 
 ### Step 2: Run Training
 
@@ -250,10 +250,10 @@ python scripts/generate_data.py --mode heuristic --num_samples 10000
 
 ### Cortex LLM Mode
 
-High-quality generation using Snowflake Cortex LLMs (e.g., Llama 3.1 70B).
+High-quality generation using Snowflake Cortex LLMs (e.g., Llama 3.3 70B).
 
 ```bash
-python scripts/generate_data.py --mode cortex --num_samples 1000 --model llama3.1-70b
+python scripts/generate_data.py --mode cortex --num_samples 1000 --model llama3.3-70b
 ```
 
 **Advantages:**
@@ -272,17 +272,16 @@ python scripts/generate_data.py --mode cortex --num_samples 1000 --model llama3.
 |----------|------------------|
 | Quick prototyping and testing | Heuristic |
 | CI/CD pipeline validation | Heuristic |
-| Production training data | Cortex |
-| Benchmarking model architectures | Heuristic (for consistency) |
+| Realistic training data | Cortex |
 | Maximizing model quality | Cortex |
+
+If using Cortex LLM generated data, we recommend generating the dataset once and re-using the generated dataset for all subsequent trainings and evaluations.
 
 ### Important Disclaimers
 
-> **⚠️ Synthetic Data Warning**: Both generation modes produce **synthetic medical data** that should NOT be used for actual clinical decision-making. The generated dialogues and SOAP notes are for demonstration and model training purposes only.
+> **⚠️ Synthetic Data Warning**: Both generation modes produce **synthetic medical data** that should NOT be used for actual clinical decision-making or production scenarios. The generated dialogues and SOAP notes are for demonstration purposes only.
 
 > **⚠️ LLM-Generated Content**: When using Cortex mode, the generated data inherits the limitations of the underlying LLM, including potential inaccuracies in medical terminology or clinical reasoning. Always validate generated data for your specific use case.
-
-> **⚠️ Evaluation Considerations**: Models trained on synthetic data may not generalize well to real-world medical dialogues. Consider supplementing with real (properly anonymized) data for production deployments.
 
 ## Key Features
 
