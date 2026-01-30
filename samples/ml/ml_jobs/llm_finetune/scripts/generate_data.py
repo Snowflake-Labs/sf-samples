@@ -64,7 +64,7 @@ VISIT_CONTEXTS = [
 # =============================================================================
 
 SUMMARY_GENERATION_PROMPT = """\
-Generate {count} unique clinical visit summaries. Each summary should be exactly 2 sentences.
+Generate {count} unique clinical visit summaries. Each summary should be exactly one sentence.
 
 For each summary, include:
 - Doctor's full name (with title, e.g., Dr. Sarah Chen)
@@ -359,18 +359,8 @@ Return ONLY the JSON object, no other text.""")
     print(f"  Calling AI_COMPLETE with model '{model}'...")
     df_with_response = df_with_prompt.with_column(
         "RESPONSE",
-        sql_expr(f"REGEXP_REPLACE(AI_COMPLETE('{model}', PROMPT), '^```[a-zA-Z]*|```$', '', 1, 0, 'm')")
+        sql_expr(f"REGEXP_REPLACE(AI_COMPLETE('{model}', PROMPT), '^```[a-zA-Z]*|```$|[[:cntrl:]]', ' ', 1, 0, 'm')")
     )
-
-    for row in df_with_response.select("RESPONSE").collect():
-        try:
-            parsed = json.loads(row["RESPONSE"])
-            if not parsed.get("dialogue"):
-                print(f"  Warning: Dialogue is missing for row\n{repr(row['RESPONSE'])}")
-            if not parsed.get("soap"):
-                print(f"  Warning: SOAP is missing for row\n{repr(row['RESPONSE'])}")
-        except json.JSONDecodeError:
-            print(f"  Warning: JSON parse failed for row\n{repr(row['RESPONSE'])}")
 
     # Parse JSON response and extract dialogue and soap fields
     # Filter out rows where parsing failed (NULL values)
@@ -383,6 +373,8 @@ Return ONLY the JSON object, no other text.""")
     )
 
     print(f"Detail generation complete. Generated {result_df.count()} rows.")
+    if result_df.count() != summaries.count():
+        print(f"  Warning: Only {result_df.count()} valid samples were generated, expected {summaries.count()}")
     return result_df
 
 
