@@ -12,7 +12,7 @@ import time
 from typing import Dict, List, Optional, Tuple
 
 from snowflake.snowpark import DataFrame, Session
-from snowflake.snowpark.functions import col, lit, concat, coalesce, sql_expr, listagg, count as sf_count
+from snowflake.snowpark.functions import col, lit, concat, sql_expr, listagg, count as sf_count
 
 
 # =============================================================================
@@ -127,7 +127,7 @@ def generate_scenarios(
         debug: If True, run validation counts and print warnings
 
     Returns:
-        Snowpark DataFrame with summary columns
+        Snowpark DataFrame with SUMMARY and diversity metadata columns
     """
     if session is None:
         session = Session.builder.getOrCreate()
@@ -145,7 +145,7 @@ def generate_scenarios(
         entry["batch_id"] = i // batch_size
         entry["idx_in_batch"] = (i % batch_size) + 1
 
-    # Create DataFrame with diversity grid
+    # Create DataFrame with diversity grid (used for join later)
     diversity_df = session.create_dataframe(diversity_grid)
 
     # Build constraint string for each row
@@ -164,68 +164,66 @@ def generate_scenarios(
         sf_count("*").alias("BATCH_COUNT")
     )
 
-    # Build prompt for each batch - LLM echoes diversity metadata in each summary
+    # Build prompt for prose summaries (no JSON required)
     prompt_col = concat(
         lit("Generate "), col("BATCH_COUNT").cast("STRING"),
-        lit(""" unique clinical visit summaries. Each summary should be exactly one sentence.
+        lit(""" unique clinical visit scenario summaries, one for each numbered constraint below.
 
-For each summary, include:
-- Doctor's full name (with title, e.g., Dr. Sarah Chen)
-- Patient's full name
-- Guardian name (only if patient is a minor, otherwise null)
-- Chief complaint / reported symptoms
-- Preliminary or confirmed diagnosis
-- Echo back the exact specialty, condition_type, age_group, and visit_context from the constraints
+Each summary should be a short paragraph (2-3 sentences) describing a realistic clinical encounter, including:
+- The doctor's full name with title (e.g., Dr. Sarah Chen)
+- The patient's full name (include guardian name if patient is a minor)
+- The presenting symptoms or chief complaint
+- The preliminary or confirmed diagnosis
+- Context appropriate to the specialty and visit type
 
-Constraints for this batch:
+Constraints:
 """),
         col("CONSTRAINTS"),
         lit("""
 
-Output each summary as a separate JSON object. Separate each JSON object with the delimiter "|||NEXT|||".
-Each JSON object must have these keys: doctor, patient, guardian, symptoms, diagnosis, summary, specialty, condition_type, age_group, visit_context
+IMPORTANT: Output each summary as plain text separated by "|||". Output them in order matching the constraint numbers.
+Do NOT use JSON, numbering, or any other formatting. Just the summary paragraphs separated by |||.
 
-Example format:
-{"doctor": "Dr. Smith", "patient": "John Doe", "guardian": null, "symptoms": "chest pain", "diagnosis": "angina", "summary": "Dr. Smith evaluated John Doe for chest pain and diagnosed angina.", "specialty": "Cardiology", "condition_type": "Acute illness", "age_group": "Young adult (18-35 years)", "visit_context": "New patient intake"}|||NEXT|||{"doctor": "Dr. Jones", ...}
-
-Return ONLY the JSON objects separated by |||NEXT|||, no markdown code blocks, no other text.""")
+Example output format:
+Dr. Sarah Chen evaluated 45-year-old Michael Torres at his cardiology follow-up appointment for ongoing management of atrial fibrillation. Mr. Torres reported occasional palpitations and Dr. Chen adjusted his anticoagulation therapy.|||Dr. James Wilson, a pediatric specialist, saw 3-year-old Emma Garcia accompanied by her mother Maria for acute otitis media. Emma presented with ear pain and fever, and Dr. Wilson prescribed a course of antibiotics.""")
     )
 
     df_with_prompt = batch_df.with_column("PROMPT", prompt_col)
 
-    # Call AI_COMPLETE with REGEXP_REPLACE to clean markdown artifacts
+    # Call AI_COMPLETE with REGEXP_REPLACE to clean control characters
     df_with_response = df_with_prompt.with_column(
         "RESPONSE",
-        sql_expr(f"REGEXP_REPLACE(AI_COMPLETE('{model}', PROMPT), '^```[a-zA-Z]*|```$|[[:cntrl:]]', ' ', 1, 0, 'm')")
+        sql_expr(f"REGEXP_REPLACE(AI_COMPLETE('{model}', PROMPT), '[[:cntrl:]]', ' ')")
     )
 
-    # Use SPLIT_TO_TABLE with LATERAL to expand batch responses into individual samples
+    # Use SPLIT_TO_TABLE to expand batch responses into individual samples
+    # SPLIT_TO_TABLE returns INDEX (1-based position) which maps to IDX_IN_BATCH
     expanded_df = df_with_response.join_table_function(
         "split_to_table",
         col("RESPONSE"),
-        lit("|||NEXT|||")
+        lit("|||")
     )
 
-    # Clean control characters and parse JSON once per sample
-    parsed_df = expanded_df.with_column(
-        "PARSED_JSON",
-        sql_expr("TRY_PARSE_JSON(VALUE)")
-    )
-
-    # Extract all fields from the single parsed JSON object
-    result_df = parsed_df.select(
-        sql_expr("PARSED_JSON:doctor::STRING").alias("DOCTOR"),
-        sql_expr("PARSED_JSON:patient::STRING").alias("PATIENT"),
-        sql_expr("PARSED_JSON:guardian::STRING").alias("GUARDIAN"),
-        sql_expr("PARSED_JSON:symptoms::STRING").alias("SYMPTOMS"),
-        sql_expr("PARSED_JSON:diagnosis::STRING").alias("DIAGNOSIS"),
-        sql_expr("PARSED_JSON:summary::STRING").alias("SUMMARY"),
-        sql_expr("PARSED_JSON:specialty::STRING").alias("SPECIALTY"),
-        sql_expr("PARSED_JSON:condition_type::STRING").alias("CONDITION_TYPE"),
-        sql_expr("PARSED_JSON:age_group::STRING").alias("AGE_GROUP"),
-        sql_expr("PARSED_JSON:visit_context::STRING").alias("VISIT_CONTEXT")
+    # Trim whitespace from each summary and keep BATCH_ID + INDEX for joining
+    summaries_df = expanded_df.select(
+        col("BATCH_ID"),
+        col("INDEX"),
+        sql_expr("TRIM(VALUE)").alias("SUMMARY")
     ).filter(
-        col("DOCTOR").is_not_null()
+        col("SUMMARY") != lit("")
+    )
+
+    # Join back to diversity_df to attach metadata using BATCH_ID and INDEX
+    result_df = summaries_df.join(
+        diversity_df,
+        (summaries_df["BATCH_ID"] == diversity_df["BATCH_ID"]) &
+        (summaries_df["INDEX"] == diversity_df["IDX_IN_BATCH"])
+    ).select(
+        summaries_df["SUMMARY"],
+        diversity_df["SPECIALTY"],
+        diversity_df["CONDITION_TYPE"],
+        diversity_df["AGE_GROUP"],
+        diversity_df["VISIT_CONTEXT"]
     )
 
     if debug:
@@ -250,29 +248,25 @@ def generate_full_data(scenarios: DataFrame, model: str, debug: bool = False) ->
     """
     # Build the detail generation prompt for each row
     prompt_template = concat(
-        lit("""Based on the following clinical visit summary, generate a realistic doctor-patient dialogue and a comprehensive SOAP note.
+        lit("""Based on the following clinical visit scenario, generate a realistic doctor-patient dialogue and SOAP note components.
 
-Summary:
-- Doctor: """),
-        coalesce(col("DOCTOR"), lit("Dr. Smith")),
-        lit("\n- Patient: "),
-        coalesce(col("PATIENT"), lit("John Doe")),
-        lit("\n- Guardian: "),
-        coalesce(col("GUARDIAN"), lit("N/A")),
-        lit("\n- Symptoms: "),
-        coalesce(col("SYMPTOMS"), lit("")),
-        lit("\n- Diagnosis: "),
-        coalesce(col("DIAGNOSIS"), lit("")),
-        lit("\n- Context: "),
-        coalesce(col("SUMMARY"), lit("")),
-        lit("\n\nSpecialty: "),
-        coalesce(col("SPECIALTY"), lit("")),
-        lit("\nCondition Type: "),
-        coalesce(col("CONDITION_TYPE"), lit("")),
-        lit("\nAge Group: "),
-        coalesce(col("AGE_GROUP"), lit("")),
-        lit("\nVisit Context: "),
-        coalesce(col("VISIT_CONTEXT"), lit("")),
+Scenario:
+"""),
+        col("SUMMARY"),
+        lit("""
+
+Additional context:
+- Specialty: """),
+        col("SPECIALTY"),
+        lit("""
+- Condition Type: """),
+        col("CONDITION_TYPE"),
+        lit("""
+- Age Group: """),
+        col("AGE_GROUP"),
+        lit("""
+- Visit Context: """),
+        col("VISIT_CONTEXT"),
         lit("""
 
 Generate output as a JSON object with exactly five keys:
