@@ -178,7 +178,7 @@ python scripts/run_train.py \
     --schema PUBLIC
 ```
 
-> **Note:** LoRA training is ~50% faster and requires significantly less GPU memory than full fine-tuning while still achieving strong performance.
+> **Note:** LoRA training takes approximately 10 minutes while full fine-tuning takes approximately 20 minutes on a `GPU_NV_M` instance. LoRA also requires significantly less GPU memory while still achieving strong performance.
 
 The script will output a job ID that you can use to monitor progress. You can also monitor the job via the [Job UI in Snowsight](../README.md#job-ui-in-snowsight).
 
@@ -203,22 +203,17 @@ The evaluation script:
 - Uses an LLM-as-judge approach (Qwen3-8B) to compare predictions against ground truth
 - Reports pass/fail accuracy for each SOAP section
 
-## Results
+## Evaluation Notes
 
-> Note: Exact numbers may vary between runs due to factors like data shuffling and numerical stability.
+The evaluation script uses an LLM-as-judge approach to assess the quality of generated SOAP notes. For each test example, the fine-tuned model generates predictions which are then compared against ground truth by a larger judge model (Qwen3-8B). This provides more nuanced evaluation than simple text matching, accounting for valid paraphrasing and semantic equivalence.
 
-| Section | Qwen3-1.7B (Baseline) | Full Fine-Tune | LoRA Adapter |
-|---------|-----------------------|-----------------|---------------|
-| S       | 31.6%                 | 59.2%          | 58.0%        |
-| O       | 41.2%                 | 56.0%          | 50.8%        |
-| A       | 40.8%                 | 52.8%          | 48.4%        |
-| P       | 46.4%                 | 60.4%          | 58.0%        |
+Since this sample uses synthetic training data generated from templates or LLMs, the absolute accuracy numbers are primarily useful for validating that the training pipeline is working correctly rather than measuring real-world performance. The value of this sample lies in demonstrating the end-to-end workflow—from data preparation through training and evaluation—which you can adapt for your own datasets and use cases.
 
-Both fine-tuning approaches show improvements over the baseline, with LoRA achieving comparable results to full fine-tuning at a fraction of the training time and memory cost.
+When working with production data, you can expect more meaningful evaluation metrics that reflect actual model capabilities on your domain-specific tasks.
 
 ### Improving Performance
 
-This sample uses conservative settings optimized for quick iteration on smaller GPU instances. For production use cases, consider the following improvements:
+This sample uses conservative settings optimized for quick iteration on smaller GPU instances. When adapting this workflow for production use cases, consider the following improvements:
 
 - **Use a larger base model**: Larger models like Qwen3-4B or Qwen3-8B typically achieve higher accuracy. Update `model.name_or_path` in the config file and provision a compute pool with more GPU memory (e.g., `GPU_NV_L`).
 
@@ -334,17 +329,6 @@ data:
 See [here](https://github.com/snowflakedb/ArcticTraining/tree/main/projects/causal_snowflake) for more information about Snowflake data integration in ArcticTraining.
 
 The custom `SOAPDataSource` in [train.py](src/train.py) extends this to format examples with system/user/assistant messages for instruction tuning.
-
-### LLM-as-Judge Evaluation
-
-The evaluation script uses a larger model (Qwen3-8B) to judge the quality of generated SOAP notes:
-
-1. The fine-tuned model generates SOAP notes for each test example
-2. For each S, O, A, P section, the judge model compares the prediction against ground truth
-3. The judge returns pass/fail verdicts based on factual accuracy and completeness
-4. Final scores are aggregated across the test set
-
-This approach provides more nuanced evaluation than simple text matching, accounting for valid paraphrasing and synonym usage.
 
 ## Troubleshooting
 
