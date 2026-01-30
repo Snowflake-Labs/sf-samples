@@ -1,65 +1,28 @@
 """
-Synthetic SOAP Data Generation Pipeline
+Synthetic SOAP Data Generation CLI
 
-Generates synthetic clinical visit dialogues and SOAP summaries using Snowflake Cortex LLM.
-Uses a two-step pipeline with a predefined diversity grid to ensure sample uniqueness.
+Unified command-line interface for generating synthetic clinical visit dialogues
+and SOAP summaries. Supports two generation modes:
+
+  - heuristic: Fast template-based generation (less diverse, but instant)
+  - cortex: Snowflake Cortex LLM generation (high quality, but slow and expensive)
+
+Usage:
+    python generate_data.py --mode heuristic --num_samples 10000
+    python generate_data.py --mode cortex --num_samples 1000 --model llama3.1-70b
 """
 
 import argparse
-import itertools
 import random
 import time
-from typing import Dict, List, Optional, Tuple
+from typing import List, Tuple
 
 from snowflake.snowpark import DataFrame, Session
-from snowflake.snowpark.functions import col, lit, concat, sql_expr, listagg, count as sf_count
 
 
 # =============================================================================
-# Diversity Grid Categories
+# Shared Utilities
 # =============================================================================
-
-SPECIALTIES = [
-    "Cardiology", "Pediatrics", "Orthopedics", "Neurology", "Oncology",
-    "Dermatology", "Gastroenterology", "Pulmonology", "Endocrinology",
-    "Rheumatology", "Nephrology", "Psychiatry", "Ophthalmology",
-    "Otolaryngology", "Urology", "Obstetrics", "Gynecology",
-    "Infectious Disease", "Hematology", "Allergy and Immunology",
-    "Family Medicine", "Internal Medicine", "Emergency Medicine",
-    "Geriatrics", "Sports Medicine"
-]
-
-CONDITION_TYPES = [
-    "Acute illness",
-    "Chronic disease management",
-    "Preventive care",
-    "Follow-up visit",
-    "Emergency presentation"
-]
-
-AGE_GROUPS = [
-    "Pediatric (0-5 years)",
-    "Child (6-12 years)",
-    "Adolescent (13-17 years)",
-    "Young adult (18-35 years)",
-    "Middle-aged adult (36-55 years)",
-    "Older adult (56-70 years)",
-    "Elderly (71+ years)"
-]
-
-VISIT_CONTEXTS = [
-    "New patient intake",
-    "Follow-up appointment",
-    "Specialist referral",
-    "Routine checkup",
-    "Urgent care visit"
-]
-
-
-# =============================================================================
-# Helper Functions
-# =============================================================================
-
 
 def parse_splits(splits_str: str) -> Tuple[float, float, float]:
     """Parse splits string like '80/10/10' into ratios."""
@@ -73,247 +36,6 @@ def parse_splits(splits_str: str) -> Tuple[float, float, float]:
         raise ValueError(f"Splits must sum to 100, got {total}")
 
     return train / 100, dev / 100, test / 100
-
-
-def build_diversity_grid(num_samples: int) -> List[Dict[str, str]]:
-    """
-    Build diversity grid by creating all combinations of categories
-    and cycling through them to assign to samples.
-    """
-    # Create all possible combinations
-    all_combinations = list(itertools.product(
-        SPECIALTIES, CONDITION_TYPES, AGE_GROUPS, VISIT_CONTEXTS
-    ))
-
-    # Shuffle for randomness
-    random.shuffle(all_combinations)
-
-    # Cycle through combinations to cover num_samples
-    grid = []
-    for i in range(num_samples):
-        combo = all_combinations[i % len(all_combinations)]
-        grid.append({
-            "specialty": combo[0],
-            "condition_type": combo[1],
-            "age_group": combo[2],
-            "visit_context": combo[3]
-        })
-
-    return grid
-
-
-# =============================================================================
-# Core Functions
-# =============================================================================
-
-def generate_scenarios(
-    num_samples: int,
-    model: str,
-    batch_size: Optional[int] = None,
-    session: Optional[Session] = None,
-    debug: bool = False
-) -> DataFrame:
-    """
-    Generate clinical visit scenarios as a Snowpark DataFrame using SQL-based AI_COMPLETE.
-
-    Uses SPLIT_TO_TABLE to expand batch LLM responses into individual prose summaries,
-    then joins back to the diversity grid to attach metadata.
-
-    Args:
-        num_samples: Number of scenarios to generate
-        model: Cortex model to use for generation
-        batch_size: Number of scenarios per batch (default: 100)
-        session: Snowpark session (default: get or create)
-        debug: If True, run validation counts and print warnings
-
-    Returns:
-        Snowpark DataFrame with SUMMARY and diversity metadata columns
-    """
-    if session is None:
-        session = Session.builder.getOrCreate()
-
-    if batch_size is None:
-        batch_size = 100
-
-    batch_size = min(batch_size, num_samples)
-
-    # Build diversity grid
-    diversity_grid = build_diversity_grid(num_samples)
-
-    # Add batch indexing to each entry
-    for i, entry in enumerate(diversity_grid):
-        entry["batch_id"] = i // batch_size
-        entry["idx_in_batch"] = (i % batch_size) + 1
-
-    # Create DataFrame with diversity grid (used for join later)
-    diversity_df = session.create_dataframe(diversity_grid)
-
-    # Build constraint string for each row
-    constraint_col = concat(
-        col("IDX_IN_BATCH").cast("STRING"),
-        lit(". Specialty: "), col("SPECIALTY"),
-        lit(", Condition: "), col("CONDITION_TYPE"),
-        lit(", Age: "), col("AGE_GROUP"),
-        lit(", Context: "), col("VISIT_CONTEXT")
-    )
-    df_with_constraints = diversity_df.with_column("CONSTRAINT_STR", constraint_col)
-
-    # Aggregate constraints by batch using LISTAGG
-    batch_df = df_with_constraints.group_by("BATCH_ID").agg(
-        listagg("CONSTRAINT_STR", lit("\n")).within_group("IDX_IN_BATCH").alias("CONSTRAINTS"),
-        sf_count("*").alias("BATCH_COUNT")
-    )
-
-    # Build prompt for prose summaries (no JSON required)
-    prompt_col = concat(
-        lit("Generate "), col("BATCH_COUNT").cast("STRING"),
-        lit(""" unique clinical visit scenario summaries, one for each numbered constraint below.
-
-Each summary should be a short paragraph (2-3 sentences) describing a realistic clinical encounter, including:
-- The doctor's full name with title (e.g., Dr. Sarah Chen)
-- The patient's full name (include guardian name if patient is a minor)
-- The presenting symptoms or chief complaint
-- The preliminary or confirmed diagnosis
-- Context appropriate to the specialty and visit type
-
-Constraints:
-"""),
-        col("CONSTRAINTS"),
-        lit("""
-
-IMPORTANT: Output each summary as plain text separated by "|||". Output them in order matching the constraint numbers.
-Do NOT use JSON, numbering, or any other formatting. Just the summary paragraphs separated by |||.
-
-Example output format:
-Dr. Sarah Chen evaluated 45-year-old Michael Torres at his cardiology follow-up appointment for ongoing management of atrial fibrillation. Mr. Torres reported occasional palpitations and Dr. Chen adjusted his anticoagulation therapy.|||Dr. James Wilson, a pediatric specialist, saw 3-year-old Emma Garcia accompanied by her mother Maria for acute otitis media. Emma presented with ear pain and fever, and Dr. Wilson prescribed a course of antibiotics.""")
-    )
-
-    df_with_prompt = batch_df.with_column("PROMPT", prompt_col)
-
-    # Call AI_COMPLETE with REGEXP_REPLACE to clean control characters
-    df_with_response = df_with_prompt.with_column(
-        "RESPONSE",
-        sql_expr(f"REGEXP_REPLACE(AI_COMPLETE('{model}', PROMPT), '[[:cntrl:]]', ' ')")
-    )
-
-    # Use SPLIT_TO_TABLE to expand batch responses into individual samples
-    # SPLIT_TO_TABLE returns INDEX (1-based position) which maps to IDX_IN_BATCH
-    expanded_df = df_with_response.join_table_function(
-        "split_to_table",
-        col("RESPONSE"),
-        lit("|||")
-    )
-
-    # Trim whitespace from each summary and keep BATCH_ID + INDEX for joining
-    summaries_df = expanded_df.select(
-        col("BATCH_ID"),
-        col("INDEX"),
-        sql_expr("TRIM(VALUE)").alias("SUMMARY")
-    ).filter(
-        col("SUMMARY") != lit("")
-    )
-
-    # Join back to diversity_df to attach metadata using BATCH_ID and INDEX
-    result_df = summaries_df.join(
-        diversity_df,
-        (summaries_df["BATCH_ID"] == diversity_df["BATCH_ID"]) &
-        (summaries_df["INDEX"] == diversity_df["IDX_IN_BATCH"])
-    ).select(
-        summaries_df["SUMMARY"],
-        diversity_df["SPECIALTY"],
-        diversity_df["CONDITION_TYPE"],
-        diversity_df["AGE_GROUP"],
-        diversity_df["VISIT_CONTEXT"]
-    )
-
-    if debug:
-        result_count = result_df.count()
-        if result_count < num_samples:
-            print(f"  Warning: Only {result_count} valid scenarios generated, expected {num_samples}")
-
-    return result_df
-
-
-def generate_full_data(scenarios: DataFrame, model: str, debug: bool = False) -> DataFrame:
-    """
-    Generate detailed dialogues and SOAP notes from scenario summaries using SQL AI_COMPLETE.
-
-    Args:
-        scenarios: Snowpark DataFrame with SUMMARY and diversity metadata columns
-        model: Cortex model to use for generation
-        debug: If True, run validation counts and print warnings
-
-    Returns:
-        Snowpark DataFrame with dialogue and SOAP section columns
-    """
-    # Build the detail generation prompt for each row
-    prompt_template = concat(
-        lit("""Based on the following clinical visit scenario, generate a realistic doctor-patient dialogue and SOAP note components.
-
-Scenario:
-"""),
-        col("SUMMARY"),
-        lit("""
-
-Additional context:
-- Specialty: """),
-        col("SPECIALTY"),
-        lit("""
-- Condition Type: """),
-        col("CONDITION_TYPE"),
-        lit("""
-- Age Group: """),
-        col("AGE_GROUP"),
-        lit("""
-- Visit Context: """),
-        col("VISIT_CONTEXT"),
-        lit("""
-
-Generate output as a JSON object with exactly five keys:
-1. "dialogue": A realistic, detailed conversation between doctor and patient (and guardian if applicable). Include greetings, symptom discussion, examination findings, diagnosis explanation, and treatment plan discussion.
-2. "S": Subjective findings - patient's complaints, symptoms, history as reported by the patient
-3. "O": Objective findings - vital signs, physical exam findings, lab results, observations
-4. "A": Assessment - diagnosis and clinical reasoning
-5. "P": Plan - treatment, medications, follow-up instructions
-
-Return ONLY the JSON object, no other text.""")
-    )
-
-    df_with_prompt = scenarios.with_column("PROMPT", prompt_template)
-
-    # Call AI_COMPLETE using SQL expression and store the response
-    df_with_response = df_with_prompt.with_column(
-        "RESPONSE",
-        sql_expr(f"REGEXP_REPLACE(AI_COMPLETE('{model}', PROMPT), '^```[a-zA-Z]*|```$|[[:cntrl:]]', ' ', 1, 0, 'm')")
-    )
-
-    # Parse JSON response once, then extract dialogue and SOAP section fields
-    # Filter out rows where parsing failed (NULL values)
-    parsed_df = df_with_response.with_column(
-        "PARSED_JSON",
-        sql_expr("TRY_PARSE_JSON(RESPONSE)")
-    )
-    result_df = parsed_df.select(
-        sql_expr("PARSED_JSON:dialogue::STRING").alias("DIALOGUE"),
-        sql_expr("PARSED_JSON:S::STRING").alias("S"),
-        sql_expr("PARSED_JSON:O::STRING").alias("O"),
-        sql_expr("PARSED_JSON:A::STRING").alias("A"),
-        sql_expr("PARSED_JSON:P::STRING").alias("P")
-    ).filter(
-        col("DIALOGUE").is_not_null() &
-        col("S").is_not_null() &
-        col("O").is_not_null() &
-        col("A").is_not_null() &
-        col("P").is_not_null()
-    )
-
-    if debug:
-        result_count = result_df.count()
-        expected_count = scenarios.count()
-        if result_count != expected_count:
-            print(f"  Warning: Only {result_count} valid samples generated, expected {expected_count}")
-
-    return result_df
 
 
 def save_as_table(
@@ -352,62 +74,40 @@ def save_as_table(
     return total_rows
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description='Generate synthetic SOAP data using Snowflake Cortex LLM'
-    )
-    parser.add_argument(
-        '--table_name',
-        default='SYNTHETIC_SOAP_DATA',
-        help='Base table name for output (default: SYNTHETIC_SOAP_DATA)'
-    )
-    parser.add_argument(
-        '--num_samples',
-        type=int,
-        default=10000,
-        help='Number of samples to generate (default: 10000)'
-    )
-    parser.add_argument(
-        '--splits',
-        default='80/10/10',
-        help='Train/dev/test split ratios, must sum to 100 (default: 80/10/10)'
-    )
-    parser.add_argument(
-        '--model',
-        default='llama3.1-70b',
-        help='Cortex model for generation (default: llama3.1-70b)'
-    )
-    parser.add_argument(
-        '--batch_size',
-        type=int,
-        default=100,
-        help='Scenarios per batch for scenario generation (default: 100)'
-    )
-    parser.add_argument(
-        '--seed',
-        type=int,
-        default=42,
-        help='Random seed for reproducibility (default: 42)'
-    )
-    parser.add_argument(
-        '--debug',
-        action='store_true',
-        help='Enable debug mode with intermediate count checks'
-    )
+# =============================================================================
+# Heuristic Generation Mode
+# =============================================================================
 
-    args = parser.parse_args()
+def run_heuristic_generation(args, session: Session, split_weights: List[float]) -> None:
+    """Run heuristic-based (template) generation pipeline."""
+    from heuristic_generator import generate_heuristic_data
 
-    # Set random seed
-    random.seed(args.seed)
+    # Generate data using heuristics
+    print(f"Generating {args.num_samples} samples using heuristics (template-based)...")
+    t0 = time.time()
+    data_df = generate_heuristic_data(
+        num_samples=args.num_samples,
+        session=session,
+    )
+    print(f"  Done in {time.time() - t0:.1f}s")
 
-    # Parse splits into weights
-    train_ratio, dev_ratio, test_ratio = parse_splits(args.splits)
-    split_weights = [train_ratio, dev_ratio, test_ratio]
+    # Split and save to tables
+    print(f"Saving to {args.table_name}_{{TRAIN,VALIDATION,TEST}}...")
+    t0 = time.time()
+    total_rows = save_as_table(data_df, args.table_name, split_weights, session)
+    print(f"  Total: {total_rows} rows in {time.time() - t0:.1f}s")
 
-    session = Session.builder.getOrCreate()
+
+# =============================================================================
+# Cortex LLM Generation Mode
+# =============================================================================
+
+def run_cortex_generation(args, session: Session, split_weights: List[float]) -> None:
+    """Run LLM-based generation pipeline using Snowflake Cortex."""
+    from cortex_generator import generate_scenarios, generate_full_data
 
     # Step 1: Generate scenarios
-    print(f"Generating {args.num_samples} scenarios...")
+    print(f"Generating {args.num_samples} scenarios using Cortex ({args.model})...")
     t0 = time.time()
     scenarios_df = generate_scenarios(
         num_samples=args.num_samples,
@@ -429,6 +129,112 @@ def main():
     t0 = time.time()
     total_rows = save_as_table(full_data_df, args.table_name, split_weights, session)
     print(f"  Total: {total_rows} rows in {time.time() - t0:.1f}s")
+
+
+# =============================================================================
+# CLI Entry Point
+# =============================================================================
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Generate synthetic SOAP data using LLM or heuristics',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Fast heuristic mode (template-based, ~20,000 samples/second)
+  python generate_data.py --mode heuristic --num_samples 10000
+
+  # LLM mode with Cortex (high quality, slower)
+  python generate_data.py --mode cortex --num_samples 1000 --model llama3.1-70b
+
+  # Specify database and schema
+  python generate_data.py --mode heuristic --database MY_DB --schema MY_SCHEMA
+"""
+    )
+
+    # Mode selection
+    parser.add_argument(
+        '--mode',
+        choices=['heuristic', 'cortex'],
+        default='heuristic',
+        help='Generation mode: "heuristic" for templates (fast, less diverse) or "cortex" for Cortex LLM (slow, high quality). Default: heuristic'
+    )
+
+    # Output configuration
+    parser.add_argument(
+        '--table_name',
+        default='SYNTHETIC_SOAP_DATA',
+        help='Base table name for output (default: SYNTHETIC_SOAP_DATA)'
+    )
+    parser.add_argument(
+        '--num_samples',
+        type=int,
+        default=10000,
+        help='Number of samples to generate (default: 10000)'
+    )
+    parser.add_argument(
+        '--splits',
+        default='80/10/10',
+        help='Train/dev/test split ratios, must sum to 100 (default: 80/10/10)'
+    )
+
+    # Cortex LLM-specific options
+    parser.add_argument(
+        '--model',
+        default='llama3.1-70b',
+        help='Cortex model for generation, only used with --mode=cortex (default: llama3.1-70b)'
+    )
+    parser.add_argument(
+        '--batch_size',
+        type=int,
+        default=100,
+        help='Scenarios per batch for scenario generation, only used with --mode=cortex (default: 100)'
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Enable debug mode with intermediate count checks (only used with --mode=cortex)'
+    )
+
+    # Common options
+    parser.add_argument(
+        '--seed',
+        type=int,
+        default=42,
+        help='Random seed for reproducibility (default: 42)'
+    )
+    parser.add_argument(
+        '--database',
+        help='Snowflake database (defaults to session default database)'
+    )
+    parser.add_argument(
+        '--schema',
+        help='Snowflake schema (defaults to session default schema)'
+    )
+
+    args = parser.parse_args()
+
+    # Set random seed
+    random.seed(args.seed)
+
+    # Parse splits into weights
+    train_ratio, dev_ratio, test_ratio = parse_splits(args.splits)
+    split_weights = [train_ratio, dev_ratio, test_ratio]
+
+    # Create Snowpark session
+    session = Session.builder.getOrCreate()
+
+    # Set database and schema if provided
+    if args.database:
+        session.use_database(args.database)
+    if args.schema:
+        session.use_schema(args.schema)
+
+    # Run appropriate generation mode
+    if args.mode == 'cortex':
+        run_cortex_generation(args, session, split_weights)
+    else:
+        run_heuristic_generation(args, session, split_weights)
 
 
 if __name__ == "__main__":
