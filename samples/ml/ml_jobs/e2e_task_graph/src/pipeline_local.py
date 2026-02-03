@@ -118,7 +118,7 @@ if __name__ == "__main__":
     if args.connection:
         session_builder = session_builder.config("connection_name", args.connection)
     session = session_builder.getOrCreate()
-    modeling.ensure_environment(session)
+    pipeline_dag.ensure_environment(session)
 
     run_pipeline(
         session,

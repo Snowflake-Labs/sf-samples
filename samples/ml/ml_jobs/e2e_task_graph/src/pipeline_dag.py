@@ -23,15 +23,8 @@ import cli_utils
 from constants import (COMPUTE_POOL, DAG_STAGE, DATA_TABLE_NAME, DB_NAME, JOB_STAGE, SCHEMA_NAME,
                        WAREHOUSE)
 
-# Ensure local modules are bundled for remote job execution.
-cp.register_pickle_by_value(modeling)
-cp.register_pickle_by_value(data)
-cp.register_pickle_by_value(ops)
-cp.register_pickle_by_value(run_config)
-
-
 session = Session.builder.getOrCreate()
-def _ensure_environment(session: Session):
+def ensure_environment(session: Session):
     """
     Ensure the environment is properly set up for DAG execution.
 
@@ -43,6 +36,7 @@ def _ensure_environment(session: Session):
         session (Session): Snowflake session object
     """
     modeling.ensure_environment(session)
+    cp.register_pickle_by_value(modeling)
 
     # Ensure the raw data table exists
     _ = data.get_raw_data(session, DATA_TABLE_NAME, create_if_not_exists=True)
@@ -377,7 +371,7 @@ if __name__ == "__main__":
     if args.connection:
         session_builder = session_builder.config("connection_name", args.connection)
     session = session_builder.getOrCreate()
-    _ensure_environment(session)
+    ensure_environment(session)
 
     api_root = Root(session)
     db = api_root.databases[DB_NAME]

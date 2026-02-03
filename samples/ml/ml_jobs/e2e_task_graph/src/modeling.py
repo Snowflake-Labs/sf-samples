@@ -6,6 +6,7 @@ from typing import Optional
 import cloudpickle as cp
 import data
 import ops
+import run_config
 from constants import (
     DAG_STAGE,
     DB_NAME,
@@ -79,6 +80,7 @@ def ensure_environment(session: Session):
     # Register local modules for inclusion in ML Job payloads
     cp.register_pickle_by_value(ops)
     cp.register_pickle_by_value(data)
+    cp.register_pickle_by_value(run_config)
 
 
 def prepare_datasets(
