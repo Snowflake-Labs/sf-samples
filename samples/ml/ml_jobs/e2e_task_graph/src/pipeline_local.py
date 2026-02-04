@@ -5,6 +5,7 @@ from snowflake.snowpark import Session
 
 import pipeline_dag
 from constants import DATA_TABLE_NAME
+import cloudpickle as cp
 import modeling
 import ops
 logging.getLogger().setLevel(logging.ERROR)
@@ -118,7 +119,8 @@ if __name__ == "__main__":
     if args.connection:
         session_builder = session_builder.config("connection_name", args.connection)
     session = session_builder.getOrCreate()
-    pipeline_dag.ensure_environment(session)
+    pipeline_dag._ensure_environment(session)
+    cp.register_pickle_by_value(pipeline_dag)
 
     run_pipeline(
         session,

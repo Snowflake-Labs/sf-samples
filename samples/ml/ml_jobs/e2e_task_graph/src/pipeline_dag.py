@@ -17,14 +17,15 @@ from snowflake.ml.jobs import remote
 import modeling
 import data
 import ops
-import run_config
+from dataclasses import dataclass
+from datetime import datetime
 
 import cli_utils
 from constants import (COMPUTE_POOL, DAG_STAGE, DATA_TABLE_NAME, DB_NAME, JOB_STAGE, SCHEMA_NAME,
                        WAREHOUSE)
 
-session = Session.builder.getOrCreate()
-def ensure_environment(session: Session):
+
+def _ensure_environment(session: Session):
     """
     Ensure the environment is properly set up for DAG execution.
 
@@ -108,6 +109,43 @@ def _wait_for_run_to_complete(session: Session, dag: DAG) -> str:
 
     return dag_result
 
+@dataclass(frozen=True)
+class RunConfig:
+    run_id: str
+    dataset_name: str
+    model_name: str
+    metric_name: str
+    metric_threshold: float
+
+    @classmethod
+    def from_task_context(cls, ctx: TaskContext, **kwargs: Any) -> "RunConfig":
+        run_schedule = ctx.get_current_task_graph_original_schedule()
+        run_id = "v" + (
+            run_schedule.strftime("%Y%m%d_%H%M%S")
+            if isinstance(run_schedule, datetime)
+            else str(run_schedule)
+        )
+        run_config = dict(run_id=run_id)
+
+        graph_config = ctx.get_task_graph_config()
+        merged = run_config | graph_config | kwargs
+
+        # Get expected fields from RunConfig
+        expected_fields = set(cls.__annotations__)
+
+        # Find unexpected keys
+        unexpected_keys = [key for key in merged.keys() if key not in expected_fields]
+        for key in unexpected_keys:
+            print(f"Warning: Unexpected config key '{key}' will be ignored")
+
+        filtered = {k: v for k, v in merged.items() if k in expected_fields}
+        return cls(**filtered)
+
+    @classmethod
+    def from_session(cls, session: Session) -> "RunConfig":
+        ctx = TaskContext(session)
+        return cls.from_task_context(ctx)    
+
 def prepare_datasets(session: Session) -> str:
     """
     DAG task to prepare datasets for model training.
@@ -123,7 +161,7 @@ def prepare_datasets(session: Session) -> str:
         str: JSON string containing serialized dataset information for downstream tasks
     """
     ctx = TaskContext(session)
-    config = run_config.RunConfig.from_task_context(ctx)
+    config = RunConfig.from_task_context(ctx)
 
     ds, train_ds, test_ds = modeling.prepare_datasets(
         session, DATA_TABLE_NAME, config.dataset_name
@@ -160,7 +198,7 @@ def train_model(dataset_info: Optional[str] = None) -> Optional[str]:
         dataset_info_dicts = json.loads(dataset_info)
     try:
         ctx = TaskContext(session)
-        config = run_config.RunConfig.from_task_context(ctx)
+        config = RunConfig.from_task_context(ctx)
         dataset_info_dicts = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
     except SnowparkSQLException:
         print("there is no predecessor return value, fallback to local mode")
@@ -229,7 +267,7 @@ def check_model_quality(session: Session) -> str:
         str: "promote_model" if model meets threshold, "send_alert" otherwise
     """
     ctx = TaskContext(session)
-    config = run_config.RunConfig.from_task_context(ctx)
+    config = RunConfig.from_task_context(ctx)
 
     metrics = json.loads(ctx.get_predecessor_return_value("EVALUATE_MODEL"))
 
@@ -274,7 +312,7 @@ def cleanup(session: Session) -> None:
         session (Session): Snowflake session object
     """
     ctx = TaskContext(session)
-    config = run_config.RunConfig.from_task_context(ctx)
+    config = RunConfig.from_task_context(ctx)
 
     modeling.clean_up(session, config.dataset_name, config.model_name)
 
@@ -371,7 +409,7 @@ if __name__ == "__main__":
     if args.connection:
         session_builder = session_builder.config("connection_name", args.connection)
     session = session_builder.getOrCreate()
-    ensure_environment(session)
+    _ensure_environment(session)
 
     api_root = Root(session)
     db = api_root.databases[DB_NAME]
