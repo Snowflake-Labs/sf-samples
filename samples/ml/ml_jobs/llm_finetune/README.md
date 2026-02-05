@@ -195,6 +195,21 @@ python scripts/run_eval.py \
     --schema PUBLIC
 ```
 
+### Step 4: Log, deploy & test model
+
+After training and eval, log the model and deploy as a service. This service can be used for rest API as well.
+
+```bash
+python scripts/run_log_n_deploy_model.py \
+   <TRAIN_JOB_ID> \
+   --compute-pool GPU_POOL
+   --database LLM_DEMO
+   --schema PUBLIC
+   --model-name LLM_FINETUNED_MODEL
+   --external-access-integrations PYPI_HF_EAI
+   --service-name LLM_FINETUNED_MODEL_SERVICE
+```
+
 Replace `<TRAIN_JOB_ID>` with the job ID from the training step (e.g., `LLM_DEMO.PUBLIC.ARCTIC_TRAINING_XXXXXXX`).
 
 The evaluation script:
