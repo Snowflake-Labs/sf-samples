@@ -1,10 +1,13 @@
+from dataclasses import asdict
+import json
 import logging
-from datetime import datetime
 from snowflake.snowpark import Session
 
-import modeling
+import pipeline_dag
 from constants import DATA_TABLE_NAME
-
+import cloudpickle as cp
+import modeling
+import ops
 logging.getLogger().setLevel(logging.ERROR)
 
 
@@ -15,7 +18,6 @@ def run_pipeline(
     model_name: str,
     *,
     force_refresh: bool = False,
-    no_register: bool = False,
 ):
     """
     Run the complete machine learning pipeline from data preparation to model deployment.
@@ -39,10 +41,17 @@ def run_pipeline(
         create_assets=False,
         force_refresh=force_refresh,
     )
-
+    dataset_info = {
+        "full": asdict(ds.read.data_sources[0]),
+        "train": asdict(train_ds.read.data_sources[0]),
+        "test": asdict(test_ds.read.data_sources[0]),
+    }
     print("Training model...")
-    model_obj = modeling.train_model(session, train_ds.read.data_sources[0]).result()
 
+   
+    job = pipeline_dag.train_model(json.dumps(dataset_info))
+    model_info = json.loads(job.result())
+    model_obj = ops.get_model(session, model_info["model_name"], model_info["version_name"])
     print("Evaluating model...")
     train_metrics = modeling.evaluate_model(
         session, model_obj, train_ds.read.data_sources[0], prefix="train"
@@ -57,13 +66,10 @@ def run_pipeline(
     current_score = metrics[key_metric]
     print(f"Current score: {current_score}. Threshold for promotion: {threshold}.")
 
-    if no_register:
-        print("Model registration disabled via --no-register flag.")
-    elif current_score > threshold:
-        # If model is good, register and promote model
-        version = datetime.now().strftime("v%Y%m%d_%H%M%S")
-        mv = modeling.register_model(session, model_obj, model_name, version, ds, metrics)
-        modeling.promote_model(session, mv)
+    if current_score > threshold:
+        # The model is already registered
+        ops.update_metrics(session, model_obj, metrics)
+        modeling.promote_model(session, model_obj)
 
     modeling.clean_up(session, dataset_name, model_name, expiry_days=1)
 
@@ -102,11 +108,6 @@ if __name__ == "__main__":
         help="Force recreation of datasets and models, deleting any existing versions. Use this to start fresh or update with new data.",
     )
     parser.add_argument(
-        "--no-register",
-        action="store_true",
-        help="Skip model registration and promotion even if the model meets quality thresholds. Useful for testing or experimental runs.",
-    )
-    parser.add_argument(
         "-c",
         "--connection",
         type=str,
@@ -118,7 +119,8 @@ if __name__ == "__main__":
     if args.connection:
         session_builder = session_builder.config("connection_name", args.connection)
     session = session_builder.getOrCreate()
-    modeling.ensure_environment(session)
+    pipeline_dag._ensure_environment(session)
+    cp.register_pickle_by_value(pipeline_dag)
 
     run_pipeline(
         session,
@@ -126,5 +128,4 @@ if __name__ == "__main__":
         dataset_name=args.dataset_name or args.source_table,
         model_name=args.model_name or args.source_table,
         force_refresh=args.force_refresh,
-        no_register=args.no_register,
     )

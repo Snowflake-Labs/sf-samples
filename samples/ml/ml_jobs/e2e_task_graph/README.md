@@ -120,7 +120,6 @@ Run the ML pipeline locally without task graph orchestration:
 
 ```bash
 python src/pipeline_local.py
-python src/pipeline_local.py --no-register  # Skip model registration for faster experimentation
 ```
 
 You can monitor the corresponding ML Job for model training via the [Job UI in Snowsight](../README.md#job-ui-in-snowsight).
@@ -187,14 +186,24 @@ This visual interface makes it easy to:
 - **Branching Logic**: Using `DAGTaskBranch` for conditional execution paths
 - **Finalizer Tasks**: Ensuring cleanup always runs regardless of success/failure
 
-### Model Training on SPCS using ML Jobs
+### Model Training on SPCS Using ML Jobs
 
-The `train_model` function uses the `@remote` decorator to run multi-node training on Snowpark Container Services:
+The `train_model` function is decorated with `@remote` to execute multi-node training on Snowpark Container Services (SPCS):
+```python
+@remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
+def train_model(input_data: DataSource) -> Optional[str]:
+    # Training logic runs on distributed compute
+```
+
+The Task SDK lets you use that ML Job definition directly when creating a DAG task. For additional ML Job definition examples, see `../README.md`.
 
 ```python
 @remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
-def train_model(session: Session, input_data: DataSource) -> XGBClassifier:
-    # Training logic runs on distributed compute
+def train_model(input_data: DataSource) -> Optional[str]:
+    ...
+
+train_model_task = DAGTask("TRAIN_MODEL", definition=train_model)
+
 ```
 
 ### Conditional Model Promotion
@@ -213,6 +222,6 @@ def check_model_quality(session: Session) -> str:
 Successful models are automatically registered and promoted to production:
 
 ```python
-mv = register_model(session, model, model_name, version, train_ds, metrics)
+# get model version from train model
 promote_model(session, mv)  # Sets as default version
 ```
