@@ -1,40 +1,28 @@
-# SageMaker ➜ Snowflake Migration Examples
+# SageMaker to Snowflake ML Migration Playbook Examples
 
-This repository provides simple examples to help you migrate machine learning workloads from **AWS SageMaker** to **Snowflake ML**.
+This repository is part of a broader **migration playbook** designed to help customers move their **machine learning workloads closer to where their data already resides — in Snowflake**.  
+By eliminating unnecessary data movement and leveraging Snowflake ML’s native capabilities, customers can accelerate model development, simplify deployment, and improve governance.
 
 ### Included Examples
 
-* **XGBoost Classifier** 
-* **PyTorch Classifier**
-* **Image Classification** 
+* **XGBoost Classifier**
+  - Training and inference in SageMaker vs. Snowflake ML.  
+  - Demonstrates how Snowflake ML integrates directly with Snowpark DataFrames.
+    
+* **PyTorch**
+  - Compares SageMaker’s distributed training to Snowflake’s built-in support.  
+  
+* **Image Classification**
+  - Shows how data can be staged, transformed, and consumed natively in Snowflake.  
 
-### Why Migrate?
+##  Why Snowflake ML?
 
-* Eliminate data movement between platforms
-* Use Snowflake’s built‑in governance and security
-* Deploy models directly as SQL functions
+- **Data stays in Snowflake**: No need to move data out to train, evaluate, or serve models.  
+- **Seamless integration with Pandas/Snowpark**: Work with Snowflake data as familiar **Pandas DataFrames** or **Snowpark DataFrames**.  
+- **Unified platform**: Model development, registry, and deployment happen within the same governed environment as your data.  
+- **Cost & latency benefits**: Avoid data egress and reduce pipeline complexity.  
 
-### Quick Start
 
-1. Clone the repo:
-
-```bash
-git clone https://github.com/Snowflake-Labs/sf-samples.git
-cd sf-samples/samples/ml-sagemaker-to-snowflake
-```
-
-2. Install requirements:
-
-```bash
-pip install -r requirements.txt
-```
-
-3. Run an example (e.g., XGBoost):
-
-```bash
-cd xgboost_classifier
-python train.py
-```
 
 ### Repo Structure
 
