@@ -3,7 +3,7 @@ manifest_version: 1
 version:
   name: v1
   label: "version 1"
-  comment: "Initial version of Chairlift application"
+  comment: "Initial version of TastyBytes application"
 
 artifacts:
   setup_script: scripts/setup.sql
