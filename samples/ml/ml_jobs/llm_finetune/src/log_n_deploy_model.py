@@ -1,7 +1,8 @@
 import argparse
 import logging
 from pathlib import Path
-import transformers
+from peft import PeftModel
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from typing import Optional
 import pandas as pd
 
@@ -114,23 +115,45 @@ def main():
 
 
     # --------- 1) Log model ----------
-    if args.lora_path:
-        raise ValueError("LoRA path is not supported yet")
-        
+    version_name = "lora" if args.lora_path else "base"
     model_registry = Registry(session=session)
     try:
-        mv = model_registry.get_model(args.model_name).version("v1")
+        mv = model_registry.get_model(args.model_name).version(version_name)
     except Exception as e:
         # Resolve checkpoint paths to latest global_step if applicable
-        model_path = resolve_path_global_step(resolve_stage_path(session, args.model_name_or_path))
-        logger.info(f"Model {args.model_name} not found, logging to model registry")
-        logger.info(f"Hydrating model from {model_path}")
-        pipe = transformers.pipeline("text-generation", model=model_path)
-        logger.info(f"Hydrated model {args.model_name} from {model_path}, logging to model registry")
+        if args.lora_path:
+            # 1. Load the base model
+            logger.info(f"Loading base model from {args.model_name_or_path}")
+            base_model = AutoModelForCausalLM.from_pretrained(
+                args.model_name_or_path,
+                torch_dtype="auto",
+                device_map="auto"
+            )
+            # 2. Load the LoRA adapter on top of it
+            lora_path = resolve_path_global_step(resolve_stage_path(session, args.lora_path))
+            logger.info(f"Loading LoRA adapter from {lora_path}")
+            model = PeftModel.from_pretrained(base_model, lora_path)
+            # 3. Merge LoRA weights into base model and unload adapter
+            fused_model = model.merge_and_unload()
+            logger.info(f"Merged LoRA weights into base model")
+
+            # Create pipeline with merged model
+            tokenizer = AutoTokenizer.from_pretrained(lora_path)
+            logger.info(f"Creating transformer pipeline with merged model")
+            pipe = pipeline("text-generation", model=fused_model, tokenizer=tokenizer)
+            logger.info(f"Created transformer pipeline with merged model")
+        else:
+            model_path = resolve_path_global_step(resolve_stage_path(session, args.model_name_or_path))
+            logger.info(f"Model {args.model_name} not found, logging to model registry")
+            logger.info(f"Hydrating model from {model_path}")
+            pipe = pipeline("text-generation", model=model_path)
+            logger.info(f"Created transformer pipeline with model")
+
+        logger.info(f"Logging hydrated model {args.model_name} version {version_name} to model registry")
         mv = model_registry.log_model(
             pipe,
             model_name=args.model_name,
-            version_name="v1",
+            version_name=version_name,
             signatures=openai_signatures.OPENAI_CHAT_SIGNATURE)
         logger.info(f"Model {args.model_name} version {mv.version_name} logged successfully")
 
