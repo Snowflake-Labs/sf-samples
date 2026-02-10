@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import cloudpickle as cp
+from xgboost import Booster, DMatrix
 import data
 import ops
 from constants import (
@@ -157,19 +158,16 @@ def train_model(session: Session, input_data: Optional[DataSource] = None) -> XG
     Returns:
         XGBClassifier: Trained XGBoost classifier model
     """
-    input_data_df = DataConnector.from_sources(session, [input_data]).to_pandas()
+    from snowflake.ml.data import DataConnector, DatasetInfo
+    input_data_dc = DataConnector.from_sources(session, [input_data])
     
-
     assert isinstance(input_data, DatasetInfo), "Input data must be a DatasetInfo"
     exclude_cols = input_data.exclude_cols
     label_col = exclude_cols[0]
 
-    X_train = input_data_df.drop(exclude_cols, axis=1)
-    y_train = input_data_df[label_col].squeeze()
-
     model_params = dict(
-        max_depth=50,
         n_estimators=3,
+        max_depth=50,
         learning_rate=0.75,
         objective="binary:logistic",
         booster="gbtree",
@@ -182,17 +180,22 @@ def train_model(session: Session, input_data: Optional[DataSource] = None) -> XG
             XGBEstimator,
             XGBScalingConfig,
         )
+        all_cols = input_data_dc.to_pandas(limit=1).columns.tolist()
+        input_cols = [c for c in all_cols if c not in exclude_cols]
         estimator = XGBEstimator(
             params=model_params,
             scaling_config=XGBScalingConfig(),
         )
+        type(estimator)
+        model = estimator.fit(input_data_dc,input_cols= input_cols, label_col=label_col)
+        return model
     else:
-        # Single node training - can use standard XGBClassifier
-        estimator = XGBClassifier(**model_params)
-
-    estimator.fit(X_train, y_train)
-            
-    return getattr(estimator, '_sklearn_estimator', estimator)
+        df = input_data_dc.to_pandas()
+        X_train = df.drop(exclude_cols, axis=1)
+        y_train = df[label_col].squeeze()
+        estimator = XGBClassifier(**model_params)    
+        model = estimator.fit(X_train, y_train)
+        return model   
 
 
 def evaluate_model(
@@ -200,7 +203,7 @@ def evaluate_model(
     model: XGBClassifier,
     input_data: DataSource,
     *,
-    prefix: str = None,
+    prefix: Optional[str] = None,
 ) -> dict:
     """
     Evaluate a model on the training and test datasets.
@@ -228,9 +231,9 @@ def evaluate_model(
     X_test = input_data_df.drop(exclude_cols, axis=1)
     expected = input_data_df[label_col].squeeze()
     # inside evaluate_model
-    if isinstance(model, ModelVersion):
-        preds_df = model.run(X_test, function_name="predict")
-        actual =  preds_df.iloc[:, -1]
+    if isinstance(model, Booster):
+        dmatrix = DMatrix(X_test)
+        actual = (model.predict(dmatrix) > 0.5).astype(int)
     else:
         actual = model.predict(X_test)
 

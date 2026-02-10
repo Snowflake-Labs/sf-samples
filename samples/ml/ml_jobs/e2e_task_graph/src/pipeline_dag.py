@@ -1,9 +1,10 @@
+import io
 import json
+import os
 import time
 from dataclasses import asdict
 from datetime import timedelta
 from typing import Any, Optional
-import uuid
 
 import cloudpickle as cp
 from snowflake.core import CreateMode, Root
@@ -11,7 +12,6 @@ from snowflake.core.task.context import TaskContext
 from snowflake.core.task.dagv1 import DAG, DAGOperation, DAGTask, DAGTaskBranch
 from snowflake.ml.data import DatasetInfo
 from snowflake.ml.dataset import load_dataset
-from snowflake.snowpark.exceptions import SnowparkSQLException
 from snowflake.snowpark import Session
 from snowflake.ml.jobs import remote
 import modeling
@@ -24,7 +24,7 @@ import cli_utils
 from constants import (COMPUTE_POOL, DAG_STAGE, DATA_TABLE_NAME, DB_NAME, JOB_STAGE, SCHEMA_NAME,
                        WAREHOUSE)
 
-
+ARTIFACT_DIR = "run_artifacts"
 def _ensure_environment(session: Session):
     """
     Ensure the environment is properly set up for DAG execution.
@@ -117,6 +117,11 @@ class RunConfig:
     metric_name: str
     metric_threshold: float
 
+
+    @property
+    def artifact_dir(self) -> str:
+        return os.path.join(DAG_STAGE, ARTIFACT_DIR, self.run_id)
+
     @classmethod
     def from_task_context(cls, ctx: TaskContext, **kwargs: Any) -> "RunConfig":
         run_schedule = ctx.get_current_task_graph_original_schedule()
@@ -174,83 +179,43 @@ def prepare_datasets(session: Session) -> str:
     }
     return json.dumps(dataset_info)
 
-@remote(COMPUTE_POOL, stage_name=JOB_STAGE, database=DB_NAME, schema=SCHEMA_NAME)
-def train_model(dataset_info: Optional[str] = None) -> Optional[str]:
+@remote(COMPUTE_POOL, stage_name=JOB_STAGE, database=DB_NAME, schema=SCHEMA_NAME, target_instances=2)
+def train_model() -> None:
     '''
-    ML Job to train a model on the training dataset and register it in the model registry.
+    ML Job to train a model on the training dataset and evaluate it. The model is saved to the stage and the metrics are returned.
 
-    This function trains an XGBoost classifier on the provided training data and registers it in the model registry. 
-    This function is executed remotely on Snowpark Container Services.
-
-    Args:
-        dataset_info (Optional[str]): JSON string containing serialized dataset information for training. If this function is called in a DAG task, 
-        this argument is passed from the previous DAG task, otherwise it is passed manually.
-
-    Returns:
-        Optional[str]: JSON string containing serialized model information for registration. If this function is called in a DAG task, 
-        this return value is passed to the next DAG task, otherwise it is as ML Job result.
     '''
     session = Session.builder.getOrCreate()
-    ctx = None
-    config = None
 
-    if dataset_info:
-        dataset_info_dicts = json.loads(dataset_info)
-    try:
-        ctx = TaskContext(session)
-        config = RunConfig.from_task_context(ctx)
-        dataset_info_dicts = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
-    except SnowparkSQLException:
-        print("there is no predecessor return value, fallback to local mode")
-
-    datasets = {
-        key: DatasetInfo(**info_dict) for key, info_dict in dataset_info_dicts.items()
-    }
-    train_ds=load_dataset(
-            session,
-            datasets["full"].fully_qualified_name,
-            datasets["full"].version,
-    )
-    model_obj = modeling.train_model(session, datasets["train"])
-    train_metrics = modeling.evaluate_model(
-        session, model_obj, train_ds.read.data_sources[0], prefix="train"
-    )
-    version = f"v{uuid.uuid4().hex}"
-    mv = modeling.register_model(session, model_obj, config.model_name if config and config.model_name else "mortgage_model", version, train_ds, metrics={}) if config else modeling.register_model(session, model_obj, "mortgage_model", version, train_ds, metrics=train_metrics)
-    if ctx and config:
-        ctx.set_return_value(json.dumps({"model_name": mv.fully_qualified_model_name, "version_name": mv.version_name}))
-    return json.dumps({"model_name": mv.fully_qualified_model_name, "version_name": mv.version_name})
-
-def evaluate_model(session: Session) -> Optional[str]:
-    '''
-    Evaluate a model on the training and test datasets.
-
-    This function evaluates a trained model on the training and test datasets and returns the performance metrics.
-
-    Args:
-        session (Session): Snowflake session object
-
-    Returns:
-        Optional[str]: JSON string containing serialized performance metrics for the model. If this function is called in a DAG task, 
-        this return value is passed to the next DAG task.
-    '''
     ctx = TaskContext(session)
+    config = RunConfig.from_task_context(ctx)
     serialized = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
-    dataset_info = {
+    datasets = {
         key: DatasetInfo(**obj_dict) for key, obj_dict in serialized.items()
     }
-    model_info = json.loads(ctx.get_predecessor_return_value("TRAIN_MODEL"))
-    model = ops.get_model(session, model_info["model_name"], model_info["version_name"])
+
+    model = modeling.train_model(session, datasets["train"])
     train_metrics = modeling.evaluate_model(
-        session, model, dataset_info["train"], prefix="train"
+        session, model, datasets["train"], prefix="train"
     )
     test_metrics = modeling.evaluate_model(
-        session, model, dataset_info["test"], prefix="test"
+        session, model, datasets["test"], prefix="test"
     )
     metrics = {**train_metrics, **test_metrics}
 
-    return json.dumps(metrics)
+    # Save model to stage and return the metrics as a JSON string
+    model_pkl = cp.dumps(model)
+    model_path = os.path.join(config.artifact_dir, "model.pkl")
+    put_result = session.file.put_stream(
+        io.BytesIO(model_pkl), model_path, overwrite=True
+    )
 
+    result_dict = {
+        "model_path": os.path.join(config.artifact_dir, put_result.target),
+        "metrics": metrics,
+    }
+    ctx.set_return_value(json.dumps(result_dict))
+    
 
 def check_model_quality(session: Session) -> str:
     """
@@ -269,7 +234,7 @@ def check_model_quality(session: Session) -> str:
     ctx = TaskContext(session)
     config = RunConfig.from_task_context(ctx)
 
-    metrics = json.loads(ctx.get_predecessor_return_value("EVALUATE_MODEL"))
+    metrics = json.loads(ctx.get_predecessor_return_value("TRAIN_MODEL"))["metrics"]
 
     threshold = config.metric_threshold
     if metrics[config.metric_name] >= threshold:
@@ -293,8 +258,28 @@ def promote_model(session: Session) -> str:
         str: Tuple of (fully_qualified_model_name, version_name) as string
     """
     ctx = TaskContext(session)
-    model_info = json.loads(ctx.get_predecessor_return_value("TRAIN_MODEL"))
-    mv = ops.get_model(session, model_info["model_name"], model_info["version_name"])
+    config = RunConfig.from_task_context(ctx)
+
+    train_result = json.loads(ctx.get_predecessor_return_value("TRAIN_MODEL"))
+    model_path = train_result["model_path"]
+    with session.file.get_stream(model_path, decompress=True) as stream:
+        model = cp.loads(stream.read())
+
+    serialized = json.loads(ctx.get_predecessor_return_value("PREPARE_DATA"))
+    source_data = {key: DatasetInfo(**obj_dict) for key, obj_dict in serialized.items()}
+    mv = modeling.register_model(
+        session,
+        model,
+        model_name=config.model_name,
+        version_name=config.run_id,
+        train_ds=load_dataset(
+            session,
+            source_data["full"].fully_qualified_name,
+            source_data["full"].version,
+        ),
+        metrics=train_result["metrics"],
+    )
+
     modeling.promote_model(session, mv)
 
     return (mv.fully_qualified_model_name, mv.version_name)
@@ -352,7 +337,6 @@ def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -
         # Need to wrap first function in a DAGTask to make >> operator work properly
         prepare_data = DAGTask("prepare_data", definition=prepare_datasets)
         train_model_task = DAGTask("TRAIN_MODEL", definition=train_model)
-        evaluate_model_task = DAGTask("EVALUATE_MODEL", definition=evaluate_model)
         check_model_quality_task = DAGTaskBranch(
             "check_model_quality", definition=check_model_quality
         )
@@ -373,7 +357,7 @@ def create_dag(name: str, schedule: Optional[timedelta] = None, **config: Any) -
         cleanup_task = DAGTask("cleanup_task", definition=cleanup, is_finalizer=True)
 
         # Build the DAG
-        prepare_data >> train_model_task >> evaluate_model_task >> check_model_quality_task >> [promote_model_task, alert_task]
+        prepare_data >> train_model_task >> check_model_quality_task >> [promote_model_task, alert_task]
 
     return dag
 

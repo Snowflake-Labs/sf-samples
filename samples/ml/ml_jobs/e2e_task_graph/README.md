@@ -191,20 +191,11 @@ This visual interface makes it easy to:
 The `train_model` function is decorated with `@remote` to execute multi-node training on Snowpark Container Services (SPCS):
 ```python
 @remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
-def train_model(input_data: DataSource) -> Optional[str]:
+def train_model() -> None:
     # Training logic runs on distributed compute
 ```
 
-The Task SDK lets you use that ML Job definition directly when creating a DAG task. For additional ML Job definition examples, see `../README.md`.
-
-```python
-@remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
-def train_model(input_data: DataSource) -> Optional[str]:
-    ...
-
-train_model_task = DAGTask("TRAIN_MODEL", definition=train_model)
-
-```
+When running as a DAG task, the dataset information is retrieved from the previous task (PREPARE_DATA) via `TaskContext`. The model is trained and evaluated, and the results (model path and metrics) are saved and passed to the next task. The Task SDK lets you use that ML Job definition directly when creating a DAG task. For additional ML Job definition examples, see `../README.md`.
 
 ### Conditional Model Promotion
 
@@ -222,6 +213,6 @@ def check_model_quality(session: Session) -> str:
 Successful models are automatically registered and promoted to production:
 
 ```python
-# get model version from train model
+mv = register_model(session, model, model_name, version, train_ds, metrics)
 promote_model(session, mv)  # Sets as default version
 ```
