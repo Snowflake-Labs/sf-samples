@@ -214,6 +214,7 @@ def train_model() -> None:
         "model_path": os.path.join(config.artifact_dir, put_result.target),
         "metrics": metrics,
     }
+    # set the return value to the task context as a JSON string
     ctx.set_return_value(json.dumps(result_dict))
     
 
