@@ -195,6 +195,13 @@ python scripts/run_eval.py \
     --schema PUBLIC
 ```
 
+The evaluation script:
+- Retrieves the trained model checkpoint from the training job's stage
+- Generates SOAP notes for each test example using the fine-tuned model
+- Uses an LLM-as-judge approach (Qwen3-8B) to compare predictions against ground truth
+- Reports pass/fail accuracy for each SOAP section
+
+
 ### Step 4: Log, deploy & test model
 
 After training and eval, log the model and deploy as a service. This service can be used for rest API as well.
@@ -211,12 +218,6 @@ python scripts/run_log_n_deploy_model.py \
 ```
 
 Replace `<TRAIN_JOB_ID>` with the job ID from the training step (e.g., `LLM_DEMO.PUBLIC.ARCTIC_TRAINING_XXXXXXX`).
-
-The evaluation script:
-- Retrieves the trained model checkpoint from the training job's stage
-- Generates SOAP notes for each test example using the fine-tuned model
-- Uses an LLM-as-judge approach (Qwen3-8B) to compare predictions against ground truth
-- Reports pass/fail accuracy for each SOAP section
 
 ## Evaluation Notes
 

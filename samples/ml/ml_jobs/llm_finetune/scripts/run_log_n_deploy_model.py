@@ -52,7 +52,7 @@ if __name__ == '__main__':
         schema=args.schema,
         external_access_integrations=args.external_access_integrations,
         session=session,
-        pip_requirements=["transformers", "snowflake-ml-python"],
+        pip_requirements=["transformers", "snowflake-ml-python>=1.26", "peft"],
     )
 
     print(f"Job submitted with ID: {job.id}")
