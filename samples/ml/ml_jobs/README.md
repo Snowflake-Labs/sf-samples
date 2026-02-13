@@ -139,6 +139,62 @@ job4 = submit_from_stage(
 `job1`, `job2` and `job3` are job handles, see [Function Dispatch](#function-dispatch)
 for usage examples.
 
+### Job definition
+
+A job definition captures the reusable parts of an ML Job—payload location, compute pool, and other configuration—while keeping
+arguments separate. This lets you create multiple jobs from the same payload with different arguments, without re-uploading the
+payload. Defining a job is very similar to creating a job.
+
+```python
+from snowflake.ml.jobs import remote
+
+compute_pool = "MY_COMPUTE_POOL"
+@remote(compute_pool, stage_name="payload_stage")
+def hello_world(name: str = "world"):
+    from datetime import datetime
+
+    print(f"{datetime.now()} Hello {name}!")
+
+# this is a definition handle
+definition = hello_world
+
+job1 = hello_world()
+
+job2 = hello_world(name="ML Job Definition")
+```
+
+```python
+from snowflake.ml.jobs import MLJobDefinition
+
+job_definition = MLJobDefinition.register(
+    "/path/to/repo/my_script.py",
+    # If you register a source directory, provide the entrypoint file:
+    # entrypoint="/path/to/repo/my_script.py",
+    compute_pool=self.compute_pool,
+    stage_name="payload_stage",
+    session=self.session,
+)
+# Arguments follow the same format used in file dispatch
+job1 = job_definition("arg1", "--arg2_key", "arg2_value")
+
+job2 = job_definition("arg3", "--arg4_key", "arg4_value")
+
+```
+
+### Task Integration
+
+ML Job definitions integrate directly with the Task SDK. Use a definition as the task definition when creating a DAG task.
+For a detailed example, see `e2e_task_graph/README.md`.
+
+```python
+@remote(COMPUTE_POOL, stage_name=JOB_STAGE, target_instances=2)
+def train_model(input_data: DataSource) -> Optional[str]:
+    ...
+
+train_model_task = DAGTask("TRAIN_MODEL", definition=train_model)
+```
+
+
 ### Supporting Additional Payloads in Submissions
 
 When submitting a file, directory, or from a stage, additional payloads are supported for use during job execution.
