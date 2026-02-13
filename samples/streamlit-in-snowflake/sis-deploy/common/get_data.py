@@ -5,12 +5,9 @@ from datetime import date
 import snowflake.snowpark as sp
 import streamlit as st
 from snowflake.snowpark.functions import col, date_trunc
-from utils import (
-    get_pandas_df,
-    get_table,
-)
+from common.utils import get_pandas_df, get_table
 
-TABLE_NAME = "NIVIS_DEMO.RAW4.RAW_EVENTS"
+TABLE_NAME = "STREAMLIT.TASK_TABLES.RAW_EVENTS"
 
 
 def get_events() -> sp.DataFrame:
@@ -22,7 +19,7 @@ def get_events() -> sp.DataFrame:
 
     dates = col1.date_input(
         "Select date range",
-        [date(2021, 6, 1), date(2021, 12, 29)],
+        value=[date(2021, 6, 1), date(2021, 12, 29)],
         min_value=date(2021, 1, 1),
         max_value=date(2021, 12, 29),
         key="date_range",
