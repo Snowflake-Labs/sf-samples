@@ -42,9 +42,6 @@ def _ensure_environment(session: Session):
     # Ensure the raw data table exists
     _ = data.get_raw_data(session, DATA_TABLE_NAME, create_if_not_exists=True)
 
-    # Register local modules for inclusion in ML Job payloads
-
-
 def _wait_for_run_to_complete(session: Session, dag: DAG) -> str:
     """
     Wait for a DAG run to complete and return the final status.

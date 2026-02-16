@@ -158,7 +158,6 @@ def train_model(session: Session, input_data: Optional[DataSource] = None) -> XG
     Returns:
         XGBClassifier: Trained XGBoost classifier model
     """
-    from snowflake.ml.data import DataConnector, DatasetInfo
     input_data_dc = DataConnector.from_sources(session, [input_data])
     
     assert isinstance(input_data, DatasetInfo), "Input data must be a DatasetInfo"
@@ -186,8 +185,7 @@ def train_model(session: Session, input_data: Optional[DataSource] = None) -> XG
             params=model_params,
             scaling_config=XGBScalingConfig(),
         )
-        type(estimator)
-        model = estimator.fit(input_data_dc,input_cols= input_cols, label_col=label_col)
+        model = estimator.fit(input_data_dc,input_cols = input_cols, label_col = label_col)
         return model
     else:
         df = input_data_dc.to_pandas()

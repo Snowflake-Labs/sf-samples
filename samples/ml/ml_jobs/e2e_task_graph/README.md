@@ -119,7 +119,7 @@ for downstream consumption.
 Run the ML pipeline locally without task graph orchestration:
 
 ```bash
-python src/pipeline_local.py
+python src/pipeline_local.py --no-register  # Skip model registration for faster 
 ```
 
 You can monitor the corresponding ML Job for model training via the [Job UI in Snowsight](../README.md#job-ui-in-snowsight).
