@@ -1,4 +1,4 @@
-# Distributed Partition Function (DPF) — Example Walkthrough
+# Distributed Partition Function (DPF) - Example Walkthrough
 
 ## Introduction
 
@@ -17,10 +17,10 @@ DPF supports two execution modes, both demonstrated in this notebook:
 
 ## What This Notebook Covers
 
-1. **Setup** — Session, stage, scale compute, and synthetic data generation
-2. **DataFrame mode** — Define a processing function, run DPF, monitor progress, retrieve results, inspect logs, restore completed runs
-3. **Stage mode** — Copy data to parquet files on stage, run DPF from stage
-4. **ML Jobs deployment** — Deploy DPF workloads via the `@remote` decorator
+1. **Setup** - Session, stage, scale compute, and synthetic data generation
+2. **DataFrame mode** - Define a processing function, run DPF, monitor progress, retrieve results, inspect logs, restore completed runs
+3. **Stage mode** - Copy data to parquet files on stage, run DPF from stage
+4. **ML Jobs deployment** - Deploy DPF workloads via the `@remote` decorator
 
 ## Prerequisites
 
