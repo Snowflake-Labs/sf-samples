@@ -173,6 +173,9 @@ This visual interface makes it easy to:
 - Debug failed executions by examining task logs and dependencies
 - Verify that conditional logic (like model promotion) is working correctly
 
+For tasks backed by ML Jobs, click the job ID to navigate directly to the Job UI:
+
+![Job Link](images/job_link.png)
 
 ## Key Features
 
