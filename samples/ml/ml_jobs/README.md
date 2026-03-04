@@ -164,6 +164,7 @@ job2 = hello_world(name="ML Job Definition")
 ```
 
 ```python
+# Another way to create a job: first register a job definition, then use it to create jobs
 from snowflake.ml.jobs import MLJobDefinition
 
 job_definition = MLJobDefinition.register(
