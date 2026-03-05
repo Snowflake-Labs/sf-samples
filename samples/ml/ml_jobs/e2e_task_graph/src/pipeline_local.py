@@ -1,12 +1,19 @@
 import logging
 from datetime import datetime
+from typing import Any
+from snowflake.ml.data import DataSource
+from snowflake.ml.jobs import remote
 from snowflake.snowpark import Session
-
+import cloudpickle as cp
 import modeling
-from constants import DATA_TABLE_NAME
+from constants import COMPUTE_POOL, DATA_TABLE_NAME, DB_NAME, JOB_STAGE, SCHEMA_NAME
 
 logging.getLogger().setLevel(logging.ERROR)
 
+@remote(COMPUTE_POOL, stage_name=JOB_STAGE, database=DB_NAME, schema=SCHEMA_NAME, target_instances=2)
+def train_model(input_data: DataSource) -> Any:
+    session = Session.builder.getOrCreate()
+    return modeling.train_model(session, input_data)
 
 def run_pipeline(
     session: Session,
@@ -41,7 +48,7 @@ def run_pipeline(
     )
 
     print("Training model...")
-    model_obj = modeling.train_model(session, train_ds.read.data_sources[0]).result()
+    model_obj = train_model(train_ds.read.data_sources[0]).result()
 
     print("Evaluating model...")
     train_metrics = modeling.evaluate_model(
@@ -119,6 +126,7 @@ if __name__ == "__main__":
         session_builder = session_builder.config("connection_name", args.connection)
     session = session_builder.getOrCreate()
     modeling.ensure_environment(session)
+    cp.register_pickle_by_value(modeling)
 
     run_pipeline(
         session,
