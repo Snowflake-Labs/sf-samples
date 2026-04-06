@@ -416,8 +416,7 @@ def _call_local_judge_sync(system_prompt, user_prompt, _max_retries=3):
             {"role": "user", "content": user_prompt},
         ],
         "temperature": 0.0,
-        "max_tokens": 512,
-        "chat_template_kwargs": {"enable_thinking": False},
+        "max_tokens": 2048,
     }
     body = json.dumps(payload).encode("utf-8")
 
@@ -450,7 +449,7 @@ async def _call_local_judge_async(system_prompt, user_prompt):
     import aiohttp
 
     if _aiohttp_session is None or _aiohttp_session.closed:
-        timeout = aiohttp.ClientTimeout(total=60, sock_connect=5, sock_read=60)
+        timeout = aiohttp.ClientTimeout(total=180, sock_connect=5, sock_read=180)
         _aiohttp_session = aiohttp.ClientSession(timeout=timeout)
 
     payload = {
@@ -460,8 +459,7 @@ async def _call_local_judge_async(system_prompt, user_prompt):
             {"role": "user", "content": user_prompt},
         ],
         "temperature": 0.0,
-        "max_tokens": 512,
-        "chat_template_kwargs": {"enable_thinking": False},
+        "max_tokens": 2048,
     }
     body = json.dumps(payload)
 
@@ -536,10 +534,17 @@ def medical_soap_combined_reward_fn(
     format_reward = 1.0
 
     # Stage 2: Section-level judge evaluation
-    dialogue = ""
-    ground_truth_sections = {"S": "", "O": "", "A": "", "P": ""}
+    # AReaL passes dataset fields as **kwargs (not as data=dict)
+    dialogue = kwargs.get("dialogue", "")
+    ground_truth_sections = {
+        "S": kwargs.get("pred_S", ""),
+        "O": kwargs.get("pred_O", ""),
+        "A": kwargs.get("pred_A", ""),
+        "P": kwargs.get("pred_P", ""),
+    }
 
-    if data and isinstance(data, dict):
+    # Fallback: check data dict if kwargs are empty (for direct calls)
+    if not dialogue and data and isinstance(data, dict):
         dialogue = data.get("dialogue", "")
         ground_truth_sections = {
             "S": data.get("pred_S", ""),
@@ -618,10 +623,17 @@ async def async_medical_soap_reward_fn(
     format_reward = 1.0
 
     # Stage 2: Section-level judge evaluation (all 4 in parallel)
-    dialogue = ""
-    ground_truth_sections = {"S": "", "O": "", "A": "", "P": ""}
+    # AReaL passes dataset fields as **kwargs (not as data=dict)
+    dialogue = kwargs.get("dialogue", "")
+    ground_truth_sections = {
+        "S": kwargs.get("pred_S", ""),
+        "O": kwargs.get("pred_O", ""),
+        "A": kwargs.get("pred_A", ""),
+        "P": kwargs.get("pred_P", ""),
+    }
 
-    if data and isinstance(data, dict):
+    # Fallback: check data dict if kwargs are empty (for direct calls)
+    if not dialogue and data and isinstance(data, dict):
         dialogue = data.get("dialogue", "")
         ground_truth_sections = {
             "S": data.get("pred_S", ""),
@@ -665,10 +677,16 @@ async def async_medical_soap_reward_fn(
         "sections_total": section_total,
     }
 
-    if _CALL_COUNT <= 3:
+    if _CALL_COUNT <= 5:
         print(f"[async_medical_soap_reward] Call #{_CALL_COUNT}: "
-              f"format={format_reward:.1f} S={score_S:.1f} O={score_O:.1f} "
-              f"A={score_A:.1f} P={score_P:.1f} total={combined:.1f}")
+              f"dialogue_len={len(dialogue)} "
+              f"gt_S_len={len(ground_truth_sections['S'])} "
+              f"gt_O_len={len(ground_truth_sections['O'])} "
+              f"gt_A_len={len(ground_truth_sections['A'])} "
+              f"gt_P_len={len(ground_truth_sections['P'])} "
+              f"format={format_reward:.0f} S={score_S:.0f} O={score_O:.0f} "
+              f"A={score_A:.0f} P={score_P:.0f} total={combined:.1f}")
+        sys.stdout.flush()
 
     if _CALL_COUNT % _LOG_INTERVAL == 0:
         total = _JUDGE_SUCCESS + _JUDGE_FAIL

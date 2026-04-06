@@ -358,17 +358,26 @@ _gen_port = 38900
 _gen_model_name = None
 
 
-def start_gen_server(model_path):
-    """Start a vLLM server on GPU 0 for generating completions."""
+def start_gen_server(model_path, tp=1, gpu_ids=None):
+    """Start a vLLM server for generating completions.
+    
+    Args:
+        model_path: HuggingFace model name or local path
+        tp: tensor parallel size (e.g. 8 for 235B model)
+        gpu_ids: comma-separated GPU IDs (e.g. "0,1,2,3,4,5,6,7"), defaults to GEN_GPU
+    """
     global _gen_process, _gen_model_name
 
     # Kill any existing gen server
     stop_gen_server()
 
-    print(f"\n--- Starting vLLM Generation Server (GPU {GEN_GPU}, port {_gen_port}) ---")
+    if gpu_ids is None:
+        gpu_ids = str(GEN_GPU)
+
+    print(f"\n--- Starting vLLM Generation Server (GPUs {gpu_ids}, tp={tp}, port {_gen_port}) ---")
     print(f"  Model: {model_path}")
     env = os.environ.copy()
-    env["CUDA_VISIBLE_DEVICES"] = str(GEN_GPU)
+    env["CUDA_VISIBLE_DEVICES"] = gpu_ids
 
     cmd = [
         sys.executable, "-m", "vllm.entrypoints.openai.api_server",
@@ -380,12 +389,14 @@ def start_gen_server(model_path):
         "--trust-remote-code",
         "--disable-log-requests",
     ]
+    if tp > 1:
+        cmd.extend(["--tensor-parallel-size", str(tp)])
 
     _gen_process = subprocess.Popen(cmd, env=env, start_new_session=True)
     _gen_model_name = model_path
 
-    # Wait for server to become healthy
-    max_wait = 600
+    # Wait for server to become healthy (longer timeout for large TP models)
+    max_wait = 1800 if tp > 1 else 600
     start_time = time.time()
     last_log = 0
 
@@ -436,29 +447,53 @@ def stop_gen_server():
 # Model Completion Backends
 # ============================================================================
 def _generate_cortex(model_name, system_prompt, user_prompt, host):
-    """Generate completion via Snowflake Cortex COMPLETE REST API."""
-    # Escape single quotes for SQL
-    sys_escaped = system_prompt.replace("'", "''")
-    user_escaped = user_prompt.replace("'", "''")
+    """Generate completion via Snowflake Cortex COMPLETE SQL API."""
+    messages = json.dumps([
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ])
+    options = json.dumps({"temperature": 0, "max_tokens": 2048})
 
-    sql = (
-        f"SELECT SNOWFLAKE.CORTEX.COMPLETE("
-        f"'{model_name}', "
-        f"PARSE_JSON('[{{\"role\": \"system\", \"content\": ''{sys_escaped}''}},"
-        f"{{\"role\": \"user\", \"content\": ''{user_escaped}''}}]'), "
-        f"PARSE_JSON('{{\"temperature\": 0, \"max_tokens\": 2048}}')"
-        f") AS response"
-    )
+    # Use bindings to avoid SQL injection / escaping issues with medical text
+    url = f"https://{host}/api/v2/statements"
+    payload = {
+        "statement": (
+            "SELECT SNOWFLAKE.CORTEX.COMPLETE(?, PARSE_JSON(?), PARSE_JSON(?)) AS response"
+        ),
+        "bindings": {
+            "1": {"type": "TEXT", "value": model_name},
+            "2": {"type": "TEXT", "value": messages},
+            "3": {"type": "TEXT", "value": options},
+        },
+        "timeout": 180,
+        "resultSetMetaData": {"format": "jsonv2"},
+        "warehouse": os.environ.get("CORTEX_WAREHOUSE", "ADMIN_WH"),
+        "database": DATA_DATABASE,
+        "schema": DATA_SCHEMA,
+    }
+    body = json.dumps(payload).encode("utf-8")
 
-    result = _execute_sql(sql, host)
-    raw = result["data"][0][0]
-    # Cortex COMPLETE returns JSON with "choices" array
+    import ssl
+    ctx = ssl.create_default_context()
+    token = _get_spcs_token()
+    req = urllib.request.Request(url, data=body, method="POST")
+    req.add_header("Content-Type", "application/json")
+    req.add_header("Accept", "application/json")
+    req.add_header("Authorization", f"Bearer {token}")
+
+    resp = urllib.request.urlopen(req, context=ctx, timeout=180)
+    raw = resp.read()
+    if raw[:2] == b'\x1f\x8b':
+        import gzip
+        raw = gzip.decompress(raw)
+    result = json.loads(raw.decode("utf-8"))
+
+    raw_text = result["data"][0][0]
     try:
-        parsed = json.loads(raw)
+        parsed = json.loads(raw_text)
         return parsed["choices"][0]["messages"]
     except (json.JSONDecodeError, KeyError, IndexError):
-        # Some versions return plain text
-        return raw
+        return raw_text
 
 
 def _generate_vllm(model_name, system_prompt, user_prompt):
@@ -544,8 +579,7 @@ async def _call_judge_async(session, system_prompt, user_prompt):
             {"role": "user", "content": user_prompt},
         ],
         "temperature": 0.0,
-        "max_tokens": 512,
-        "chat_template_kwargs": {"enable_thinking": False},
+        "max_tokens": 2048,
     }
 
     try:
@@ -643,20 +677,32 @@ async def evaluate_model(model_spec, samples, host):
         create_section_judge_prompt,
     )
 
-    # Parse model spec
+    # Parse model spec — supports "backend:model" or "backend:model:tp=N"
     parts = model_spec.split(":", 1)
     backend = parts[0]
     model_name = parts[1] if len(parts) > 1 else parts[0]
+    tp = 1
+    if ":tp=" in model_spec:
+        # e.g. "hf:Qwen/Qwen3-235B-A22B:tp=8"
+        segments = model_spec.split(":")
+        backend = segments[0]
+        tp_parts = [s for s in segments if s.startswith("tp=")]
+        if tp_parts:
+            tp = int(tp_parts[0].split("=")[1])
+        model_name = ":".join(s for s in segments[1:] if not s.startswith("tp="))
 
-    print(f"\n--- Evaluating: {model_spec} ---")
+    print(f"\n--- Evaluating: {model_spec} (tp={tp}) ---")
+
+    # Determine GPU IDs for this model
+    if tp > 1:
+        gpu_ids = ",".join(str(i) for i in range(_num_gpus))
+    else:
+        gpu_ids = None  # defaults to GEN_GPU
 
     # Start generation server if needed
     if backend in ("hf", "checkpoint"):
         model_path = model_name
-        if backend == "checkpoint":
-            # model_name is the local path (already downloaded)
-            model_path = model_name
-        start_gen_server(model_path)
+        start_gen_server(model_path, tp=tp, gpu_ids=gpu_ids)
 
     # Generate completions
     completions = []
@@ -804,8 +850,16 @@ def main():
     if checkpoint_stage_path:
         print(f"  Checkpoint stage: {checkpoint_stage_path}")
 
-    # 1. Start judge server
-    start_judge_server()
+    # 1. Check if any model needs all GPUs (tp = num_gpus).
+    #    If so, defer judge startup until after generation to avoid GPU conflict.
+    needs_all_gpus = any(
+        f":tp={_num_gpus}" in spec or f":tp= {_num_gpus}" in spec
+        for spec in model_specs
+    )
+    if needs_all_gpus:
+        print(f"  Large model detected (tp={_num_gpus}): deferring judge until after generation")
+    else:
+        start_judge_server()
 
     # 2. Copy reward module to importable location
     REWARD_MODULE_DIR = "/tmp/reward_modules"
@@ -845,19 +899,147 @@ def main():
 
     # 5. Evaluate each model
     all_results = []
-    for spec in model_specs:
-        try:
-            result = asyncio.run(evaluate_model(spec, all_samples, host))
-            all_results.append(result)
-        except Exception as e:
-            import traceback
-            print(f"\n  ERROR evaluating {spec}:")
-            print(traceback.format_exc())
-            all_results.append({
-                "model": spec, "n": len(all_samples), "format_ok": 0,
-                "format_pct": 0, "S": 0, "O": 0, "A": 0, "P": 0,
-                "avg_total": 0, "gen_errors": len(all_samples), "judge_errors": 0,
-            })
+    if needs_all_gpus:
+        # Two-phase: generate all completions first, then judge after starting judge server.
+        # This allows large TP models to use all GPUs during generation.
+        all_completions = {}  # model_spec -> (completions, gen_errors, backend, model_name)
+        for spec in model_specs:
+            try:
+                parts = spec.split(":", 1)
+                backend = parts[0]
+                model_name = parts[1] if len(parts) > 1 else parts[0]
+                tp = 1
+                if ":tp=" in spec:
+                    segments = spec.split(":")
+                    backend = segments[0]
+                    tp_parts = [s for s in segments if s.startswith("tp=")]
+                    if tp_parts:
+                        tp = int(tp_parts[0].split("=")[1])
+                    model_name = ":".join(s for s in segments[1:] if not s.startswith("tp="))
+
+                print(f"\n--- Generating: {spec} (tp={tp}) ---")
+
+                if tp > 1:
+                    gpu_ids = ",".join(str(i) for i in range(_num_gpus))
+                else:
+                    gpu_ids = None
+
+                from medical_soap.prompt_utils import SYSTEM_PROMPT, USER_PROMPT_PREFIX
+
+                completions = []
+                gen_errors = 0
+                if backend in ("hf", "checkpoint"):
+                    start_gen_server(model_name, tp=tp, gpu_ids=gpu_ids)
+                for i, sample in enumerate(all_samples):
+                    user_prompt = f"{USER_PROMPT_PREFIX}\n\n{sample['DIALOGUE']}"
+                    try:
+                        if backend == "cortex":
+                            completion = _generate_cortex(model_name, SYSTEM_PROMPT, user_prompt, host)
+                        elif backend in ("hf", "checkpoint"):
+                            completion = _generate_vllm(_gen_model_name, SYSTEM_PROMPT, user_prompt)
+                        else:
+                            raise ValueError(f"Unknown backend: {backend}")
+                        completions.append(completion)
+                    except Exception as e:
+                        print(f"  [gen error] Sample {i}: {type(e).__name__}: {e}")
+                        completions.append("")
+                        gen_errors += 1
+                    if (i + 1) % 50 == 0:
+                        print(f"  Generated {i + 1}/{len(all_samples)} completions ({gen_errors} errors)")
+                print(f"  Generation complete: {len(completions)} completions, {gen_errors} errors")
+                if backend in ("hf", "checkpoint"):
+                    stop_gen_server()
+                all_completions[spec] = (completions, gen_errors)
+            except Exception as e:
+                import traceback
+                print(f"\n  ERROR generating for {spec}:")
+                print(traceback.format_exc())
+                all_completions[spec] = ([""] * len(all_samples), len(all_samples))
+
+        # Now start judge and score everything
+        print("\n--- Starting Judge for Scoring Phase ---")
+        start_judge_server()
+
+        import aiohttp
+        from medical_soap.prompt_utils import (
+            JUDGE_SECTION_SYSTEM_PROMPT,
+            create_section_judge_prompt,
+        )
+
+        for spec in model_specs:
+            completions, gen_errors = all_completions[spec]
+            print(f"\n--- Judging: {spec} ---")
+            try:
+                async def _judge_completions():
+                    timeout = aiohttp.ClientTimeout(total=120, sock_connect=5, sock_read=120)
+                    async with aiohttp.ClientSession(timeout=timeout) as aio_session:
+                        judge_errors = 0
+                        results = []
+                        batch_size = 20
+                        for batch_start in range(0, len(all_samples), batch_size):
+                            batch_end = min(batch_start + batch_size, len(all_samples))
+                            batch_tasks = []
+                            for j in range(batch_start, batch_end):
+                                if completions[j]:
+                                    batch_tasks.append(
+                                        evaluate_single_sample(
+                                            aio_session, all_samples[j], completions[j],
+                                            JUDGE_SECTION_SYSTEM_PROMPT, create_section_judge_prompt,
+                                        )
+                                    )
+                                else:
+                                    async def _zero():
+                                        return {"format_ok": False, "S": 0.0, "O": 0.0, "A": 0.0, "P": 0.0, "total": 0.0}
+                                    batch_tasks.append(_zero())
+                            batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
+                            for r in batch_results:
+                                if isinstance(r, Exception):
+                                    judge_errors += 1
+                                    results.append({"format_ok": False, "S": 0.0, "O": 0.0, "A": 0.0, "P": 0.0, "total": 0.0})
+                                else:
+                                    results.append(r)
+                            if batch_end % 50 == 0 or batch_end == len(all_samples):
+                                print(f"  Judged {batch_end}/{len(all_samples)} samples ({judge_errors} errors)")
+                        return results, judge_errors
+                results, judge_errors = asyncio.run(_judge_completions())
+                n = len(results)
+                all_results.append({
+                    "model": spec,
+                    "n": n,
+                    "format_ok": sum(1 for r in results if r["format_ok"]),
+                    "format_pct": sum(1 for r in results if r["format_ok"]) / n * 100 if n else 0,
+                    "S": sum(r["S"] for r in results) / n if n else 0,
+                    "O": sum(r["O"] for r in results) / n if n else 0,
+                    "A": sum(r["A"] for r in results) / n if n else 0,
+                    "P": sum(r["P"] for r in results) / n if n else 0,
+                    "avg_total": sum(r["total"] for r in results) / n if n else 0,
+                    "gen_errors": gen_errors,
+                    "judge_errors": judge_errors,
+                })
+            except Exception as e:
+                import traceback
+                print(f"\n  ERROR judging {spec}:")
+                print(traceback.format_exc())
+                all_results.append({
+                    "model": spec, "n": len(all_samples), "format_ok": 0,
+                    "format_pct": 0, "S": 0, "O": 0, "A": 0, "P": 0,
+                    "avg_total": 0, "gen_errors": gen_errors, "judge_errors": len(all_samples),
+                })
+    else:
+        # Original flow: judge is already running, evaluate each model end-to-end
+        for spec in model_specs:
+            try:
+                result = asyncio.run(evaluate_model(spec, all_samples, host))
+                all_results.append(result)
+            except Exception as e:
+                import traceback
+                print(f"\n  ERROR evaluating {spec}:")
+                print(traceback.format_exc())
+                all_results.append({
+                    "model": spec, "n": len(all_samples), "format_ok": 0,
+                    "format_pct": 0, "S": 0, "O": 0, "A": 0, "P": 0,
+                    "avg_total": 0, "gen_errors": len(all_samples), "judge_errors": 0,
+                })
 
     # 6. Print comparison table
     print_comparison_table(all_results)

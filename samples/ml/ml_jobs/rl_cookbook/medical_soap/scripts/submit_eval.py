@@ -37,24 +37,29 @@ def submit_eval_job(
     models: str,
     num_samples: int = 100,
     checkpoint_path: str = "",
+    num_gpus: int = 4,
     database: str = None,
     schema: str = None,
     stage_name: str = "rl_payload_stage",
 ) -> jobs.MLJob:
     """Submit medical SOAP evaluation job."""
+    memory_req = f"{num_gpus * 20}Gi"
+    memory_lim = f"{num_gpus * 40}Gi"
+    shm_size = f"{max(16, num_gpus * 4)}Gi"
+
     spec_overrides = {
         "spec": {
             "containers": [
                 {
                     "name": "main",
                     "resources": {
-                        "requests": {"nvidia.com/gpu": 4, "memory": "80Gi"},
-                        "limits": {"nvidia.com/gpu": 4, "memory": "160Gi"},
+                        "requests": {"nvidia.com/gpu": num_gpus, "memory": memory_req},
+                        "limits": {"nvidia.com/gpu": num_gpus, "memory": memory_lim},
                     },
                 }
             ],
             "volumes": [
-                {"name": "dev-shm", "source": "memory", "size": "16Gi"},
+                {"name": "dev-shm", "source": "memory", "size": shm_size},
             ],
         }
     }
@@ -101,6 +106,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p", "--compute-pool", default="RL_EVAL_A10_POOL", help="GPU compute pool",
     )
+    parser.add_argument("--num-gpus", type=int, default=4, help="Number of GPUs to request")
     parser.add_argument("--database", default="RL_TRAINING_DB")
     parser.add_argument("--schema", default="RL_SCHEMA")
     parser.add_argument("--stage-name", default="rl_payload_stage")
@@ -135,6 +141,7 @@ if __name__ == "__main__":
     print(f"  Models: {args.models}")
     print(f"  Num samples: {args.num_samples}")
     print(f"  Compute pool: {args.compute_pool}")
+    print(f"  Num GPUs: {args.num_gpus}")
     print(f"  Runtime image: {RUNTIME_IMAGE_TAG}")
     print(f"  Pip requirements: {len(pip_reqs)} packages")
     if args.checkpoint_path:
@@ -148,6 +155,7 @@ if __name__ == "__main__":
         models=args.models,
         num_samples=args.num_samples,
         checkpoint_path=args.checkpoint_path,
+        num_gpus=args.num_gpus,
         database=args.database,
         schema=args.schema,
         stage_name=args.stage_name,

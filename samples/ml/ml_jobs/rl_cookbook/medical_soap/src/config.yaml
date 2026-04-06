@@ -8,7 +8,7 @@
 #   GPUs 6-7: 2x vLLM judge servers (Qwen3-8B)
 
 experiment_name: medical-soap-rl
-trial_name: spcs_v5
+trial_name: spcs_v6
 
 seed: 1
 enable_offload: false
