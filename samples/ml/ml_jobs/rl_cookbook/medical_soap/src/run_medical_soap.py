@@ -80,18 +80,6 @@ if _nvidia_dirs:
                 pass
     print(f"  CUDA libs: preloaded from {len(_nvidia_dirs)} nvidia pip dirs")
 
-# Fix stale torch files from 2.8.0->2.9.1 upgrade in the image.
-# The old flex_attention.py wasn't removed, causing "duplicate template name" error.
-import site as _site
-for _sp in _site.getsitepackages() + [_site.getusersitepackages()]:
-    _stale = os.path.join(_sp, "torch", "_inductor", "kernel", "flex_attention.py")
-    if os.path.isfile(_stale):
-        os.remove(_stale)
-        print(f"  Removed stale {_stale}")
-    _stale_c = _stale + "c"
-    if os.path.isfile(_stale_c):
-        os.remove(_stale_c)
-
 # Install AReaL and vLLM with --no-deps to avoid torch reinstall.
 print("--- Installing AReaL + vLLM (--no-deps) ---")
 subprocess.check_call([
