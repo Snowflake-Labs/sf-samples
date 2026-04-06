@@ -92,12 +92,12 @@ for _sp in _site.getsitepackages() + [_site.getusersitepackages()]:
     if os.path.isfile(_stale_c):
         os.remove(_stale_c)
 
-# Install AReaL and vLLM with --no-deps from local wheel to avoid torch reinstall.
+# Install AReaL and vLLM with --no-deps to avoid torch reinstall.
 print("--- Installing AReaL + vLLM (--no-deps) ---")
 subprocess.check_call([
     sys.executable, "-m", "pip", "install", "--no-deps", "--quiet",
     "areal @ git+https://github.com/inclusionAI/AReaL.git@v1.0.1",
-    "/mnt/job_stage/app/vllm-0.14.0-cp38-abi3-manylinux_2_31_x86_64.whl",
+    "vllm==0.14.0",
 ])
 print("  AReaL + vLLM installed")
 
