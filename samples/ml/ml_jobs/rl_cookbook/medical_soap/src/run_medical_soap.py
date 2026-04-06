@@ -50,36 +50,6 @@ if _venv_bin not in _path:
     os.environ["PATH"] = f"{_venv_bin}:{_path}"
     print(f"  PATH: prepended {_venv_bin}")
 
-# Fix LD_LIBRARY_PATH for CUDA libs installed via pip (cuDNN, cuBLAS, etc.)
-# The SPCS runtime installs nvidia-cudnn-cu12 etc. as pip packages which place
-# .so files in site-packages, but torch looks for them on LD_LIBRARY_PATH.
-# We set LD_LIBRARY_PATH AND preload libcudnn via ctypes (since LD_LIBRARY_PATH
-# changes after process start only affect dlopen with full path, not by name).
-import site
-import ctypes
-import glob as _glob
-_sp = site.getsitepackages()[0] if site.getsitepackages() else ""
-_nvidia_dirs = []
-if _sp:
-    for _pkg in ["nvidia/cudnn/lib", "nvidia/cublas/lib", "nvidia/cuda_runtime/lib",
-                 "nvidia/cuda_nvrtc/lib", "nvidia/cuda_cupti/lib", "nvidia/cufft/lib",
-                 "nvidia/curand/lib", "nvidia/cusolver/lib", "nvidia/cusparse/lib",
-                 "nvidia/nccl/lib", "nvidia/nvtx/lib", "nvidia/nvjitlink/lib"]:
-        _d = os.path.join(_sp, _pkg)
-        if os.path.isdir(_d):
-            _nvidia_dirs.append(_d)
-if _nvidia_dirs:
-    _existing = os.environ.get("LD_LIBRARY_PATH", "")
-    os.environ["LD_LIBRARY_PATH"] = ":".join(_nvidia_dirs) + (":" + _existing if _existing else "")
-    # Preload critical .so files so dlopen can find them by name
-    for _d in _nvidia_dirs:
-        for _so in sorted(_glob.glob(os.path.join(_d, "*.so*"))):
-            try:
-                ctypes.CDLL(_so, mode=ctypes.RTLD_GLOBAL)
-            except OSError:
-                pass
-    print(f"  CUDA libs: preloaded from {len(_nvidia_dirs)} nvidia pip dirs")
-
 # Install AReaL and vLLM with --no-deps to avoid torch reinstall.
 print("--- Installing AReaL + vLLM (--no-deps) ---")
 subprocess.check_call([
