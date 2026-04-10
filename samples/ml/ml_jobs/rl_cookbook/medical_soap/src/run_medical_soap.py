@@ -50,18 +50,63 @@ if _venv_bin not in _path:
     os.environ["PATH"] = f"{_venv_bin}:{_path}"
     print(f"  PATH: prepended {_venv_bin}")
 
-# Install AReaL and vLLM with --no-deps to avoid torch reinstall.
-print("--- Installing AReaL + vLLM (--no-deps) ---")
+# Fix LD_LIBRARY_PATH for CUDA libs installed via pip (cuDNN, cuBLAS, etc.)
+# The SPCS runtime installs nvidia-cudnn-cu12 etc. as pip packages which place
+# .so files in site-packages, but torch looks for them on LD_LIBRARY_PATH.
+# We set LD_LIBRARY_PATH AND preload libcudnn via ctypes (since LD_LIBRARY_PATH
+# changes after process start only affect dlopen with full path, not by name).
+import site
+import ctypes
+import glob as _glob
+_sp = site.getsitepackages()[0] if site.getsitepackages() else ""
+_nvidia_dirs = []
+if _sp:
+    for _pkg in ["nvidia/cudnn/lib", "nvidia/cublas/lib", "nvidia/cuda_runtime/lib",
+                 "nvidia/cuda_nvrtc/lib", "nvidia/cuda_cupti/lib", "nvidia/cufft/lib",
+                 "nvidia/curand/lib", "nvidia/cusolver/lib", "nvidia/cusparse/lib",
+                 "nvidia/nccl/lib", "nvidia/nvtx/lib", "nvidia/nvjitlink/lib"]:
+        _d = os.path.join(_sp, _pkg)
+        if os.path.isdir(_d):
+            _nvidia_dirs.append(_d)
+if _nvidia_dirs:
+    _existing = os.environ.get("LD_LIBRARY_PATH", "")
+    os.environ["LD_LIBRARY_PATH"] = ":".join(_nvidia_dirs) + (":" + _existing if _existing else "")
+    # Preload critical .so files so dlopen can find them by name
+    for _d in _nvidia_dirs:
+        for _so in sorted(_glob.glob(os.path.join(_d, "*.so*"))):
+            try:
+                ctypes.CDLL(_so, mode=ctypes.RTLD_GLOBAL)
+            except OSError:
+                pass
+    print(f"  CUDA libs: preloaded from {len(_nvidia_dirs)} nvidia pip dirs")
+
+# Fix stale torch files from 2.8.0->2.9.1 upgrade in the image.
+# The old flex_attention.py wasn't removed, causing "duplicate template name" error.
+import site as _site
+for _sp in _site.getsitepackages() + [_site.getusersitepackages()]:
+    _stale = os.path.join(_sp, "torch", "_inductor", "kernel", "flex_attention.py")
+    if os.path.isfile(_stale):
+        os.remove(_stale)
+        print(f"  Removed stale {_stale}")
+    _stale_c = _stale + "c"
+    if os.path.isfile(_stale_c):
+        os.remove(_stale_c)
+
+# Install AReaL, vLLM, and SGLang with --no-deps to avoid torch reinstall.
+print("--- Installing AReaL + vLLM + SGLang (--no-deps) ---")
 subprocess.check_call([
     sys.executable, "-m", "pip", "install", "--no-deps", "--quiet",
     "areal @ git+https://github.com/inclusionAI/AReaL.git@v1.0.1",
-    "vllm==0.14.0",
+    "/mnt/job_stage/app/vllm-0.14.0-cp38-abi3-manylinux_2_31_x86_64.whl",
+    "sglang==0.5.7",
+    "sgl-kernel==0.3.20",
+    "torchao==0.9.0",
 ])
-print("  AReaL + vLLM installed")
+print("  AReaL + vLLM + SGLang installed")
 
 # GPU layout: GPUs 0-3 for AReaL, GPUs 4-7 for judges
-JUDGE_GPUS = [6, 7]
-NUM_AREAL_GPUS = 6
+JUDGE_GPUS = [5, 6, 7]
+NUM_AREAL_GPUS = 5
 
 JUDGE_BASE_PORT = int(os.environ.get("LOCAL_JUDGE_BASE_PORT", "38899"))
 JUDGE_PORTS = [JUDGE_BASE_PORT + i for i in range(len(JUDGE_GPUS))]
@@ -107,7 +152,7 @@ def start_judge_servers():
             "--enable-prefix-caching",
         ]
 
-        proc = subprocess.Popen(cmd, env=env)
+        proc = subprocess.Popen(cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         _judge_processes.append((gpu, port, proc))
 
     atexit.register(_kill_judges)
@@ -703,6 +748,449 @@ _NEW_CALL_METHOD = '''\
         return await asyncio.wait_for(future, timeout=self.timeout_seconds)'''
 
 
+def _patch_sglang_lora():
+    """Patch AReaL for SGLang + LoRA compatibility.
+
+    Fixes from local testing (CHANGES.md):
+    3. Version 0 LoRA guard in sglang_remote.py — skip LoRA path at version 0
+    4. Skip tokenizer save for LoRA in fsdp_engine.py — prevents added_tokens.json
+       from confusing SGLang's LoRAConfig
+    """
+    import glob as _g
+
+    areal_dirs = _g.glob("/opt/venv/snowbook/lib/python3.*/site-packages/areal/")
+    if not areal_dirs:
+        print("  WARNING: areal package not found for SGLang patches")
+        return
+    areal_dir = areal_dirs[0]
+
+    patched = []
+
+    # Fix 3: Version 0 LoRA guard in sglang_remote.py
+    sglang_remote = os.path.join(areal_dir, "engine", "sglang_remote.py")
+    if os.path.exists(sglang_remote):
+        with open(sglang_remote, "r") as f:
+            content = f.read()
+        if "# PATCHED: version 0 guard" not in content:
+            old = 'payload["lora_path"] = get_versioned_lora_name(lora_name, version)'
+            new = (
+                '# PATCHED: version 0 guard — no LoRA loaded yet at version 0\n'
+                '            if version > 0:\n'
+                '                _lp = get_versioned_lora_name(lora_name, version)\n'
+                '                payload["lora_path"] = _lp\n'
+                '                print(f"[DIAG] build_generation_request: lora_path={_lp}, version={version}", flush=True)'
+            )
+            if old in content:
+                content = content.replace(old, new, 1)
+                with open(sglang_remote, "w") as f:
+                    f.write(content)
+                patched.append("sglang_remote.py: version 0 LoRA guard")
+            else:
+                print(f"  WARNING: Fix 3 patch target not found in {sglang_remote}")
+                print(f"           Expected: payload[\"lora_path\"] = get_versioned_lora_name(...)")
+                print(f"           Patch NOT applied.")
+
+    # Fix 4: Reorder _update_weights_from_disk + skip tokenizer for LoRA.
+    # v1.0.1 has two bugs:
+    #   Bug 1 (race): calls rollout_engine.update_weights_from_disk BEFORE saving
+    #     weights to disk → SGLang tries to load a path that doesn't exist → 400
+    #   Bug 2 (tokenizer): _save_model_to_hf saves tokenizer alongside LoRA weights,
+    #     including added_tokens.json → SGLang LoRAConfig sets lora_added_tokens_size=26
+    #     → fails memory pool check → 400
+    # Fix: save first (skip tokenizer for LoRA), then tell SGLang to load.
+    fsdp_engine = os.path.join(areal_dir, "engine", "fsdp_engine.py")
+    if os.path.exists(fsdp_engine):
+        with open(fsdp_engine, "r") as f:
+            content = f.read()
+        if "# PATCHED: save first, skip tokenizer for LoRA" not in content:
+            old = (
+                "    def _update_weights_from_disk(self, meta: WeightUpdateMeta):\n"
+                "        fut = Future()\n"
+                "\n"
+                "        if dist.get_rank() == 0:\n"
+                "            fut = self.rollout_engine.update_weights_from_disk(meta)\n"
+                "\n"
+                "        assert meta.path is not None\n"
+                "        self._save_model_to_hf(meta.path, self.tokenizer, self.processor)\n"
+                "        # dist.barrier() are called when _save_model_to_hf finished"
+            )
+            new = (
+                "    def _update_weights_from_disk(self, meta: WeightUpdateMeta):\n"
+                "        # PATCHED: save first, skip tokenizer for LoRA, bypass FSDP2 collective\n"
+                "        import time as _t\n"
+                "        _rank = dist.get_rank()\n"
+                "        def _log(msg):\n"
+                "            _m = f'[DIAG {_t.strftime(\"%H:%M:%S\")}] [rank {_rank}] {msg}'\n"
+                "            print(_m, flush=True)\n"
+                "        _log(f'_update_weights_from_disk ENTER use_lora={meta.use_lora} path={meta.path}')\n"
+                "        assert meta.path is not None\n"
+                "\n"
+                "        if meta.use_lora:\n"
+                "            # LoRA: save adapter via get_model_state_dict + safetensors\n"
+                "            # model.save_pretrained crashes due to safetensors _find_shared_tensors\n"
+                "            # accessing FSDP2-offloaded storage. Use state_dict directly.\n"
+                "            _log('LoRA save: get_model_state_dict + safetensors (dp=1)')\n"
+                "            from torch.distributed.checkpoint.state_dict import StateDictOptions, get_model_state_dict\n"
+                "            _opts = StateDictOptions(full_state_dict=True, cpu_offload=True)\n"
+                "            _sd = get_model_state_dict(self.model, options=_opts)\n"
+                "            _lora_sd = {k: v for k, v in _sd.items() if 'lora_' in k}\n"
+                "            _log(f'Extracted {len(_lora_sd)} LoRA params from state_dict')\n"
+                "            if _rank == 0:\n"
+                "                import os as _os\n"
+                "                from safetensors.torch import save_file as _sf\n"
+                "                _os.makedirs(meta.path, exist_ok=True)\n"
+                "                _sf(_lora_sd, _os.path.join(meta.path, 'adapter_model.safetensors'))\n"
+                "                self.model.peft_config['default'].save_pretrained(meta.path)\n"
+                "                self.model_config.save_pretrained(meta.path)\n"
+                "                _log(f'LoRA adapter saved to {meta.path}')\n"
+                "            dist.barrier(group=self.cpu_group)\n"
+                "            _log('LoRA save done')\n"
+                "        else:\n"
+                "            _log('Full model save via _save_model_to_hf')\n"
+                "            self._save_model_to_hf(meta.path, self.tokenizer, self.processor)\n"
+                "            _log('_save_model_to_hf done')\n"
+                "\n"
+                "        fut = Future()\n"
+                "\n"
+                "        if _rank == 0:\n"
+                "            _log('calling rollout_engine.update_weights_from_disk...')\n"
+                "            fut = self.rollout_engine.update_weights_from_disk(meta)\n"
+                "            _log('rollout_engine.update_weights_from_disk returned future')"
+            )
+            if old in content:
+                content = content.replace(old, new, 1)
+                with open(fsdp_engine, "w") as f:
+                    f.write(content)
+                patched.append("fsdp_engine.py: fixed disk weight sync (save-first + skip tokenizer)")
+            else:
+                print(f"  WARNING: Fix 4 patch target not found in {fsdp_engine}")
+                print(f"           Expected _update_weights_from_disk starting with 'fut = Future()'")
+                print(f"           Patch NOT applied — inspect manually.")
+
+    # Fix 6: Patch _save_model_to_hf to avoid safetensors storage_ptr crash for LoRA.
+    # FSDP2 get_model_state_dict returns valid CPU tensors, but model.save_pretrained
+    # calls safetensors._find_shared_tensors which accesses the MODEL's parameters
+    # (not the returned state_dict), hitting invalid storage from FSDP2 cpu_offload.
+    # Fix: use get_model_state_dict + filter LoRA keys + save_file directly.
+    if os.path.exists(fsdp_engine):
+        with open(fsdp_engine, "r") as f:
+            content = f.read()
+        if "# PATCHED: LoRA-aware save" not in content:
+            old_save = (
+                '        # save huggingface model on rank 0\n'
+                '        if dist.get_rank() == 0:\n'
+                '            os.makedirs(path, exist_ok=True)\n'
+                '            self.model.save_pretrained(path, state_dict=state_dict)\n'
+                '            self.model_config.save_pretrained(path)'
+            )
+            new_save = (
+                '        # PATCHED: LoRA-aware save — bypass model.save_pretrained for LoRA\n'
+                '        # save_pretrained calls safetensors._find_shared_tensors which accesses\n'
+                '        # FSDP2-offloaded model params → invalid storage crash.\n'
+                '        # Instead: save state_dict directly with safetensors.save_file.\n'
+                '        if dist.get_rank() == 0:\n'
+                '            os.makedirs(path, exist_ok=True)\n'
+                '            _is_lora = hasattr(self.model, "peft_config")\n'
+                '            if _is_lora:\n'
+                '                # Filter for LoRA adapter keys only\n'
+                '                _lora_sd = {k: v for k, v in state_dict.items() if "lora_" in k}\n'
+                '                from safetensors.torch import save_file as _sf\n'
+                '                _sf(_lora_sd, os.path.join(path, "adapter_model.safetensors"))\n'
+                '                self.model.peft_config["default"].save_pretrained(path)\n'
+                '            else:\n'
+                '                self.model.save_pretrained(path, state_dict=state_dict)\n'
+                '            self.model_config.save_pretrained(path)'
+            )
+            if old_save in content:
+                content = content.replace(old_save, new_save, 1)
+                with open(fsdp_engine, "w") as f:
+                    f.write(content)
+                patched.append("fsdp_engine.py: LoRA-aware _save_model_to_hf (bypass save_pretrained)")
+            else:
+                print(f"  WARNING: Fix 6 patch target not found in fsdp_engine.py")
+
+    # Fix 5: Add lora_target_modules field to SGLangConfig in cli_args.py
+    # Required by SGLang when enable_lora=True — without it, SGLang can't properly
+    # initialize the LoRA memory pool, causing silent hangs on first LoRA inference.
+    # Must be patched BEFORE AReaL imports cli_args (happens in PPOTrainer.__init__).
+    cli_args = os.path.join(areal_dir, "api", "cli_args.py")
+    if os.path.exists(cli_args):
+        with open(cli_args, "r") as f:
+            content = f.read()
+        if "lora_target_modules" not in content:
+            old = "    max_lora_rank: int | None = None"
+            new = (
+                "    max_lora_rank: int | None = None\n"
+                "    lora_target_modules: list[str] | None = None  # PATCHED: Fix 5"
+            )
+            if old in content:
+                content = content.replace(old, new, 1)
+                with open(cli_args, "w") as f:
+                    f.write(content)
+                patched.append("cli_args.py: added lora_target_modules to SGLangConfig")
+            else:
+                print(f"  WARNING: Fix 5 patch target not found in {cli_args}")
+                print(f"           Expected: max_lora_rank: int | None = None")
+
+    if patched:
+        for p in patched:
+            print(f"  Patched {p}")
+    else:
+        print("  SGLang LoRA patches: no patches applied (already applied or targets not found)")
+
+
+def _patch_pause_resume_diagnostic():
+    """Add logging to identify exactly where the rollout hangs after weight update.
+    Writes to both stdout and /mnt/job_stage/output/diag.log for retrieval."""
+    import glob as _g
+
+    areal_dirs = _g.glob("/opt/venv/snowbook/lib/python3.*/site-packages/areal/")
+    if not areal_dirs:
+        return
+    areal_dir = areal_dirs[0]
+
+    patched = []
+
+    # 1. Log Dispatcher.pause/resume state transitions
+    wfe = os.path.join(areal_dir, "infra", "workflow_executor.py")
+    if os.path.exists(wfe):
+        with open(wfe) as f:
+            content = f.read()
+        if "# DIAG: pause/resume" not in content:
+            old = ("    def pause(self):\n"
+                   "        self.runner.pause()\n"
+                   "        with self._input_cv:\n"
+                   "            self._input_cv.notify()")
+            new = ("    def pause(self):\n"
+                   "        import time as _t; _msg = f'[DIAG {_t.strftime(\"%H:%M:%S\")}] Dispatcher.pause() called'  # DIAG: pause/resume\n"
+                   "        print(_msg, flush=True)\n"
+                   "        with open('/mnt/job_stage/output/diag.log', 'a') as _df: _df.write(_msg + '\\n')\n"
+                   "        self.runner.pause()\n"
+                   "        _msg2 = f'[DIAG {_t.strftime(\"%H:%M:%S\")}] Dispatcher.pause() done, is_paused={self.runner.paused.is_set()}'\n"
+                   "        print(_msg2, flush=True)\n"
+                   "        with open('/mnt/job_stage/output/diag.log', 'a') as _df: _df.write(_msg2 + '\\n')\n"
+                   "        with self._input_cv:\n"
+                   "            self._input_cv.notify()")
+            old2 = ("    def resume(self):\n"
+                    "        self.runner.resume()\n"
+                    "        with self._input_cv:\n"
+                    "            self._input_cv.notify()")
+            new2 = ("    def resume(self):\n"
+                    "        import time as _t; _msg = f'[DIAG {_t.strftime(\"%H:%M:%S\")}] Dispatcher.resume() called, was_paused={self.runner.paused.is_set()}'  # DIAG: pause/resume\n"
+                    "        print(_msg, flush=True)\n"
+                    "        with open('/mnt/job_stage/output/diag.log', 'a') as _df: _df.write(_msg + '\\n')\n"
+                    "        self.runner.resume()\n"
+                    "        _msg2 = f'[DIAG {_t.strftime(\"%H:%M:%S\")}] Dispatcher.resume() done, is_paused={self.runner.paused.is_set()}'\n"
+                    "        print(_msg2, flush=True)\n"
+                    "        with open('/mnt/job_stage/output/diag.log', 'a') as _df: _df.write(_msg2 + '\\n')\n"
+                    "        with self._input_cv:\n"
+                    "            self._input_cv.notify()")
+            if old in content and old2 in content:
+                content = content.replace(old, new, 1).replace(old2, new2, 1)
+                with open(wfe, "w") as f:
+                    f.write(content)
+                patched.append("workflow_executor.py: pause/resume diagnostics")
+            else:
+                print(f"  WARNING: pause/resume patch targets not found in {wfe}")
+
+    # 2. Log agenerate pause loop
+    rie = os.path.join(areal_dir, "infra", "remote_inf_engine.py")
+    if os.path.exists(rie):
+        with open(rie) as f:
+            content = f.read()
+        if "# DIAG: agenerate" not in content:
+            old = ("            while self.workflow_executor.is_paused():\n"
+                   "                await asyncio.sleep(0.5)")
+            new = ("            _diag_cnt = 0\n"
+                   "            while self.workflow_executor.is_paused():\n"
+                   "                _diag_cnt += 1  # DIAG: agenerate\n"
+                   "                if _diag_cnt == 1 or _diag_cnt % 20 == 0:\n"
+                   "                    import time as _t; _msg = f'[DIAG {_t.strftime(\"%H:%M:%S\")}] agenerate paused for {_diag_cnt*0.5:.0f}s'\n"
+                   "                    print(_msg, flush=True)\n"
+                   "                    try:\n"
+                   "                        with open('/mnt/job_stage/output/diag.log', 'a') as _df: _df.write(_msg + '\\n')\n"
+                   "                    except Exception: pass\n"
+                   "                await asyncio.sleep(0.5)\n"
+                   "            if _diag_cnt > 0:\n"
+                   "                import time as _t; _msg = f'[DIAG {_t.strftime(\"%H:%M:%S\")}] agenerate resumed after {_diag_cnt*0.5:.0f}s'\n"
+                   "                print(_msg, flush=True)\n"
+                   "                try:\n"
+                   "                    with open('/mnt/job_stage/output/diag.log', 'a') as _df: _df.write(_msg + '\\n')\n"
+                   "                except Exception: pass")
+            if old in content:
+                content = content.replace(old, new, 1)
+                with open(rie, "w") as f:
+                    f.write(content)
+                patched.append("remote_inf_engine.py: agenerate diagnostics")
+            else:
+                print(f"  WARNING: agenerate pause loop not found in {rie}")
+
+    # 3. Log _update_weights_from_disk after our patch (name_resolve + fut.result)
+    fsdp = os.path.join(areal_dir, "engine", "fsdp_engine.py")
+    if os.path.exists(fsdp):
+        with open(fsdp) as f:
+            content = f.read()
+        if "# DIAG: post-update" not in content:
+            # Add tracing around name_resolve.add and fut.result()
+            old_nr = (
+                "        if dist.get_rank() == 0:\n"
+                "            update_name = names.update_weights_from_disk(\n"
+                "                self.config.experiment_name,\n"
+                "                self.config.trial_name,\n"
+                "                self.get_version(),\n"
+                "            )\n"
+                "            name_resolve.add(\n"
+                "                update_name, str(datetime.now().timestamp()), keepalive_ttl=120\n"
+                "            )\n"
+                "\n"
+                "            fut.result()\n"
+                "\n"
+                "        current_platform.synchronize()\n"
+                "        dist.barrier(group=self.cpu_group)"
+            )
+            new_nr = (
+                "        if dist.get_rank() == 0:  # DIAG: post-update\n"
+                "            _log('publishing name_resolve entry...')\n"
+                "            update_name = names.update_weights_from_disk(\n"
+                "                self.config.experiment_name,\n"
+                "                self.config.trial_name,\n"
+                "                self.get_version(),\n"
+                "            )\n"
+                "            name_resolve.add(\n"
+                "                update_name, str(datetime.now().timestamp()), keepalive_ttl=120\n"
+                "            )\n"
+                "            _log('name_resolve published, calling fut.result()...')\n"
+                "            fut.result()\n"
+                "            _log('fut.result() returned')\n"
+                "\n"
+                "        _log('calling current_platform.synchronize()...')\n"
+                "        current_platform.synchronize()\n"
+                "        _log('calling dist.barrier()...')\n"
+                "        dist.barrier(group=self.cpu_group)\n"
+                "        _log('_update_weights_from_disk EXIT')"
+            )
+            if old_nr in content:
+                content = content.replace(old_nr, new_nr, 1)
+                with open(fsdp, "w") as f:
+                    f.write(content)
+                patched.append("fsdp_engine.py: post-update diagnostics")
+            else:
+                print(f"  WARNING: post-update patch target not found in fsdp_engine.py")
+
+    if patched:
+        for p in patched:
+            print(f"  [diag] Patched {p}")
+    else:
+        print("  [diag] No diagnostic patches applied")
+
+
+def _patch_vllm_lora_xccl():
+    """Patch AReaL's vLLM LoRA xccl weight update to register adapter name.
+
+    The xccl path uses low-level _add_adapter/activate_adapter which only
+    registers by int ID, not by name. Generation requests use model="default_lora-vN"
+    which requires name registration in vLLM's serving layer. Without this patch,
+    the serving layer can't find the new LoRA name after each weight update.
+
+    Fix: After xccl weight update completes, call the serving layer's
+    load_lora_adapter to register the name (the actual weights are already loaded,
+    so this just does the name registration).
+    """
+    # Patch the server-side handler to register LoRA name after xccl update
+    for path in [
+        "/opt/venv/snowbook/lib/python3.12/site-packages/areal/engine/vllm_ext/areal_vllm_server.py",
+        "/opt/venv/snowbook/lib/python3.11/site-packages/areal/engine/vllm_ext/areal_vllm_server.py",
+    ]:
+        if not os.path.exists(path):
+            continue
+
+        with open(path, "r") as f:
+            content = f.read()
+
+        if "# PATCHED: register lora name after xccl" in content:
+            print("  areal_vllm_server.py already patched")
+            return
+
+        # The current xccl handler just calls the utility and returns:
+        #   ret_list = await llm.engine_core.call_utility_async(
+        #       "areal_injected_update_weight_lora_xccl",
+        #   )
+        #   return build_response(ret_list)
+        #
+        # We need to also register the LoRA name via the serving layer.
+        # The set_weight_meta_lora was called earlier, storing the name in
+        # raw_request.app.state — but we need the name. We'll store it
+        # during set_weight_meta_lora and retrieve it here.
+
+        # Step 1: Store lora_name in app state during set_weight_meta_lora
+        old_meta = 'async def set_weight_meta_xccl_lora(\n    request: UpdateWeightsFromXcclRequestLora, raw_request: Request\n):'
+        new_meta = (
+            'async def set_weight_meta_xccl_lora(\n'
+            '    request: UpdateWeightsFromXcclRequestLora, raw_request: Request\n'
+            '):\n'
+            '    # PATCHED: register lora name after xccl\n'
+            '    raw_request.app.state._areal_pending_lora_name = request.lora_name\n'
+            '    raw_request.app.state._areal_pending_lora_int_id = request.lora_int_id'
+        )
+        if old_meta in content:
+            content = content.replace(old_meta, new_meta, 1)
+
+        # Step 2: After xccl update, register the name
+        old_xccl = (
+            '@router.post("/areal_update_weights_lora_xccl")\n'
+            'async def update_weight_lora_xccl(raw_request: Request):\n'
+            '    logger.info("API server starts update_weight_lora via XCCL")\n'
+            '    llm = raw_request.app.state.engine_client\n'
+            '    ret_list = await llm.engine_core.call_utility_async(\n'
+            '        "areal_injected_update_weight_lora_xccl",\n'
+            '    )\n'
+            '    return build_response(ret_list)'
+        )
+        new_xccl = (
+            '@router.post("/areal_update_weights_lora_xccl")\n'
+            'async def update_weight_lora_xccl(raw_request: Request):\n'
+            '    logger.info("API server starts update_weight_lora via XCCL")\n'
+            '    llm = raw_request.app.state.engine_client\n'
+            '    ret_list = await llm.engine_core.call_utility_async(\n'
+            '        "areal_injected_update_weight_lora_xccl",\n'
+            '    )\n'
+            '    # PATCHED: register lora name after xccl update\n'
+            '    try:\n'
+            '        _lora_name = getattr(raw_request.app.state, "_areal_pending_lora_name", None)\n'
+            '        _lora_int_id = getattr(raw_request.app.state, "_areal_pending_lora_int_id", None)\n'
+            '        if _lora_name and hasattr(llm, "engine_client"):\n'
+            '            from vllm.lora.request import LoRARequest\n'
+            '            from vllm.entrypoints.openai.serving_models import OpenAIServingModels\n'
+            '            _serving = None\n'
+            '            for attr in ["chat", "completion", "serving_completion", "serving_chat"]:\n'
+            '                _s = getattr(raw_request.app.state, attr, None)\n'
+            '                if _s and hasattr(_s, "models"):\n'
+            '                    _serving = _s.models\n'
+            '                    break\n'
+            '            if _serving and hasattr(_serving, "lora_requests"):\n'
+            '                _serving.lora_requests.append(LoRARequest(\n'
+            '                    lora_name=_lora_name, lora_int_id=_lora_int_id, lora_path="/tmp/dummy"))\n'
+            '                logger.info(f"Registered LoRA name {_lora_name} in serving models")\n'
+            '            else:\n'
+            '                logger.info(f"Could not find serving models to register {_lora_name}")\n'
+            '    except Exception as _e:\n'
+            '        logger.warning(f"Failed to register LoRA name in serving: {_e}")\n'
+            '    return build_response(ret_list)'
+        )
+
+        if old_xccl in content:
+            content = content.replace(old_xccl, new_xccl, 1)
+            with open(path, "w") as f:
+                f.write(content)
+            print(f"  Patched areal_vllm_server.py: LoRA xccl name registration")
+            return
+        else:
+            print(f"  WARNING: Could not find xccl patch target in {path}")
+            return
+
+    print("  WARNING: areal_vllm_server.py not found")
+
+
 def _patch_reward_api():
     """Patch AReaL's AsyncRewardWrapper for native async + longer timeout."""
     for path in ["/opt/venv/snowbook/lib/python3.12/site-packages/areal/api/reward_api.py",
@@ -822,6 +1310,37 @@ def main():
     print("\n--- Patching reward_api.py ---")
     _patch_reward_api()
 
+    # 2b. Patch vLLM LoRA xccl (if using LoRA)
+    print("--- Patching vllm_worker_extension.py ---")
+    _patch_vllm_lora_xccl()
+
+    # 2c. Patch SGLang + LoRA compatibility
+    print("--- Patching SGLang LoRA ---")
+    _patch_sglang_lora()
+
+    # 2d. Patch pause/resume diagnostic logging
+    print("--- Patching pause/resume diagnostics ---")
+    _patch_pause_resume_diagnostic()
+
+    # Diagnostic: verify fsdp_engine patch applied
+    import glob as _g
+    _areal_dirs = _g.glob("/opt/venv/snowbook/lib/python3.*/site-packages/areal/")
+    if _areal_dirs:
+        _fsdp = os.path.join(_areal_dirs[0], "engine", "fsdp_engine.py")
+        if os.path.exists(_fsdp):
+            with open(_fsdp) as _f:
+                for _i, _line in enumerate(_f, 1):
+                    if "_update_weights_from_disk" in _line or ("_save_model_to_hf" in _line and "def " not in _line):
+                        print(f"  [diag] fsdp_engine.py:{_i}: {_line.rstrip()}")
+            # Check sentinel
+            with open(_fsdp) as _f:
+                _c = _f.read()
+            if "# PATCHED: save first, skip tokenizer for LoRA" in _c:
+                print("  [diag] Fix 4 (save-first + skip tokenizer) CONFIRMED applied")
+            else:
+                print("  [diag] WARNING: Fix 4 NOT found in fsdp_engine.py!")
+    sys.stdout.flush()
+
     # 3. Copy reward module to local filesystem
     REWARD_MODULE_DIR = "/tmp/reward_modules"
     stage_src = "/mnt/job_stage/app"
@@ -906,13 +1425,11 @@ def main():
     with PPOTrainer(
         config,
         train_dataset=train_dataset,
-        valid_dataset=valid_dataset,
+        valid_dataset=None,  # Disable eval to avoid eval_rollout.wait(timeout=None) hang with LoRA
     ) as trainer:
         trainer.train(
             workflow="areal.workflow.rlvr.RLVRWorkflow",
             workflow_kwargs=workflow_kwargs,
-            eval_workflow="areal.workflow.rlvr.RLVRWorkflow",
-            eval_workflow_kwargs=eval_workflow_kwargs,
         )
 
     print("\n" + "=" * 60)
