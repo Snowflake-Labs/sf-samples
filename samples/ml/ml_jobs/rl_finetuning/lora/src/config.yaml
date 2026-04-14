@@ -1,0 +1,196 @@
+# Medical SOAP RL Training — LoRA with SGLang rollout + disk weight sync
+#
+# Uses SGLang (not vLLM) for rollout with LoRA support.
+# vLLM + LoRA has a bug where adapter names aren't registered after weight
+# updates, causing generation to fail. SGLang handles adapter reloading correctly.
+#
+# GPU layout (8x A100):
+#   GPUs 0-4: AReaL (4 SGLang rollout dp=4 + 1 training dp=1, no FSDP2)
+#   GPUs 5-7: 3x vLLM judge servers (Qwen3-8B)
+
+experiment_name: medical-soap-rl-lora
+trial_name: spcs_sglang_v6
+
+seed: 1
+enable_offload: false
+total_train_epochs: 10
+tokenizer_path: ${actor.path}
+
+cluster:
+  n_nodes: 1
+  n_gpus_per_node: 8
+  fileroot: /tmp/areal_medical_soap_lora_sglang_${trial_name}
+  name_resolve:
+    type: ray
+    ray_actor_name: areal_kv_store
+
+# 5 GPUs for AReaL: 4 SGLang rollout (dp=4, tp=1) + 1 training (dp=1, no FSDP2)
+allocation_mode: sglang:d4p1t1+d1p1t1
+
+scheduler:
+  type: ray
+
+rollout:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  max_concurrent_rollouts: 256
+  queue_size: null
+  consumer_batch_size: ${train_dataset.batch_size}
+  max_head_offpolicyness: 4
+  enable_rollout_tracing: false
+  scheduling_spec: ${actor.scheduling_spec}
+  fileroot: ${cluster.fileroot}
+  tokenizer_path: ${tokenizer_path}
+  dump_to_file: true
+  setup_timeout: 600.0
+  request_timeout: 600.0
+  pause_grace_period: 1.0
+  use_lora: true
+
+gconfig:
+  n_samples: 4
+  min_new_tokens: 0
+  max_new_tokens: 1024
+  greedy: false
+  temperature: 1.0
+  lora_name: ${experiment_name}
+
+# Actor — LoRA training (replicating original soap_grpo_lora.yaml)
+actor:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  path: Qwen/Qwen3-1.7B
+  init_from_scratch: false
+  disable_dropout: true
+  gradient_checkpointing: true
+  dtype: bfloat16
+  attn_impl: flash_attention_2
+  mb_spec:
+    max_tokens_per_mb: 10240
+  optimizer:
+    type: adam
+    lr: 3e-5
+    weight_decay: 0.01
+    beta1: 0.9
+    beta2: 0.999
+    eps: 1e-8
+    lr_scheduler_type: constant
+    gradient_clipping: 1.0
+    warmup_steps_proportion: 0.001
+  eps_clip: 0.4
+  eps_clip_higher: 0.5
+  temperature: ${gconfig.temperature}
+  reward_scaling: 10.0
+  reward_bias: -0.5
+  kl_ctl: 0.0
+  ppo_n_minibatches: 1
+  recompute_logprob: true
+  use_decoupled_loss: true
+  reward_norm:
+    mean_level: group
+    std_level: group
+    group_size: ${gconfig.n_samples}
+  adv_norm:
+    mean_level: batch
+    std_level: batch
+  max_new_tokens: ${gconfig.max_new_tokens}
+  scheduling_spec:
+    - cpu: 4
+      gpu: 1
+      mem: 10
+  # LoRA config
+  use_lora: true
+  peft_type: lora
+  lora_rank: 16
+  lora_alpha: 32
+  target_modules: [all-linear]
+  weight_update_mode: disk
+
+# Reference model (colocated with actor)
+ref:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  path: ${actor.path}
+  disable_dropout: true
+  dtype: ${actor.dtype}
+  attn_impl: flash_attention_2
+  mb_spec:
+    max_tokens_per_mb: 10240
+  optimizer: null
+  scheduling_strategy:
+    type: colocation
+    target: actor
+  scheduling_spec: ${actor.scheduling_spec}
+
+# SGLang inference server (for rollout generation with LoRA)
+sglang:
+  model_path: ${actor.path}
+  random_seed: ${seed}
+  skip_tokenizer_init: true
+  dtype: ${actor.dtype}
+  max_running_requests: null
+  context_length: 6144
+  mem_fraction_static: 0.8
+  # LoRA support
+  enable_lora: ${actor.use_lora}
+  max_lora_rank: ${actor.lora_rank}
+  lora_target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+  lora_backend: csgmv
+  schedule_policy: fcfs
+
+# Datasets — loaded from Snowflake tables at runtime
+train_dataset:
+  batch_size: 12
+  shuffle: true
+  pin_memory: true
+  num_workers: 2
+  path: MEDICAL_SOAP_TRAIN
+  type: rl
+  max_length: 2048
+
+valid_dataset:
+  batch_size: 16
+  pin_memory: true
+  num_workers: 2
+  path: MEDICAL_SOAP_TEST
+  type: rl
+
+# Checkpointing — save to stage mount (Fix 6 bypasses FSDP2 for LoRA)
+saver:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: /mnt/job_stage/output/model_output_lora_sglang_${trial_name}
+  freq_epochs: 1
+  freq_steps: null
+  freq_secs: null
+
+recover:
+  mode: "off"
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  freq_epochs: 1
+  freq_steps: null
+  freq_secs: null
+
+evaluator:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  freq_epochs: 1
+  freq_steps: null
+  freq_secs: null
+
+# Logging
+stats_logger:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  wandb:
+    mode: online
+    project: spcs-medical-soap-rl
+
+perf_tracer:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}

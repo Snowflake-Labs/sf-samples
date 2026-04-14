@@ -1,0 +1,182 @@
+# Medical SOAP RL Training — SPCS Runtime Image
+#
+# Trains Qwen3-1.7B to generate SOAP notes from doctor-patient dialogues.
+# Reward: format check (1pt) + per-section LLM judge (4pts) = max 5.0
+#
+# GPU layout (8x A100):
+#   GPUs 0-5: AReaL (2 vLLM rollout dp=2 + 4 FSDP training dp=4)
+#   GPUs 6-7: 2x vLLM judge servers (Qwen3-8B)
+
+experiment_name: medical-soap-rl
+trial_name: spcs_v6
+
+seed: 1
+enable_offload: false
+total_train_epochs: 10
+tokenizer_path: ${actor.path}
+
+cluster:
+  n_nodes: 1
+  n_gpus_per_node: 8
+  fileroot: /tmp/areal_medical_soap_${trial_name}
+  name_resolve:
+    type: ray
+    ray_actor_name: areal_kv_store
+
+# 6 GPUs for AReaL: 2 rollout (dp=2, tp=1) + 4 training (dp=4)
+allocation_mode: vllm:d2p1t1+d4p1t1
+
+scheduler:
+  type: ray
+
+rollout:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  max_concurrent_rollouts: 32
+  queue_size: null
+  consumer_batch_size: ${train_dataset.batch_size}
+  max_head_offpolicyness: 4
+  enable_rollout_tracing: false
+  scheduling_spec: ${actor.scheduling_spec}
+  fileroot: ${cluster.fileroot}
+  tokenizer_path: ${tokenizer_path}
+  dump_to_file: true
+  setup_timeout: 600.0
+  request_timeout: 600.0
+  pause_grace_period: 1.0
+  use_lora: false
+
+gconfig:
+  n_samples: 4
+  min_new_tokens: 0
+  max_new_tokens: 1024
+  greedy: false
+  temperature: 1.0
+
+# Actor (policy model) — Qwen3-1.7B full weight training
+actor:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  path: Qwen/Qwen3-1.7B
+  init_from_scratch: false
+  disable_dropout: true
+  gradient_checkpointing: true
+  dtype: bfloat16
+  attn_impl: flash_attention_2
+  mb_spec:
+    max_tokens_per_mb: 8192
+  optimizer:
+    type: adam
+    lr: 3e-6
+    weight_decay: 0.01
+    beta1: 0.9
+    beta2: 0.999
+    eps: 1e-8
+    lr_scheduler_type: constant
+    gradient_clipping: 1.0
+    warmup_steps_proportion: 0.001
+  eps_clip: 0.4
+  eps_clip_higher: 0.5
+  temperature: ${gconfig.temperature}
+  reward_scaling: 10.0
+  reward_bias: -0.5
+  kl_ctl: 0.05
+  ppo_n_minibatches: 1
+  recompute_logprob: true
+  use_decoupled_loss: true
+  reward_norm:
+    mean_level: group
+    std_level: group
+    group_size: ${gconfig.n_samples}
+  adv_norm:
+    mean_level: batch
+    std_level: batch
+  max_new_tokens: ${gconfig.max_new_tokens}
+  scheduling_spec:
+    - cpu: 4
+      gpu: 1
+      mem: 10
+  use_lora: false
+  weight_update_mode: xccl
+
+# Reference model (for KL penalty — kl_ctl=0 so effectively unused but required)
+ref:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  path: ${actor.path}
+  disable_dropout: true
+  dtype: ${actor.dtype}
+  attn_impl: flash_attention_2
+  mb_spec:
+    max_tokens_per_mb: 8192
+  optimizer: null
+  scheduling_strategy:
+    type: colocation
+    target: actor
+  scheduling_spec: ${actor.scheduling_spec}
+
+# vLLM inference server (for rollout generation, NOT judging)
+vllm:
+  model: ${actor.path}
+  seed: ${seed}
+  skip_tokenizer_init: false
+  dtype: ${actor.dtype}
+  max_model_len: 6144
+  gpu_memory_utilization: 0.85
+
+# Datasets — loaded from Snowflake tables at runtime
+train_dataset:
+  batch_size: 128
+  shuffle: true
+  pin_memory: true
+  num_workers: 2
+  path: MEDICAL_SOAP_TRAIN
+  type: rl
+  max_length: 3072
+
+valid_dataset:
+  batch_size: 32
+  pin_memory: true
+  num_workers: 2
+  path: MEDICAL_SOAP_TEST
+  type: rl
+
+# Checkpointing — save directly to stage mount so checkpoints are accessible externally
+saver:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: /mnt/job_stage/output/model_output_${trial_name}
+  freq_epochs: 1
+  freq_steps: null
+  freq_secs: null
+
+recover:
+  mode: "off"
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  freq_epochs: 1
+  freq_steps: null
+  freq_secs: null
+
+evaluator:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  freq_epochs: 1
+  freq_steps: null
+  freq_secs: null
+
+# Logging
+stats_logger:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  wandb:
+    mode: online
+    project: spcs-medical-soap-rl
+
+perf_tracer:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
