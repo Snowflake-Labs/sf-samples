@@ -106,6 +106,29 @@ SELECT MY_DB.GEO.MAKEVALID(geom, 0.01) FROM messy_shapes;
 SELECT MY_DB.GEO.MAKEVALID_STRICT(geom) FROM parcels_raw WHERE id = 42;
 ```
 
+### Repair rows in place
+
+Update only the invalid rows of an existing table, filtering with `ST_ISVALID`:
+
+```sql
+-- Fix only the invalid rows, in place
+UPDATE my_schema.parcels
+SET    geom = MY_DB.GEO.MAKEVALID(geom)
+WHERE  NOT ST_ISVALID(geom);
+
+-- Verify no invalid shapes remain
+SELECT COUNT_IF(NOT ST_ISVALID(geom)) AS still_invalid,
+       COUNT_IF(geom IS NULL)         AS null_count
+FROM   my_schema.parcels;
+```
+
+Notes:
+
+- `NOT ST_ISVALID(geom)` is equivalent to `ST_ISVALID(geom) = FALSE`.
+- The lenient `MAKEVALID` returns `NULL` on unrecoverable shapes; swap in
+  `MAKEVALID_STRICT` to surface the underlying exception while debugging,
+  then switch back to the lenient variant for bulk runs.
+
 ## How it works
 
 ```
