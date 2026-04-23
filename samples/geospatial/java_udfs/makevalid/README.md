@@ -177,6 +177,38 @@ GeoJsonWriter -> GEOGRAPHY
 - `GEOMETRY` type is not supported (UDF is geography-specific by design).
 - Requires Snowflake Java runtime 11.
 
+## Tracking
+
+Every object created by `install.sql` carries a JSON `COMMENT` and the session
+sets a matching `query_tag`, so usage and object inventory can be queried from
+Snowflake system views.
+
+- `origin`: `sf_sit-is-makevalid`
+- `name`: `oss-makevalid-geography`
+- `version`: `{"major": 1, "minor": 0}`
+- `attributes.source`: `sql`
+- The original human-readable description of each UDF is preserved under
+  `attributes.description`.
+
+Discovery queries:
+
+```sql
+-- All functions tagged by this package in the target schema
+SELECT FUNCTION_NAME, COMMENT
+FROM   <DB>.INFORMATION_SCHEMA.FUNCTIONS
+WHERE  FUNCTION_SCHEMA = '<SCHEMA>'
+  AND  COMMENT LIKE '%sf_sit-is-makevalid%';
+
+-- Query volume attributable to the package over the last 30 days
+SELECT DATE_TRUNC('day', START_TIME) AS day,
+       COUNT(*)                      AS query_count
+FROM   SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
+WHERE  QUERY_TAG LIKE '%sf_sit-is-makevalid%'
+  AND  START_TIME >= DATEADD(day, -30, CURRENT_TIMESTAMP())
+GROUP  BY 1
+ORDER  BY 1 DESC;
+```
+
 ## Rebuilding from source
 
 ```bash

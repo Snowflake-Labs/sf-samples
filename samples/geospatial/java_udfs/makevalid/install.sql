@@ -10,12 +10,19 @@
 -- whole file once as a role with CREATE FUNCTION privileges.
 -- =============================================================================
 
+-- 0. Tag the session so every query below is attributable in QUERY_HISTORY ----
+ALTER SESSION SET query_tag =
+    '{"origin":"sf_sit-is-makevalid","name":"oss-makevalid-geography","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
+
 -- 1. Pick / create target database and schema ---------------------------------
-CREATE DATABASE IF NOT EXISTS <DB>;
-CREATE SCHEMA   IF NOT EXISTS <DB>.<SCHEMA>;
+CREATE DATABASE IF NOT EXISTS <DB>
+    COMMENT = '{"origin":"sf_sit-is-makevalid","name":"oss-makevalid-geography","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
+CREATE SCHEMA   IF NOT EXISTS <DB>.<SCHEMA>
+    COMMENT = '{"origin":"sf_sit-is-makevalid","name":"oss-makevalid-geography","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
 
 -- 2. Pick / create stage for the JAR ------------------------------------------
-CREATE STAGE    IF NOT EXISTS <DB>.<SCHEMA>.<STAGE>;
+CREATE STAGE    IF NOT EXISTS <DB>.<SCHEMA>.<STAGE>
+    COMMENT = '{"origin":"sf_sit-is-makevalid","name":"oss-makevalid-geography","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
 
 -- 3. Upload the JAR (run from SnowSQL / snow CLI on your laptop) --------------
 -- PUT file://makevalid-java-1.0.0.jar @<DB>.<SCHEMA>.<STAGE>
@@ -30,7 +37,7 @@ LANGUAGE JAVA
 RUNTIME_VERSION = '11'
 HANDLER = 'com.snowflake.geo.MakeValid.makeValidGeography'
 IMPORTS = ('@<DB>.<SCHEMA>.<STAGE>/makevalid-java-1.0.0.jar')
-COMMENT = 'Repair invalid GEOGRAPHY polygons via gnomonic projection + JTS GeometryFixer. Default 1mm grid snap.';
+COMMENT = '{"origin":"sf_sit-is-makevalid","name":"oss-makevalid-geography","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql","description":"Repair invalid GEOGRAPHY polygons via gnomonic projection + JTS GeometryFixer. Default 1mm grid snap."}}';
 
 CREATE OR REPLACE FUNCTION <DB>.<SCHEMA>.MAKEVALID(geom GEOGRAPHY, grid_meters DOUBLE)
 RETURNS GEOGRAPHY
@@ -38,7 +45,7 @@ LANGUAGE JAVA
 RUNTIME_VERSION = '11'
 HANDLER = 'com.snowflake.geo.MakeValid.makeValidGeography'
 IMPORTS = ('@<DB>.<SCHEMA>.<STAGE>/makevalid-java-1.0.0.jar')
-COMMENT = 'Repair invalid GEOGRAPHY polygons. grid_meters controls post-fix snap: 0 disables, smaller preserves detail, larger snaps harder.';
+COMMENT = '{"origin":"sf_sit-is-makevalid","name":"oss-makevalid-geography","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql","description":"Repair invalid GEOGRAPHY polygons. grid_meters controls post-fix snap: 0 disables, smaller preserves detail, larger snaps harder."}}';
 
 -- Strict variant: propagates Java exceptions (useful for debugging bad rows).
 CREATE OR REPLACE FUNCTION <DB>.<SCHEMA>.MAKEVALID_STRICT(geom GEOGRAPHY)
@@ -47,7 +54,7 @@ LANGUAGE JAVA
 RUNTIME_VERSION = '11'
 HANDLER = 'com.snowflake.geo.MakeValid.makeValidGeographyStrict'
 IMPORTS = ('@<DB>.<SCHEMA>.<STAGE>/makevalid-java-1.0.0.jar')
-COMMENT = 'Same as MAKEVALID but raises an exception on failure instead of returning NULL.';
+COMMENT = '{"origin":"sf_sit-is-makevalid","name":"oss-makevalid-geography","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql","description":"Same as MAKEVALID but raises an exception on failure instead of returning NULL."}}';
 
 CREATE OR REPLACE FUNCTION <DB>.<SCHEMA>.MAKEVALID_STRICT(geom GEOGRAPHY, grid_meters DOUBLE)
 RETURNS GEOGRAPHY
@@ -55,7 +62,7 @@ LANGUAGE JAVA
 RUNTIME_VERSION = '11'
 HANDLER = 'com.snowflake.geo.MakeValid.makeValidGeographyStrict'
 IMPORTS = ('@<DB>.<SCHEMA>.<STAGE>/makevalid-java-1.0.0.jar')
-COMMENT = 'Same as MAKEVALID(geom, grid_meters) but raises an exception on failure instead of returning NULL.';
+COMMENT = '{"origin":"sf_sit-is-makevalid","name":"oss-makevalid-geography","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql","description":"Same as MAKEVALID(geom, grid_meters) but raises an exception on failure instead of returning NULL."}}';
 
 -- 5. Smoke test ---------------------------------------------------------------
 SELECT ST_ASWKT(<DB>.<SCHEMA>.MAKEVALID(
