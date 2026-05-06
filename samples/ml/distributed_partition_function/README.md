@@ -30,7 +30,7 @@ DPF supports two execution modes, both demonstrated in this notebook:
 
 ## Getting Started
 
-This notebook is intended to be run in a **Snowflake Notebook** environment on Snowpark Container Services. If running locally, use the **ML Jobs deployment** section at the bottom of the notebook to submit DPF workloads via the `@remote` decorator.
+This notebook is intended to be run in a **Snowflake Notebook**. If running locally, use the **ML Jobs deployment** section at the bottom of the notebook to submit DPF workloads via the `@remote` decorator.
 
 Open the [DPF Example Notebook](./dpf_example.ipynb) for a full end-to-end walkthrough.
 
