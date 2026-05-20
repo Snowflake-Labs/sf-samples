@@ -1,1 +1,0 @@
-Moved to https://github.com/Snowflake-Labs/spcs-templates/tree/main/llm/deepseek-r1

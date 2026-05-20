@@ -1,9 +1,0 @@
-name: sis-deploy
-channels:
-- snowflake
-dependencies:
-- python=3.8.12
-- streamlit=1.22.0
-- snowflake-snowpark-python
-- plotly=5.9.0
-- sqlparse

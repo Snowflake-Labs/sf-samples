@@ -1,1 +1,0 @@
-# Terraform configs to set up Git integration over Private Link

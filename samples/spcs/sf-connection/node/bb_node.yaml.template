@@ -1,6 +1,0 @@
-spec:
-  containers:
-    - name: bb-node
-      image: <<repository_url>>/bb_node
-      env:
-        SNOWFLAKE_WAREHOUSE: <<warehouse_name>>

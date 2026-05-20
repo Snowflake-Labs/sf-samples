@@ -1,9 +1,0 @@
-version: 2
-
-models:
-  - name: accounts_receivable_mart
-    description: |
-        Accounts Receivable Data Mart
-    columns:
-      - name: DOCUMENT_TYPE
-        description: '{{ doc("document_type") }}'

@@ -1,9 +1,0 @@
-name: app_environment
-channels:
-  - snowflake
-dependencies:
-  - altair=*
-  - matplotlib=*
-  - pypdfium2=*
-  - reportlab=*
-  - snowflake.core=*

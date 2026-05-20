@@ -1,7 +1,0 @@
-name: sis-example
-channels:
-- snowflake
-dependencies:
-- python=3.8
-- streamlit=1.16.0
-- snowflake-snowpark-python
