@@ -8,8 +8,8 @@
 --        https://www.tpc.org/tpcx-ai/
 --      For each scale factor you want, you need order.csv, lineitem.csv, product.csv.
 --   2. Upload them to your S3 bucket under:
---        s3://<YOUR_BUCKET>/tpcxai/uc08/sf<N>/
---   3. Replace <YOUR_BUCKET>, <AWS_KEY_ID>, <AWS_SECRET_KEY> below.
+--        s3://YOUR_BUCKET/tpcxai/uc08/sf<N>/
+--   3. Replace YOUR_BUCKET, YOUR_AWS_KEY_ID, YOUR_AWS_SECRET_KEY below.
 --      For production, prefer a storage integration over inline keys.
 --   4. Run this file. To skip a scale factor, comment out its block.
 
@@ -33,8 +33,8 @@ USE DATABASE TPCXAI_V2;
 USE SCHEMA PUBLIC;
 
 CREATE OR REPLACE STAGE UC08_EXTERNAL_STAGE
-    URL = 's3://<YOUR_BUCKET>/tpcxai/uc08/'
-    CREDENTIALS = (AWS_KEY_ID = '<AWS_KEY_ID>' AWS_SECRET_KEY = '<AWS_SECRET_KEY>');
+    URL = 's3://YOUR_BUCKET/tpcxai/uc08/'
+    CREDENTIALS = (AWS_KEY_ID = 'YOUR_AWS_KEY_ID' AWS_SECRET_KEY = 'YOUR_AWS_SECRET_KEY');
 
 ----------------------------------------------------------------------
 -- SF1  (also creates CSV_FORMAT, reused by SF10 / SF100 / SF1000)
