@@ -3,6 +3,9 @@
 ## Overview
 This project utilizes Copilotkit for AG-UI protocol between the Next.JS application and Snowflake Cortex Agents.
 
+## Prerequisites
+Make sure you follow this quickstart: https://www.snowflake.com/en/developers/guides/getting-started-with-cortex-agents/
+
 ## Step by Step Guide
 
 First, install the packages with:
