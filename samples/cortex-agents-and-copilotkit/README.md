@@ -1,8 +1,23 @@
-This is a [Snowflake](https://snowflake.com), [Next.js](https://nextjs.org), & [Copilotkit](https://www.copilotkit.ai/) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Snowflake Cortex Agents and Copilotkit
 
-## Getting Started
+## Overview
+This project utilizes Copilotkit for AG-UI protocol between the Next.JS application and Snowflake Cortex Agents.
 
-First, create a .env file with the following:
+## Step by Step Guide
+
+First, install the packages with:
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+# or
+bun install
+```
+
+Next, create a .env file with the following:
+
 ```txt
 SNOWFLAKE_ACCOUNT=[YOUR SNOWFLAKE ACCOUNT]
 SNOWFLAKE_USER=[YOUR SNOWFLAKE USER]
@@ -16,7 +31,7 @@ SNOWFLAKE_AGENT_NAME=SUMMIT_GEAR_AGENT
 SNOWFLAKE_TOKEN=[YOUR SNOWFLAKE PAT TOKEN]
 ```
 
-Next, run the development server:
+Then, run the development server:
 
 ```bash
 npm run dev
