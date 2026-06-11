@@ -1,0 +1,29 @@
+skill_name: marketing-identity-resolution
+skill_type: customer-facing
+promotion_stage: draft
+version: "1.1.0"
+authors:
+  - sfc-gh-lambrosetti
+description: >
+  Build a first-party identity resolution pipeline on any set of source tables in Snowflake.
+  Discovers source schemas, maps columns to canonical identity fields, generates a fully
+  incremental Dynamic Table pipeline with deterministic and probabilistic matching, graph
+  resolution, a keyring, and a golden record with field-level survivorship.
+  Supports two probabilistic matching methods: traditional Jaro-Winkler weighted scoring
+  (incremental, explainable) or Cortex Search Batch semantic matching (handles nicknames,
+  typos, abbreviations automatically via Arctic embeddings).
+testers: []
+overlap_notes: >
+  Complements marketing-b2c-customer360 (which builds gold layer AFTER identity resolution).
+  The IDR skill produces the unified identity graph that feeds into customer360.
+  Also complements marketing-b2c-synthetic-data for generating test data to validate the pipeline.
+changelog:
+  - version: "1.1.0"
+    date: "2026-05-22"
+    changes:
+      - "Added Cortex Search Batch as alternative probabilistic matching method"
+      - "New reference: cortex-search-matching.md with Pattern A (full replacement) and Pattern B (hybrid)"
+      - "Phase 3 config now asks for probabilistic method selection"
+      - "Phase 4 standardization adds SEARCH_TEXT column when Cortex Search is selected"
+      - "Phase 5.2 branches on method selection"
+      - "ALL_EDGES union handles both methods with deduplication"
