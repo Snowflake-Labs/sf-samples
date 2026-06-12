@@ -1,0 +1,38 @@
+-- ============================================================================
+-- Martech: GOLD.DT_HOUSEHOLD_PROFILE
+-- Household-level identity DT. One row per active household, with member
+-- arrays and rolled-up spend / first-seen / last-seen. Refreshes on
+-- TARGET_LAG = 5 minutes.
+-- ============================================================================
+
+CREATE OR REPLACE DYNAMIC TABLE IDENTIFIER('&{deployment_db}.GOLD.DT_HOUSEHOLD_PROFILE')
+    TARGET_LAG = '5 minutes'
+    WAREHOUSE = MARTECH_WH
+AS
+SELECT
+    h.HOUSEHOLD_ID,
+    h.HOUSEHOLD_TYPE,
+    h.PRIMARY_LAST_NAME,
+    h.SHARED_STREET,
+    h.SHARED_CITY,
+    h.SHARED_STATE,
+    h.SHARED_POSTAL,
+    h.MEMBER_COUNT,
+    h.STATUS,
+    h.FIRST_SEEN,
+    h.LAST_SEEN,
+    ARRAY_DISTINCT(ARRAY_AGG(m.INDIVIDUAL_CLUSTER_ID) WITHIN GROUP (ORDER BY m.INDIVIDUAL_CLUSTER_ID)) AS MEMBER_CLUSTER_IDS,
+    ARRAY_DISTINCT(ARRAY_AGG(p.PRIMARY_FIRST_NAME)    WITHIN GROUP (ORDER BY p.PRIMARY_FIRST_NAME))   AS MEMBER_FIRST_NAMES,
+    ARRAY_DISTINCT(ARRAY_AGG(p.PRIMARY_LAST_NAME)     WITHIN GROUP (ORDER BY p.PRIMARY_LAST_NAME))    AS MEMBER_LAST_NAMES,
+    ARRAY_DISTINCT(ARRAY_AGG(p.PRIMARY_EMAIL)         WITHIN GROUP (ORDER BY p.PRIMARY_EMAIL))        AS MEMBER_EMAILS,
+    COALESCE(SUM(p.LIFETIME_TOTAL_SPEND), 0)                                                          AS HOUSEHOLD_LIFETIME_SPEND,
+    AVG(p.CONFIDENCE_SCORE)                                                                           AS AVG_MEMBER_CONFIDENCE
+FROM IDENTIFIER('&{deployment_db}.SILVER.IDR_CORE_HOUSEHOLD_CLUSTER') h
+JOIN IDENTIFIER('&{deployment_db}.SILVER.IDR_CORE_HOUSEHOLD_MEMBERSHIP') m
+  ON m.HOUSEHOLD_ID = h.HOUSEHOLD_ID
+LEFT JOIN IDENTIFIER('&{deployment_db}.GOLD.DT_CUSTOMER_PROFILE') p
+  ON p.CLUSTER_ID = m.INDIVIDUAL_CLUSTER_ID
+WHERE h.STATUS = 'ACTIVE'
+GROUP BY h.HOUSEHOLD_ID, h.HOUSEHOLD_TYPE, h.PRIMARY_LAST_NAME,
+         h.SHARED_STREET, h.SHARED_CITY, h.SHARED_STATE, h.SHARED_POSTAL,
+         h.MEMBER_COUNT, h.STATUS, h.FIRST_SEEN, h.LAST_SEEN;

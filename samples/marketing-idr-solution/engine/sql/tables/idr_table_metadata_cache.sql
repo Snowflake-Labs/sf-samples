@@ -1,0 +1,16 @@
+-- =====================================================
+-- IDR_CORE_TABLE_METADATA_CACHE
+-- Cache table for IDR-enabled table metadata
+-- Populated by SP_REFRESH_METADATA_CACHE
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS IDR_DEMO.SILVER.IDR_CORE_TABLE_METADATA_CACHE (
+    TABLE_FQN VARCHAR NOT NULL,
+    TABLE_DATABASE VARCHAR,
+    TABLE_SCHEMA VARCHAR,
+    TABLE_NAME VARCHAR,
+    SOURCE_ROLE VARCHAR,
+    PRIORITY INT,
+    PRIMARY_KEY_COLUMN VARCHAR,
+    CACHED_AT TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP()
+);

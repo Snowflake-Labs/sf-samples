@@ -1,0 +1,59 @@
+use_case: martech
+display_name: Martech (DTC / CEP Identity Resolution)
+deployment_db: MARTECH
+description: Identity resolution and golden-record creation for retail/DTC customer engagement platforms across POS, Loyalty, Web Clickstream, and Shopify
+
+bronze_tables:
+  - name: POS_TRANSACTION_RAW
+    primary_key: TXN_ID
+    source_role: BASE
+    priority: 1
+    description: In-store POS transactions with optional loyalty card scan
+  - name: LOYALTY_MEMBER_RAW
+    primary_key: MEMBER_ID
+    source_role: BASE
+    priority: 2
+    description: Loyalty platform customer dimension (members, tiers, points)
+  - name: WEB_CLICKSTREAM_RAW
+    primary_key: EVENT_ID
+    source_role: USE_CASE
+    priority: 3
+    description: Snowplow/GA4-shaped web events with anonymous and logged-in identity signals
+  - name: SHOPIFY_ORDER_RAW
+    primary_key: ORDER_ID
+    source_role: USE_CASE
+    priority: 4
+    description: Shopify online orders with customer, billing/shipping address, and client details
+
+std_tables:
+  - STD_POS_TRANSACTION_RAW
+  - STD_LOYALTY_MEMBER_RAW
+  - STD_WEB_CLICKSTREAM_RAW
+  - STD_SHOPIFY_ORDER_RAW
+
+gold_tables:
+  - name: DT_CUSTOMER_PROFILE
+    description: Golden DTC customer record (omnichannel)
+
+custom_standardize: true
+golden_record_table: DT_CUSTOMER_PROFILE
+
+matching_rules:
+  count: 17
+  types:
+    - 6 single-field deterministic (Email, HEM, Loyalty#, Device ID, UID2, RampID)
+    - 7 composite name + email/phone (Full Name+Phone, Nickname/Fuzzy First+Email/Phone, First+Fuzzy Last+Email/Phone)
+    - 2 household (Last Name+Full Address, Fuzzy Last+Full Address)
+    - 1 ML-scored (LightGBM ≥ 0.85)
+    - 1 LLM-adjudicated (Cortex AI band 0.55-0.85)
+
+streams:
+  - POS_TRANSACTION_STREAM
+  - LOYALTY_MEMBER_STREAM
+  - WEB_CLICKSTREAM_STREAM
+  - SHOPIFY_ORDER_STREAM
+
+reset_sp: APP.SP_RESET_IDR
+task: IDR_INCREMENTAL_TASK
+warehouse: MARTECH_WH
+frontend_industry: MARTECH

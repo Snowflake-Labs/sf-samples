@@ -1,0 +1,8 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30
+pydantic>=2.9,<3
+# Floor matches snowflake-snowpark-python (>=3.17) and stays below the next
+# major; range includes the version snowflake-cli pins (4.6.0) so installing
+# these deps will NOT downgrade a working CLI/connector in a shared env.
+snowflake-connector-python>=3.17,<5
+faker>=30

@@ -1,0 +1,133 @@
+/* ─── RichSelect Component ───
+ * Stellar-style dropdown with optional descriptions per option.
+ * 
+ * Required CSS custom properties (from your app's design tokens):
+ *   --bg-surface     Background for the trigger and menu
+ *   --border-default Default border color
+ *   --border-strong  Border on hover
+ *   --primary        Accent color (active item, focus ring)
+ *   --text           Primary text color
+ *   --text-muted     Secondary text color
+ *   --radius         Border radius (typically 8px)
+ *
+ * Copy this file alongside RichSelect.tsx into your components/ folder.
+ */
+
+.rich-select {
+  position: relative;
+}
+
+/* ─── Trigger Button ─── */
+.rich-select-trigger {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.rich-select-trigger:hover {
+  border-color: var(--border-strong);
+}
+.rich-select-trigger--open {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(0, 112, 240, 0.12);
+}
+
+/* ─── Trigger internals ─── */
+.rich-select-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  display: flex;
+}
+.rich-select-value {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rich-select-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+.rich-select-trigger--open .rich-select-chevron {
+  transform: rotate(180deg);
+}
+
+/* ─── Dropdown Menu ─── */
+.rich-select-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(2, 6, 23, 0.10), 0 1px 3px rgba(2, 6, 23, 0.06);
+  padding: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+  animation: richSelectFadeIn 0.12s ease-out;
+}
+
+@keyframes richSelectFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Menu Items ─── */
+.rich-select-item {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.rich-select-item:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+.rich-select-item--active {
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+}
+
+/* ─── Item layout ─── */
+.rich-select-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rich-select-item-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+}
+.rich-select-item--active .rich-select-item-label {
+  color: var(--primary);
+}
+.rich-select-check {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+.rich-select-item-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
