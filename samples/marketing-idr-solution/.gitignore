@@ -1,0 +1,46 @@
+# JS/TS build artifacts
+**/node_modules/
+**/dist/
+**/dist-ssr/
+**/.vite/
+**/coverage/
+package-lock.json
+tsconfig.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env (never commit secrets)
+.env
+.env.*
+!.env.example
+*.local
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/*.pyo
+.Python
+**/.venv/
+**/venv/
+**/.eggs/
+**/*.egg-info/
+
+# Snowflake Cortex (local plans, conversations)
+.snowflake/cortex/
+
+# Runtime state
+.generator_state/
+
+# Editor / OS
+.vscode/
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

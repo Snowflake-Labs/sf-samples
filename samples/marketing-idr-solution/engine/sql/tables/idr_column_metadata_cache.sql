@@ -1,0 +1,15 @@
+-- =====================================================
+-- IDR_CORE_COLUMN_METADATA_CACHE
+-- Cache table for IDR column metadata (identifier types)
+-- Populated by SP_REFRESH_METADATA_CACHE
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS IDR_DEMO.SILVER.IDR_CORE_COLUMN_METADATA_CACHE (
+    TABLE_FQN VARCHAR NOT NULL,
+    TABLE_NAME VARCHAR,
+    COLUMN_NAME VARCHAR NOT NULL,
+    IDENTIFIER_TYPE VARCHAR,
+    EXTERNAL_KEY_TO VARCHAR,
+    SEMANTIC_CATEGORY VARCHAR,
+    CACHED_AT TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP()
+);
