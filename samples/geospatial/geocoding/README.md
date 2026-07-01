@@ -25,12 +25,10 @@ geocoding/
 │   └── examples/
 │       ├── forward_geocode.sql     smoke tests + procedure usage
 │       └── reverse_geocode.sql
-├── libpostal_service/             International geocoding — SPCS (template, not yet deployed)
-│   ├── server.py  Dockerfile  requirements.txt  service-spec.yaml
-│   ├── deploy.sql
-│   └── README.md
-└── notebooks/
-    └── overture_geocoding_reference.ipynb   original end-to-end walkthrough
+└── libpostal_service/             International geocoding — SPCS (template, not yet deployed)
+    ├── server.py  Dockerfile  requirements.txt  service-spec.yaml
+    ├── deploy.sql
+    └── README.md
 ```
 
 ## Data source
