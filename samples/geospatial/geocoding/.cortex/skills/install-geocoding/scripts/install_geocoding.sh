@@ -63,6 +63,7 @@ MODULES=(
   "$SQL_DIR/udfs/standardize_street.sql"
   "$SQL_DIR/procedures/forward_geocode_table.sql"
   "$SQL_DIR/procedures/reverse_geocode_table.sql"
+  "$SQL_DIR/procedures/evaluate_geocode.sql"
 )
 
 for m in "${MODULES[@]}"; do

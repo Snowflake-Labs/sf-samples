@@ -14,11 +14,15 @@
 -- Match strategy (US only):
 --   COUNTRY = 'US' AND NUMBER exact
 --   AND (POSTCODE match OR POSTAL_CITY match)   -- ~38% of US rows have NULL city
---   AND STREET LIKE %standardized_street%
---   ranked by EDITDISTANCE (closest street name wins).
+--   AND ( STREET LIKE %standardized_street%
+--         OR JAROWINKLER_SIMILARITY(STREET, standardized_street) >= 92 )
+--   ranked by JAROWINKLER_SIMILARITY DESC (normalized 0-100, prefix-weighted),
+--   with EDITDISTANCE as a tiebreak. Jaro-Winkler is a better street ranker
+--   than raw edit distance, which unfairly penalizes long street names, and it
+--   also rescues near-misses that the substring LIKE filter would drop.
 --
 -- Output columns: input_id, raw_address, result_number, result_street,
---   result_city, result_zip, result_lat, result_lon, edit_dist
+--   result_city, result_zip, result_lat, result_lon, street_sim, edit_dist
 --
 -- Example:
 --   CALL GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(
@@ -68,23 +72,26 @@ BEGIN
                 a.POSTCODE    AS result_zip,
                 ST_Y(a.GEOMETRY) AS result_lat,
                 ST_X(a.GEOMETRY) AS result_lon,
+                JAROWINKLER_SIMILARITY(UPPER(a.STREET), UPPER(p.street_std)) AS street_sim,
                 EDITDISTANCE(UPPER(a.STREET), UPPER(p.street_std)) AS edit_dist,
                 ROW_NUMBER() OVER (
                     PARTITION BY p.input_id
-                    ORDER BY EDITDISTANCE(UPPER(a.STREET), UPPER(p.street_std))
+                    ORDER BY JAROWINKLER_SIMILARITY(UPPER(a.STREET), UPPER(p.street_std)) DESC,
+                             EDITDISTANCE(UPPER(a.STREET), UPPER(p.street_std)) ASC
                 ) AS rn
             FROM parsed p
             JOIN GEOCODING.PUBLIC.OVERTURE_ADDRESS a
               ON a.COUNTRY = ''US''
              AND a.NUMBER = p.number
              AND (a.POSTCODE = p.zip OR UPPER(a.POSTAL_CITY) = UPPER(p.city))
-             AND UPPER(a.STREET) LIKE ''%'' || UPPER(p.street_std) || ''%''
+             AND (UPPER(a.STREET) LIKE ''%'' || UPPER(p.street_std) || ''%''
+                  OR JAROWINKLER_SIMILARITY(UPPER(a.STREET), UPPER(p.street_std)) >= 92)
             WHERE p.number IS NOT NULL
               AND p.street_std IS NOT NULL
               AND (p.zip IS NOT NULL OR p.city IS NOT NULL)
         )
         SELECT input_id, raw_address, result_number, result_street, result_city,
-               result_zip, result_lat, result_lon, edit_dist
+               result_zip, result_lat, result_lon, street_sim, edit_dist
         FROM matched
         WHERE rn = 1';
 

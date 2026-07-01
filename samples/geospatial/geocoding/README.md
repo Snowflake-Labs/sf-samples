@@ -20,7 +20,8 @@ geocoding/
 │   │   └── standardize_street.sql  230+ USPS/Nominatim abbreviation rules
 │   ├── procedures/
 │   │   ├── forward_geocode_table.sql   batch address → lat/lon
-│   │   └── reverse_geocode_table.sql   batch lat/lon → address
+│   │   ├── reverse_geocode_table.sql   batch lat/lon → address
+│   │   └── evaluate_geocode.sql        optional accuracy metrics (hit-rate, deviation)
 │   └── examples/
 │       ├── forward_geocode.sql     smoke tests + procedure usage
 │       └── reverse_geocode.sql
@@ -80,6 +81,7 @@ Run in order:
 !source sql/udfs/standardize_street.sql
 !source sql/procedures/forward_geocode_table.sql
 !source sql/procedures/reverse_geocode_table.sql
+!source sql/procedures/evaluate_geocode.sql
 
 -- 2. Try it (see sql/examples/ for full versions)
 CALL GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(
@@ -101,16 +103,25 @@ CALL GEOCODING.PUBLIC.REVERSE_GEOCODE_TABLE(
 | `STANDARDIZE_STREET` | Python UDF | `(VARCHAR) → VARCHAR` |
 | `FORWARD_GEOCODE_TABLE` | SQL proc | `(SOURCE_TABLE, ADDRESS_COLUMN, ID_COLUMN, OUTPUT_TABLE)` |
 | `REVERSE_GEOCODE_TABLE` | SQL proc | `(SOURCE_TABLE, LAT_COLUMN, LON_COLUMN, ID_COLUMN, RADIUS_METERS, OUTPUT_TABLE, [COUNTRY])` |
+| `EVALUATE_GEOCODE` | SQL proc | `(RESULT_TABLE, ACTUAL_GEOG_COLUMN, GEOCODED_GEOG_COLUMN, [THRESHOLD_METERS])` |
 
 ## How matching works
 
 **Forward** = parse (`usaddress`) + standardize street, then JOIN on
 `COUNTRY='US'` AND exact `NUMBER` AND (`POSTCODE` match OR `POSTAL_CITY` match —
-~38% of US rows have NULL city) AND `STREET LIKE %standardized%`, ranked by
-`EDITDISTANCE`.
+~38% of US rows have NULL city) AND (`STREET LIKE %standardized%` OR
+`JAROWINKLER_SIMILARITY >= 92`), ranked by `JAROWINKLER_SIMILARITY` (normalized,
+prefix-weighted) with `EDITDISTANCE` as a tiebreak.
 
-**Reverse** = `ST_DWITHIN` + `ST_DISTANCE`, `ROW_NUMBER` dedup to the closest
-address; optional country filter.
+**Reverse** = iterative expanding-radius search: start at 10 m and double each
+pass (up to the `RADIUS_METERS` cap), only re-processing points not yet matched.
+Dense-area points resolve in the first cheap pass; sparse points escalate to a
+wider search. Within each pass `ST_DWITHIN` filters, `ST_DISTANCE` ranks, and
+`ROW_NUMBER` keeps the closest address. Optional country filter.
+
+**Evaluate** (optional) = `EVALUATE_GEOCODE` compares actual vs geocoded points
+with `ST_DISTANCE` and returns match rate, % within a distance threshold, and
+average deviation.
 
 ## Accuracy & limits
 

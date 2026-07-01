@@ -111,3 +111,6 @@ geospatial/streamlit-apps/.streamlit/.DS_Store
 
 .envrc
 .direnv
+
+# Cortex Code local plan files (not for version control)
+**/.snowflake/cortex/plans/

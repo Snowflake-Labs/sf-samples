@@ -26,6 +26,7 @@
 --   udfs/standardize_street.sql
 --   procedures/forward_geocode_table.sql
 --   procedures/reverse_geocode_table.sql
+--   procedures/evaluate_geocode.sql    (optional accuracy metrics)
 --   examples/*                         (optional smoke tests)
 -- ============================================================================
 
@@ -77,10 +78,14 @@ BEGIN
     FOR i IN 0 TO ARRAY_SIZE(candidates) - 1 DO
         candidate := GET(candidates, :i)::STRING;
         BEGIN
+            -- Coordinate validation: exclude rows with no geometry so every
+            -- downstream ST_DWITHIN / ST_DISTANCE call has a valid point to
+            -- match against (GEOGRAPHY already enforces valid lat/lon ranges).
             EXECUTE IMMEDIATE
                 'CREATE OR REPLACE VIEW GEOCODING.PUBLIC.OVERTURE_ADDRESS
                    COMMENT = ''oss-geocoding''
-                 AS SELECT * FROM ' || :candidate;
+                 AS SELECT * FROM ' || :candidate || '
+                    WHERE GEOMETRY IS NOT NULL';
             resolved := :candidate;
             BREAK;
         EXCEPTION
