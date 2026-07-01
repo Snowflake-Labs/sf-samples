@@ -42,10 +42,12 @@ OVERTURE_MAPS__ADDRESSES.CARTO.ADDRESS
 
 Columns: `ID, STREET, NUMBER, UNIT, POSTCODE, POSTAL_CITY, COUNTRY, GEOMETRY (GEOGRAPHY)`.
 
-> Some accounts expose this with a `DS_` prefix (`DS_OVERTURE_MAPS__ADDRESSES`).
-> The installer **auto-detects either name** and creates a stable view
-> `GEOCODING.PUBLIC.OVERTURE_ADDRESS` that every UDF and procedure reads, so you
-> never have to edit the physical share name.
+> The installer **auto-acquires** this listing (free, `GZT0Z4CM1E9NQ`) — no
+> manual Marketplace step. If a copy already exists under either
+> `OVERTURE_MAPS__ADDRESSES` or the `DS_`-prefixed name, it is reused. A stable
+> view `GEOCODING.PUBLIC.OVERTURE_ADDRESS` is created over whichever share
+> resolves, so you never edit the physical share name. No external access
+> integration is required by the solution.
 
 ## Install with Cortex Code (recommended)
 
@@ -63,8 +65,8 @@ bash .cortex/skills/install-geocoding/scripts/install_geocoding.sh \
   --connection <your-snow-connection> --intl
 ```
 
-The installer is idempotent (re-runnable), auto-detects the Overture share, and
-tags every object with `COMMENT = 'oss-geocoding'`. See
+The installer is idempotent (re-runnable), auto-acquires the Overture listing,
+and tags every object with `COMMENT = 'oss-geocoding'`. See
 [.cortex/skills/install-geocoding/SKILL.md](.cortex/skills/install-geocoding/SKILL.md).
 
 ## Quickstart (manual, US geocoding)

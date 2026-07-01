@@ -4,12 +4,27 @@ The geocoding solution reads a single Snowflake Marketplace share: the
 **Overture Maps "Addresses"** dataset published by **Carto**. No external
 geocoding APIs are used.
 
-## Acquiring the listing
+## Auto-acquisition (default)
+
+`sql/00_setup.sql` acquires the listing for you — no manual Marketplace step:
+
+```sql
+CALL SYSTEM$ACCEPT_LEGAL_TERMS('DATA_EXCHANGE_LISTING', 'GZT0Z4CM1E9NQ');
+CREATE DATABASE IF NOT EXISTS OVERTURE_MAPS__ADDRESSES FROM LISTING GZT0Z4CM1E9NQ;
+```
+
+- `GZT0Z4CM1E9NQ` is the free **Overture Maps - Addresses** (Carto) listing.
+- The call is wrapped so a region where the listing is not auto-fulfillable does
+  not abort setup; an already-installed copy (either name) is reused instead.
+- The acquiring role needs `CREATE DATABASE` / `IMPORT SHARE`.
+
+## Manual acquisition (fallback)
+
+If auto-acquisition isn't available in your region:
 
 1. In Snowsight: **Data Products -> Marketplace**, search **"Overture Maps
    Addresses"** (publisher: Carto), and **Get** it.
-2. It installs as a shared database. Depending on the account / how it was
-   imported, the database is named either:
+2. It installs as a shared database, named either:
    - `OVERTURE_MAPS__ADDRESSES` (no prefix), or
    - `DS_OVERTURE_MAPS__ADDRESSES` (some accounts add a `DS_` prefix).
 3. Grant your working role access if needed:

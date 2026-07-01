@@ -5,15 +5,20 @@
 -- No external geocoding APIs are used.
 --
 -- Prerequisites
---   1. Install the Overture Maps "Addresses" Marketplace listing (Carto).
---      It lands as a shared DB. Depending on the account it is exposed as
---      either OVERTURE_MAPS__ADDRESSES or DS_OVERTURE_MAPS__ADDRESSES. This
---      script auto-detects which one is present and creates a stable view
---      GEOCODING.PUBLIC.OVERTURE_ADDRESS over it, so the UDFs/procedures never
+--   1. The Overture Maps "Addresses" Marketplace listing (Carto). This script
+--      AUTO-ACQUIRES it from the Marketplace (free, auto-fulfilled) into the
+--      database OVERTURE_MAPS__ADDRESSES. If your account already has it under
+--      either OVERTURE_MAPS__ADDRESSES or DS_OVERTURE_MAPS__ADDRESSES, that copy
+--      is reused. Either way a stable view GEOCODING.PUBLIC.OVERTURE_ADDRESS is
+--      created over whichever share resolves, so the UDFs/procedures never
 --      hard-code the share name.
 --      Table columns: ID, STREET, NUMBER, UNIT, POSTCODE, POSTAL_CITY,
 --                     COUNTRY, GEOMETRY (GEOGRAPHY)
 --   2. A warehouse with enough compute (MEDIUM recommended for batch jobs).
+--
+-- External access integrations: NONE. All geocoding runs on Snowflake data +
+-- the shared PyPI repo (usaddress). The optional libpostal SPCS service bakes
+-- its models into the image at build time and makes no outbound calls.
 --
 -- Run order:
 --   00_setup.sql                       (this file)
@@ -31,6 +36,28 @@ CREATE SCHEMA   IF NOT EXISTS GEOCODING.PUBLIC
 
 USE DATABASE GEOCODING;
 USE SCHEMA   PUBLIC;
+
+-- ---------------------------------------------------------------------------
+-- Acquire the Overture Maps "Addresses" listing (best-effort, idempotent)
+-- ---------------------------------------------------------------------------
+-- Free CARTO/Overture listing, auto-fulfilled in most regions. No-op if the
+-- database already exists. Wrapped so a region where the listing is not
+-- auto-fulfillable does not abort setup — the detection block below then
+-- reports clear guidance if no share is reachable.
+EXECUTE IMMEDIATE $$
+BEGIN
+    CALL SYSTEM$ACCEPT_LEGAL_TERMS('DATA_EXCHANGE_LISTING', 'GZT0Z4CM1E9NQ');
+    EXECUTE IMMEDIATE
+        'CREATE DATABASE IF NOT EXISTS OVERTURE_MAPS__ADDRESSES FROM LISTING GZT0Z4CM1E9NQ';
+    RETURN 'Overture Addresses listing acquired (or already present).';
+EXCEPTION
+    WHEN OTHER THEN
+        RETURN 'Could not auto-acquire the Overture Addresses listing '
+            || '(' || SQLERRM || '). If a copy is already installed it will '
+            || 'still be used; otherwise acquire "Overture Maps - Addresses" '
+            || '(Carto) from the Marketplace and re-run.';
+END;
+$$;
 
 -- ---------------------------------------------------------------------------
 -- Overture share indirection

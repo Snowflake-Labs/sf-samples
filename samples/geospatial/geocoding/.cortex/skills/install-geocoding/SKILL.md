@@ -37,19 +37,30 @@ Every object carries `COMMENT = 'oss-geocoding'` and installs under
 
 ## Prerequisites
 
-- **Snowflake CLI** (`snow`) with an active connection whose role can create
-  databases, schemas, functions, and procedures. Verify: `snow connection list`.
-- The **Overture Maps "Addresses" (Carto)** Marketplace listing installed in the
-  account. It lands as `OVERTURE_MAPS__ADDRESSES` or `DS_OVERTURE_MAPS__ADDRESSES`
-  — the installer auto-detects either. See `references/overture-share.md`.
+- **Snowflake CLI** (`snow`) with an active connection whose role can **create
+  databases from a listing** (`IMPORT SHARE` / `CREATE DATABASE`), plus create
+  schemas, functions, and procedures. Verify: `snow connection list`.
+- The **Overture Maps "Addresses" (Carto)** Marketplace listing — the installer
+  **auto-acquires** it (free, listing `GZT0Z4CM1E9NQ`) and reuses an existing
+  copy under either `OVERTURE_MAPS__ADDRESSES` or `DS_OVERTURE_MAPS__ADDRESSES`.
+  See `references/overture-share.md`.
 - **Only for `--intl`:** Docker or Podman (amd64 image build) plus privileges to
   create an image repository, compute pool, and service. See `references/libpostal-spcs.md`.
+
+## External access integrations
+
+**None required.** All geocoding runs on Snowflake-resident data plus the shared
+PyPI repository (`usaddress`, via `snowflake.snowpark.pypi_shared_repository`).
+The optional libpostal SPCS service bakes its ~2 GB models into the container
+image at build time and makes no outbound network calls, so it needs no external
+access integration or network rule.
 
 ## Workflow
 
 ### Step 1: Preflight
 
-**Goal:** confirm the tools, connection, and data source.
+**Goal:** confirm the tools and connection. The Overture share is acquired
+automatically in Step 2, so no manual Marketplace step is needed up front.
 
 1. **Check** the CLI and connection:
    ```bash
@@ -57,19 +68,17 @@ Every object carries `COMMENT = 'oss-geocoding'` and installs under
    snow connection list
    snow sql -c <connection> -q "SELECT CURRENT_ACCOUNT(), CURRENT_ROLE();"
    ```
-2. **Detect** the Overture share (either name is fine):
+2. **(Optional)** see whether an Overture Addresses share is already present
+   (either name is fine; the installer also auto-acquires it):
    ```bash
    snow sql -c <connection> -q "SHOW DATABASES LIKE '%OVERTURE_MAPS__ADDRESSES%';"
    ```
-   **If neither is present:** guide the user to acquire the "Overture Maps -
-   Addresses" (Carto) listing from the Snowflake Marketplace, then re-run. Do not
-   proceed without it — `00_setup.sql` will fail its sanity check.
 
-**Output:** environment confirmed, share resolved.
+**Output:** environment confirmed.
 
 ### Step 2: Install (core: US forward + worldwide reverse)
 
-**Goal:** deploy the `GEOCODING.PUBLIC` objects.
+**Goal:** acquire the Overture listing and deploy the `GEOCODING.PUBLIC` objects.
 
 ```bash
 bash .cortex/skills/install-geocoding/scripts/install_geocoding.sh \
@@ -77,9 +86,14 @@ bash .cortex/skills/install-geocoding/scripts/install_geocoding.sh \
 ```
 
 The orchestrator runs the SQL modules in order in a single tagged session:
-`sql/00_setup.sql` (DB/schema + `OVERTURE_ADDRESS` view + sanity check) ->
+`sql/00_setup.sql` (DB/schema + **auto-acquires the Overture Addresses listing**
+`GZT0Z4CM1E9NQ`, then builds the `OVERTURE_ADDRESS` view + sanity check) ->
 `sql/udfs/*` -> `sql/procedures/*`. Idempotent (`CREATE OR REPLACE` / `IF NOT
 EXISTS`); safe to re-run.
+
+**If the listing can't be auto-acquired** (e.g. not auto-fulfilled in your
+region), `00_setup.sql` reports guidance and the sanity check fails — acquire
+"Overture Maps - Addresses" (Carto) from the Marketplace manually, then re-run.
 
 **Output:** forward + reverse geocoding ready in `GEOCODING.PUBLIC`.
 
@@ -124,8 +138,9 @@ Confirm the smoke tests return matches. The first `PARSE_ADDRESS` call is slow
 
 ## Stopping Points
 
-- ✋ After Step 1 if the Overture share is not installed (acquire it first).
 - ✋ Before Step 3 (`--intl`) — heavy image build + always-warm service cost.
+- ✋ If the Overture listing cannot be auto-acquired in your region — acquire it
+  manually from the Marketplace, then re-run.
 
 ## Usage after install
 
@@ -150,9 +165,10 @@ coverage gaps exist. For routing-grade accuracy use a partner solution
 
 ## Troubleshooting
 
-- **`00_setup.sql` sanity check returns 0 / errors:** the Overture share isn't
-  installed or your role can't see it. Acquire the Carto "Addresses" listing and
-  grant `IMPORTED PRIVILEGES` to your role.
+- **`00_setup.sql` sanity check returns 0 / errors:** the Overture listing
+  couldn't be auto-acquired (region not auto-fulfilled) or your role lacks
+  `CREATE DATABASE` / `IMPORT SHARE`. Acquire the Carto "Addresses" listing
+  manually and grant `IMPORTED PRIVILEGES` to your role, then re-run.
 - **`PARSE_ADDRESS` first call slow / times out:** the shared PyPI `usaddress`
   package is installing; retry once it warms.
 - **`--intl` build fails on ARM Mac:** ensure `--platform linux/amd64`; Podman may
