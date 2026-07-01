@@ -1,0 +1,5 @@
+# Build / deploy artifacts (regenerable)
+libpostal_service/*.log
+
+# OS / editor cruft
+.DS_Store

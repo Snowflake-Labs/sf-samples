@@ -1,0 +1,18 @@
+spec:
+  containers:
+    - name: libpostal
+      image: /GEOCODING/PUBLIC/IMAGE_REPOSITORY/libpostal:latest
+      readinessProbe:
+        port: 8080
+        path: /healthcheck
+      resources:
+        requests:
+          memory: 2Gi
+          cpu: 1000m
+        limits:
+          memory: 4Gi
+          cpu: 2000m
+  endpoints:
+    - name: api
+      port: 8080
+      public: false
