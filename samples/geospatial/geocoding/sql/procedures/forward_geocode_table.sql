@@ -22,7 +22,9 @@
 --   also rescues near-misses that the substring LIKE filter would drop.
 --
 -- Output columns: input_id, raw_address, result_number, result_street,
---   result_city, result_zip, result_lat, result_lon, street_sim, edit_dist
+--   result_city, result_zip, result_geog (GEOGRAPHY), street_sim, edit_dist
+--   result_geog is the matched Overture GEOMETRY point. Use ST_X()/ST_Y() if you
+--   need lon/lat back; pass result_geog straight into EVALUATE_GEOCODE.
 --
 -- Example:
 --   CALL GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(
@@ -70,8 +72,7 @@ BEGIN
                 a.STREET      AS result_street,
                 a.POSTAL_CITY AS result_city,
                 a.POSTCODE    AS result_zip,
-                ST_Y(a.GEOMETRY) AS result_lat,
-                ST_X(a.GEOMETRY) AS result_lon,
+                a.GEOMETRY    AS result_geog,
                 JAROWINKLER_SIMILARITY(UPPER(a.STREET), UPPER(p.street_std)) AS street_sim,
                 EDITDISTANCE(UPPER(a.STREET), UPPER(p.street_std)) AS edit_dist,
                 ROW_NUMBER() OVER (
@@ -91,7 +92,7 @@ BEGIN
               AND (p.zip IS NOT NULL OR p.city IS NOT NULL)
         )
         SELECT input_id, raw_address, result_number, result_street, result_city,
-               result_zip, result_lat, result_lon, street_sim, edit_dist
+               result_zip, result_geog, street_sim, edit_dist
         FROM matched
         WHERE rn = 1';
 

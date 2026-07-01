@@ -25,8 +25,11 @@
 --   Within each pass, ST_DISTANCE ranks candidates and ROW_NUMBER keeps the
 --   single closest address per point.
 --
--- Output columns: input_id, input_lat, input_lon, full_address, result_city,
---   result_zip, result_country, result_lat, result_lon, distance_m
+-- Output columns: input_id, input_geog (GEOGRAPHY), full_address, result_city,
+--   result_zip, result_country, result_geog (GEOGRAPHY), distance_m
+--   input_geog and result_geog are GEOGRAPHY points (built with ST_POINT for the
+--   input, the Overture GEOMETRY for the result). Use ST_X()/ST_Y() if you need
+--   lon/lat back.
 --
 -- Example (US only):
 --   CALL GEOCODING.PUBLIC.REVERSE_GEOCODE_TABLE(
@@ -62,18 +65,18 @@ BEGIN
     END IF;
 
     -- Create the output table with the correct schema but no data (LIMIT 0).
+    -- Points are GEOGRAPHY: input_geog is built once via ST_POINT(lon, lat),
+    -- result_geog is the Overture GEOMETRY.
     EXECUTE IMMEDIATE '
         CREATE OR REPLACE TABLE ' || OUTPUT_TABLE || ' AS
         SELECT
             t1.' || ID_COLUMN || '        AS input_id,
-            t1.' || LAT_COLUMN || '::FLOAT AS input_lat,
-            t1.' || LON_COLUMN || '::FLOAT AS input_lon,
+            ST_POINT(t1.' || LON_COLUMN || '::FLOAT, t1.' || LAT_COLUMN || '::FLOAT) AS input_geog,
             CONCAT_WS('' '', a.NUMBER, a.STREET) AS full_address,
             a.POSTAL_CITY                  AS result_city,
             a.POSTCODE                     AS result_zip,
             a.COUNTRY                      AS result_country,
-            ST_Y(a.GEOMETRY)               AS result_lat,
-            ST_X(a.GEOMETRY)               AS result_lon,
+            a.GEOMETRY                     AS result_geog,
             0.0::FLOAT                     AS distance_m
         FROM ' || SOURCE_TABLE || ' t1, GEOCODING.PUBLIC.OVERTURE_ADDRESS a
         LIMIT 0';
@@ -88,8 +91,7 @@ BEGIN
             INSERT INTO ' || OUTPUT_TABLE || '
             WITH remaining AS (
                 SELECT s.' || ID_COLUMN || '  AS input_id,
-                       s.' || LAT_COLUMN || '::FLOAT AS input_lat,
-                       s.' || LON_COLUMN || '::FLOAT AS input_lon
+                       ST_POINT(s.' || LON_COLUMN || '::FLOAT, s.' || LAT_COLUMN || '::FLOAT) AS input_geog
                 FROM ' || SOURCE_TABLE || ' s
                 WHERE NOT EXISTS (
                     SELECT 1 FROM ' || OUTPUT_TABLE || ' o
@@ -99,29 +101,24 @@ BEGIN
             ranked AS (
                 SELECT
                     r.input_id,
-                    r.input_lat,
-                    r.input_lon,
+                    r.input_geog,
                     CONCAT_WS('' '', a.NUMBER, a.STREET) AS full_address,
                     a.POSTAL_CITY AS result_city,
                     a.POSTCODE    AS result_zip,
                     a.COUNTRY     AS result_country,
-                    ST_Y(a.GEOMETRY) AS result_lat,
-                    ST_X(a.GEOMETRY) AS result_lon,
-                    ROUND(ST_DISTANCE(a.GEOMETRY,
-                        TO_GEOGRAPHY(''POINT('' || r.input_lon || '' '' || r.input_lat || '')'')), 1) AS distance_m,
+                    a.GEOMETRY    AS result_geog,
+                    ROUND(ST_DISTANCE(a.GEOMETRY, r.input_geog), 1) AS distance_m,
                     ROW_NUMBER() OVER (
                         PARTITION BY r.input_id
-                        ORDER BY ST_DISTANCE(a.GEOMETRY,
-                            TO_GEOGRAPHY(''POINT('' || r.input_lon || '' '' || r.input_lat || '')''))
+                        ORDER BY ST_DISTANCE(a.GEOMETRY, r.input_geog)
                     ) AS rn
                 FROM remaining r
                 JOIN GEOCODING.PUBLIC.OVERTURE_ADDRESS a
-                  ON ST_DWITHIN(a.GEOMETRY,
-                        TO_GEOGRAPHY(''POINT('' || r.input_lon || '' '' || r.input_lat || '')''), ' || eff || ')'
+                  ON ST_DWITHIN(a.GEOMETRY, r.input_geog, ' || eff || ')'
                   || country_pred || '
             )
-            SELECT input_id, input_lat, input_lon, full_address, result_city, result_zip,
-                   result_country, result_lat, result_lon, distance_m
+            SELECT input_id, input_geog, full_address, result_city, result_zip,
+                   result_country, result_geog, distance_m
             FROM ranked
             WHERE rn = 1';
 

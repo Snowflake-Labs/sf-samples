@@ -23,18 +23,31 @@ Notes that matter when editing or debugging the geocoding SQL.
 
 ## Reverse matching (worldwide)
 
+- The input point is built once per row as a `GEOGRAPHY` with
+  `ST_POINT(lon, lat)` in the `remaining` CTE and reused for `ST_DWITHIN`,
+  `ST_DISTANCE`, and the `ROW_NUMBER` ordering. Do not rebuild it inline with
+  `TO_GEOGRAPHY('POINT(...)')` string concatenation — that is slower (constructed
+  3x) and reintroduces WKT escaping issues inside the dollar-quoted body.
 - `ST_DWITHIN(GEOMETRY, point, RADIUS_METERS)` filters candidates; `ST_DISTANCE`
   ranks; `ROW_NUMBER` dedups to the single closest. `RADIUS_METERS` is required
   (no default) — too large a radius scans more rows and slows the query.
 - `COUNTRY` is optional: NULL / '' / 'ALL' searches worldwide; otherwise it adds
   `AND a.COUNTRY = '<ISO>'`.
 
+## GEOGRAPHY-only output contract
+
+- Both procedures output `GEOGRAPHY` columns, not FLOAT lat/lon:
+  `FORWARD_GEOCODE_TABLE` -> `result_geog`; `REVERSE_GEOCODE_TABLE` ->
+  `input_geog` + `result_geog`. `ST_POINT(lon, lat)` takes longitude first.
+- To surface coordinates use `ST_X(geog)` (lon) / `ST_Y(geog)` (lat). Pass
+  `result_geog` straight into `EVALUATE_GEOCODE` — no `ST_POINT` wrapping needed.
+
 ## Dynamic SQL in the procedures
 
 - Both procs build the result query with `EXECUTE IMMEDIATE` string
   concatenation. Inside the dollar-quoted body, literal single quotes are
-  doubled (`''...''`) and `TO_GEOGRAPHY('POINT(...)')` is assembled from the
-  point columns — preserve that escaping when editing.
+  doubled (`''...''`). The point is assembled with `ST_POINT(lon_col, lat_col)`
+  from the source columns (no nested WKT quoting) — preserve that when editing.
 - Row count is read back via `RESULT_SCAN(LAST_QUERY_ID())`.
 
 ## Performance

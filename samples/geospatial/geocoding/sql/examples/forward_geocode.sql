@@ -51,7 +51,7 @@ SELECT
     f.raw_address, f.street_std AS input_street_standardized,
     a.NUMBER AS result_number, a.STREET AS result_street,
     a.POSTAL_CITY AS result_city, a.POSTCODE AS result_zip,
-    ST_Y(a.GEOMETRY) AS result_lat, ST_X(a.GEOMETRY) AS result_lon,
+    a.GEOMETRY AS result_geog, ST_ASWKT(a.GEOMETRY) AS result_wkt,
     EDITDISTANCE(UPPER(a.STREET), UPPER(f.street_std)) AS edit_dist
 FROM fields f
 JOIN GEOCODING.PUBLIC.OVERTURE_ADDRESS a
@@ -76,4 +76,12 @@ INSERT INTO _demo_addresses VALUES
 CALL FORWARD_GEOCODE_TABLE(
     '_demo_addresses', 'address', 'id', '_demo_addresses_geocoded');
 
-SELECT * FROM _demo_addresses_geocoded ORDER BY input_id;
+-- result_geog is a GEOGRAPHY point; ST_X/ST_Y recover lon/lat for display.
+SELECT
+    input_id, raw_address, result_number, result_street, result_city, result_zip,
+    result_geog,
+    ST_Y(result_geog) AS result_lat,
+    ST_X(result_geog) AS result_lon,
+    street_sim, edit_dist
+FROM _demo_addresses_geocoded
+ORDER BY input_id;

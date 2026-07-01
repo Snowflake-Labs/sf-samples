@@ -19,8 +19,11 @@
 --   total_rows, matched, unmatched, match_rate_pct, threshold_meters,
 --   within_threshold_count, within_threshold_pct (of matched), avg_distance_m
 --
--- Tip: if your result table stores lat/lon as separate FLOAT columns, wrap them
--- first, e.g.:
+-- Tip: FORWARD_GEOCODE_TABLE and REVERSE_GEOCODE_TABLE now emit a GEOGRAPHY
+-- result_geog column, so you can pass it straight in with no wrapping:
+--   CALL EVALUATE_GEOCODE('MY_DB.PUBLIC.GEOCODED', 'ACTUAL_GEOG', 'RESULT_GEOG');
+-- For a legacy table that still stores lat/lon as separate FLOAT columns, wrap
+-- them into GEOGRAPHY first (ST_POINT takes lon, lat):
 --   SELECT ST_POINT(actual_lon, actual_lat)   AS actual_g,
 --          ST_POINT(result_lon, result_lat)   AS geocoded_g
 --   FROM my_geocoded_table;

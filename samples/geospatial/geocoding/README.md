@@ -114,12 +114,26 @@ prefix-weighted) with `EDITDISTANCE` as a tiebreak.
 **Reverse** = iterative expanding-radius search: start at 10 m and double each
 pass (up to the `RADIUS_METERS` cap), only re-processing points not yet matched.
 Dense-area points resolve in the first cheap pass; sparse points escalate to a
-wider search. Within each pass `ST_DWITHIN` filters, `ST_DISTANCE` ranks, and
-`ROW_NUMBER` keeps the closest address. Optional country filter.
+wider search. The input point is built once as a `GEOGRAPHY` with
+`ST_POINT(lon, lat)`; within each pass `ST_DWITHIN` filters, `ST_DISTANCE` ranks,
+and `ROW_NUMBER` keeps the closest address. Optional country filter.
 
 **Evaluate** (optional) = `EVALUATE_GEOCODE` compares actual vs geocoded points
 with `ST_DISTANCE` and returns match rate, % within a distance threshold, and
 average deviation.
+
+## GEOGRAPHY is first class
+
+Location is represented as Snowflake `GEOGRAPHY` end to end — never flattened to
+FLOAT lat/lon. Both procedures emit a `GEOGRAPHY` column:
+
+- `FORWARD_GEOCODE_TABLE` -> `result_geog` (the matched Overture point).
+- `REVERSE_GEOCODE_TABLE` -> `input_geog` (the query point, built with
+  `ST_POINT`) and `result_geog` (the nearest Overture point).
+
+These columns drop straight into any spatial function or map layer, and feed
+`EVALUATE_GEOCODE` with no wrapping. Recover coordinates with
+`ST_X(geog)` (longitude) / `ST_Y(geog)` (latitude) when you need them.
 
 ## Accuracy & limits
 
