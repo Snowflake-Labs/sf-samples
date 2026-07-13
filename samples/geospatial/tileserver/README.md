@@ -36,6 +36,45 @@ public.features_mvt(z,x,y)  ==========>  Martin service (SPCS)  <=============
                        /catalog   /features_mvt/{z}/{x}/{y}   /features_pmt/{z}/{x}/{y}
 ```
 
+## What the tile server does
+
+The server is a single [**Martin**](https://github.com/maplibre/martin) instance
+running as a Snowpark Container Services (SPCS) service with a public ingress. Martin
+is a high-performance open-source tile server (written in Rust) that turns spatial
+data into [Mapbox Vector Tiles (MVT)](https://github.com/mapbox/vector-tile-spec) and
+serves them over HTTP. In this demo it drives two of the three arms from one process:
+
+- **Function sources (arm 1).** Martin connects to Snowflake Postgres + PostGIS and
+  auto-discovers the `public.features_mvt(z,x,y)` function, publishing it at
+  `/features_mvt/{z}/{x}/{y}`. Each request runs `ST_AsMVT` live, so any edit to the
+  underlying table is reflected on the very next tile fetch.
+- **PMTiles sources (arm 2).** Martin mounts the precomputed `features_pmt.pmtiles`
+  archive (baked with tippecanoe) from a Snowflake stage and serves it at
+  `/features_pmt/{z}/{x}/{y}` - fast and static, refreshed only when re-baked.
+
+It also exposes a `/catalog` of available sources, per-source
+[TileJSON](https://github.com/mapbox/tilejson-spec), and a built-in **Web UI viewer**
+(`--webui enable-for-all`) whose *Inspect Tile Source* page renders arms 1 and 2 over
+a basemap. Arm 3 needs no server at all - it is rendered entirely client-side from the
+exported `h3.json`.
+
+## Open-source components
+
+Everything the demo runs on is open source:
+
+| Component | Role in the demo | License |
+|---|---|---|
+| [Martin](https://github.com/maplibre/martin) | The tile server itself: serves MVT from PostGIS function sources and mounts the PMTiles archive; provides `/catalog`, TileJSON, and the Web UI | MIT / Apache-2.0 |
+| [PostGIS](https://postgis.net/) | Spatial extension on Snowflake Postgres; generates the dynamic tiles via `ST_AsMVT` / `ST_AsMVTGeom` (arm 1) | GPL-2.0 |
+| [tippecanoe](https://github.com/felt/tippecanoe) (felt fork) | Bakes the precomputed vector-tile pyramid (MBTiles) from GeoJSONL (arm 2); built from source in a container | BSD-2-Clause |
+| [PMTiles](https://github.com/protomaps/PMTiles) | Single-file, cloud-optimized tile archive format the pyramid is converted to and served from | BSD-3-Clause |
+| [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js) | Renders vector tiles + basemap in Martin's Web UI | BSD-3-Clause |
+| [deck.gl](https://github.com/visgl/deck.gl) | Client-side `H3HexagonLayer` used by the tile-free arm 3 viewer | MIT |
+
+Snowflake-native pieces (not OSS libraries but worth noting): **Snowflake Postgres**
+hosts PostGIS, **SPCS** runs the Martin container, and core-Snowflake **H3** functions
+(`H3_POINT_TO_CELL_STRING`) power arm 3.
+
 ## Prerequisites
 
 Preflight checks all of these and **fails fast, before any billable infra**, if one
@@ -57,12 +96,31 @@ is missing:
 
 Set `export SNOWFLAKE_CLI_NO_UPDATE_CHECK=true` to silence CLI update prompts.
 
-## Quick start
+## Install it via the skill
+
+The entire stack is packaged as a **Cortex Code skill** (`deploy-tileserver`) - a
+self-contained bundle of the orchestrator script, provisioners, SQL, the SPCS service
+spec, the tippecanoe Dockerfile, and reference docs, all under
+`.cortex/skills/deploy-tileserver/`. The skill is idempotent and self-owning: it
+**detect-reuse-else-creates** every object it needs (Snowflake Postgres + PostGIS, the
+SPCS image repo / compute pool / stages / secret / EAIs, and the Martin service), so
+one command takes you from an empty account to a live tile server, and one command
+tears it back down.
+
+Two ways to run it:
+
+- **From Cortex Code:** invoke the `deploy-tileserver` skill and give it your Snow CLI
+  connection name; it walks the same layers described below.
+- **Directly from a shell:**
 
 ```bash
 # US-scoped, all three arms, from scratch (creates a billable Postgres instance):
 bash .cortex/skills/deploy-tileserver/scripts/install_tileserver.sh --connection <connection>
 ```
+
+The installer runs these layers in order, reusing anything that already exists:
+`0 preflight -> 1 Postgres + PostGIS -> 2 SPCS infra -> 3 data sync -> 4 MVT function
+-> 5 Martin image -> 6 PMTiles bake -> 7 service -> 8 verify`.
 
 On success it prints the public ingress URL. Open it for the Martin Web UI, or fetch
 tiles directly from `/features_mvt/{z}/{x}/{y}` and `/features_pmt/{z}/{x}/{y}`.
