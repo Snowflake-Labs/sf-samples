@@ -308,5 +308,54 @@ ELAPSED=$(( $(date +%s) - START_TS ))
 } > "$FRICTION_LOG"
 
 note "done in ${ELAPSED}s. friction log: $FRICTION_LOG"
-[ -n "$INGRESS" ] && note "Martin Web UI (viewer) + tiles: $INGRESS"
-note "sources to expect at the ingress: /catalog, /features_mvt/{z}/{x}/{y}, /features_pmt/{z}/{x}/{y}"
+
+# ── customer-facing readiness banner + next steps ────────────────
+# The whole point of the install: hand the operator the app URL and tell them
+# what to do with it. Printed last so it is the final thing on screen.
+H3_SCRIPT=".cortex/skills/deploy-tileserver/scripts/export_h3.py"
+TEARDOWN=".cortex/skills/deploy-tileserver/scripts/teardown_tileserver.sh"
+BAR="============================================================"
+echo ""
+echo "$BAR"
+if [ "$VERIFY_OK" = "1" ]; then
+  echo "  Your Snowflake tile server is READY"
+else
+  echo "  Tile server installed WITH WARNINGS (see the steps above)"
+fi
+echo "$BAR"
+if [ -n "$INGRESS" ]; then
+  echo "  App URL:  $INGRESS"
+  echo ""
+  echo "  What to do next:"
+  echo "   1. Open the App URL in a browser and sign in with your Snowflake"
+  echo "      credentials when prompted (the endpoint is auth-gated)."
+  echo "   2. In Martin's Web UI, open \"Inspect Tile Source\" and pick a source:"
+  echo "        features_mvt  - arm 1, dynamic ST_AsMVT, live from PostGIS"
+  echo "        features_pmt  - arm 2, precomputed PMTiles"
+  echo "      Then pan/zoom over the US to see the polygons on the basemap."
+  echo "   3. Fetch tiles directly (same host):"
+  echo "        $INGRESS/catalog"
+  echo "        $INGRESS/features_mvt/{z}/{x}/{y}"
+  echo "        $INGRESS/features_pmt/{z}/{x}/{y}"
+  echo "   4. Arm 3 (H3, tile-free, no server): generate the data, then open the viewer:"
+  echo "        SNOWFLAKE_CONNECTION=$CONNECTION python3 $H3_SCRIPT"
+  echo "        open viewer/index.html   (renders a deck.gl H3 layer from viewer/h3.json)"
+else
+  echo "  App URL: not resolved yet - the public endpoint is still provisioning"
+  echo "  (this can take a few minutes after the service reaches RUNNING)."
+  echo ""
+  echo "  Get the URL once it is ready, then follow the steps below:"
+  echo "     snow sql -c $CONNECTION -q \"SHOW ENDPOINTS IN SERVICE TILESERVER.CORE.MARTIN;\""
+  echo ""
+  echo "  What to do next (once the URL resolves):"
+  echo "   1. Open the URL in a browser and sign in with your Snowflake credentials."
+  echo "   2. In Martin's Web UI, open \"Inspect Tile Source\" and pick features_mvt"
+  echo "      (arm 1, live) or features_pmt (arm 2, precomputed); pan/zoom over the US."
+  echo "   3. Tiles are served at /catalog, /features_mvt/{z}/{x}/{y}, /features_pmt/{z}/{x}/{y}."
+  echo "   4. Arm 3 (H3, no server): SNOWFLAKE_CONNECTION=$CONNECTION python3 $H3_SCRIPT"
+  echo "      then open viewer/index.html locally."
+fi
+echo ""
+echo "  When you are done, tear it down (stops billing incl. the Postgres instance):"
+echo "     bash $TEARDOWN --connection $CONNECTION --drop-pg"
+echo "$BAR"

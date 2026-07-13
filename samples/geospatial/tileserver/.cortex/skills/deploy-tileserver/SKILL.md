@@ -60,6 +60,26 @@ The orchestrator runs these layers in order (detect-and-reuse-else-create throug
 7. **Service** - renders `spcs/martin_service.yaml.tmpl`, uploads it, and `CREATE`/`ALTER`s `TILESERVER.CORE.MARTIN` with both EAIs and the Web UI. See `references/viewer.md`.
 8. **Verify** - checks `features_mvt(0,0,0)` length and prints the public ingress URL.
 
+## After a successful install (what to hand the user)
+
+The installer ends with a `====` banner containing the **App URL** (the public
+ingress) and numbered next steps. Always relay that to the user - lead with the URL,
+then the steps. If running this skill for someone, your closing message should mirror
+the banner:
+
+1. **App URL** - the `https://<host>.snowflakecomputing.app` ingress the installer
+   printed. Open it and sign in with Snowflake credentials (the endpoint is auth-gated).
+2. In Martin's **Web UI**, open *Inspect Tile Source* and pick `features_mvt` (arm 1,
+   live `ST_AsMVT`) or `features_pmt` (arm 2, precomputed PMTiles); pan/zoom over the US.
+3. Tiles are served at `/catalog`, `/features_mvt/{z}/{x}/{y}`, `/features_pmt/{z}/{x}/{y}`.
+4. **Arm 3 (H3, no server):** `SNOWFLAKE_CONNECTION=<conn> python3 scripts/export_h3.py`,
+   then open `viewer/index.html` locally for the deck.gl H3 layer.
+5. Remind them to **tear down** when done (billing): `teardown_tileserver.sh --connection <conn> --drop-pg`.
+
+If the banner shows the URL as "not resolved yet", the endpoint is still provisioning
+(a few minutes after RUNNING); tell the user to re-fetch it with
+`SHOW ENDPOINTS IN SERVICE TILESERVER.CORE.MARTIN;` and then follow the same steps.
+
 ## Configuration
 
 | Parameter | Default | Purpose |
