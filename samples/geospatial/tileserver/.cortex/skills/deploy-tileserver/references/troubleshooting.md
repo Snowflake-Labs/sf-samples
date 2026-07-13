@@ -45,3 +45,23 @@ Intermittent with `docker push`. Retry; if it recurs, log in fresh with
 
 `snow` >= 3.x has no `plain` output format (valid: TABLE / JSON / JSON_EXT / CSV).
 The orchestrator's `obj_exists` probe uses `--format=CSV` and greps the rows.
+
+## Teardown: `Cannot drop database ... network rule - policy associations`
+
+`DROP DATABASE TILESERVER` fails while the in-schema `PG_INGRESS` network rule is
+still referenced by `TILESERVER_PG_POLICY` (attached to the Postgres instance).
+Order: (1) drop the Postgres instance, (2) empty/detach the policy
+(`ALTER NETWORK POLICY TILESERVER_PG_POLICY SET ALLOWED_NETWORK_RULE_LIST=()`),
+(3) `DROP NETWORK POLICY`, (4) `DROP DATABASE`.
+
+## Teardown: `DROP POSTGRES INSTANCE` reports "does not exist" but SHOW still lists it
+
+The instance name may be a case-sensitive quoted lowercase identifier. Unquoted
+`DROP POSTGRES INSTANCE geospatial` uppercases to `GEOSPATIAL` and misses it. Use
+the quoted form: `DROP POSTGRES INSTANCE "geospatial";`.
+
+## `parse_column_keys: no geometry column found` during PostGIS setup
+
+Do not smoke-test PostGIS by calling `ST_AsMVT` over a row without a geometry
+column - it raises this error. Verify the extension with `postgis_full_version()`
+and check the MVT functions exist in `pg_proc` instead.

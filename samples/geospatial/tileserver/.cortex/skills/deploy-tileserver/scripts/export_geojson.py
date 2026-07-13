@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Export Overture countries+regions as newline-delimited GeoJSON for tippecanoe.
+"""Export the owned SOURCE_FEATURES snapshot as newline-delimited GeoJSON for tippecanoe.
 
-Reads from core Snowflake. Writes a GeoJSONL file (one GeoJSON Feature per line)
-that tippecanoe bakes into PMTiles - no per-tile DB queries needed.
+Reads the fixed-schema snapshot built by build_source_snapshot.py
+(TILESERVER.CORE.SOURCE_FEATURES by default; override with SNAPSHOT_TABLE). Writes
+a GeoJSONL file (one GeoJSON Feature per line) that tippecanoe bakes into PMTiles -
+no per-tile DB queries needed.
 
 Portable: Snowflake connection is the SNOWFLAKE_CONNECTION env var (active `snow`
-CLI connection; falls back to the default connection). SOURCE_TABLE and optional
-COUNTRY narrow the export. Nothing account-specific is hardcoded.
+CLI connection; falls back to the default connection). Reading the owned snapshot
+(not the raw share) keeps this dataset-agnostic and immune to a mid-run share
+lapse; the snapshot is already COUNTRY-scoped.
 """
 import json
 import os
@@ -15,10 +18,7 @@ import sys
 import snowflake.connector
 
 OUT = os.environ.get("OUT", "viewer/features_full.geojsonl")
-SOURCE_TABLE = os.environ.get("SOURCE_TABLE", "OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION_AREA")
-COUNTRY = os.environ.get("COUNTRY", "")  # e.g. 'US' to filter to one country
-
-_country_clause = f"AND COUNTRY = '{COUNTRY}'" if COUNTRY else ""
+SNAPSHOT_TABLE = os.environ.get("SNAPSHOT_TABLE", "TILESERVER.CORE.SOURCE_FEATURES")
 
 # Per-subtype minimum zoom so tiles stay light: coarse levels show only when
 # zoomed out, fine levels appear on zoom-in. tippecanoe honors feature.tippecanoe.minzoom.
@@ -35,15 +35,9 @@ SUBTYPE_MINZOOM = {
 }
 
 QUERY = f"""
-SELECT
-  DIVISION_ID,
-  NAMES:primary::string AS name,
-  SUBTYPE,
-  COUNTRY,
-  ADMIN_LEVEL,
-  ST_ASGEOJSON(GEOMETRY) AS gj
-FROM {SOURCE_TABLE}
-WHERE GEOMETRY IS NOT NULL {_country_clause}
+SELECT division_id, name, subtype, country, admin_level, gj
+FROM {SNAPSHOT_TABLE}
+WHERE gj IS NOT NULL
 """
 
 

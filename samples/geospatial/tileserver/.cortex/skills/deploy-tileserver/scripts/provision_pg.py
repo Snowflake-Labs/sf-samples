@@ -79,23 +79,64 @@ def pgpass_lookup(host):
     return None
 
 
+def _row_for(rows, name):
+    for r in rows:
+        if str(r.get("name", "")).upper() == name.upper():
+            return r
+    return None
+
+
 def wait_ready(connection, name, timeout_s=1800):
+    # Poll SHOW (reliable lowercase "state" column) rather than DESCRIBE, whose
+    # row shape can omit "state" and crash a naive .get(...).upper().
     deadline = time.time() + timeout_s
     while time.time() < deadline:
-        rows = snow_json(connection, f"DESCRIBE POSTGRES INSTANCE {name};")
-        state = (rows[0].get("state") if rows else "").upper()
-        print(f"  instance {name} state={state}", flush=True)
+        rows = snow_json(connection, "SHOW POSTGRES INSTANCES;")
+        row = _row_for(rows, name)
+        state = (str(row.get("state")) if row and row.get("state") else "").upper()
+        print(f"  instance {name} state={state or '(pending)'}", flush=True)
         if state == "READY":
-            return rows[0]
+            return row
         time.sleep(20)
     raise SystemExit(f"instance {name} did not reach READY within {timeout_s}s")
 
 
+def _extract_admin_pw(access):
+    """Pull the snowflake_admin password out of the CREATE access_roles column,
+    tolerating string/dict/list shapes."""
+    if not access:
+        return None
+    blob = access
+    if isinstance(blob, str):
+        try:
+            blob = json.loads(blob)
+        except json.JSONDecodeError:
+            return None
+    if isinstance(blob, dict):
+        admin = blob.get("snowflake_admin") or blob.get("SNOWFLAKE_ADMIN")
+        # access_roles maps role name directly to the password string, e.g.
+        #   {"application": "<pw>", "snowflake_admin": "<pw>"}
+        if isinstance(admin, str):
+            return admin
+        if isinstance(admin, dict):
+            return admin.get("password") or admin.get("PASSWORD")
+        if "password" in blob:
+            return blob.get("password")
+    if isinstance(blob, list):
+        for item in blob:
+            if isinstance(item, dict) and str(item.get("role", "")).lower() == "snowflake_admin":
+                return item.get("password") or item.get("PASSWORD")
+    return None
+
+
 def create_instance(connection, name):
     print(f"Creating Postgres instance {name} (STANDARD, billable) ...", flush=True)
+    # STANDARD_M is the smallest general-purpose family available on AWS
+    # (BURST_* is Azure-only; bare 'STANDARD' is not a valid family).
+    compute_family = os.environ.get("PG_COMPUTE_FAMILY", "STANDARD_M")
     sql = (
         f"CREATE POSTGRES INSTANCE {name} "
-        "COMPUTE_FAMILY = 'STANDARD' STORAGE_SIZE_GB = 20 "
+        f"COMPUTE_FAMILY = '{compute_family}' STORAGE_SIZE_GB = 20 "
         "AUTHENTICATION_AUTHORITY = POSTGRES "
         "COMMENT = '{\"origin\":\"sf_sit-is\",\"name\":\"oss-deploy-tileserver\","
         "\"version\":{\"major\":1,\"minor\":0},"
@@ -105,33 +146,71 @@ def create_instance(connection, name):
     host, pw = None, None
     if rows:
         r = rows[0]
+        sys.stderr.write(f"DEBUG create row keys={list(r.keys())}\n")
         host = r.get("host")
-        access = r.get("access_roles")
-        if access:
-            try:
-                blob = access if isinstance(access, dict) else json.loads(access)
-                admin = blob.get("snowflake_admin", blob)
-                pw = admin.get("password") if isinstance(admin, dict) else None
-            except (json.JSONDecodeError, AttributeError):
-                pw = None
+        pw = _extract_admin_pw(r.get("access_roles"))
+    if not pw:
+        sys.stderr.write(
+            "WARN: could not parse snowflake_admin password from CREATE output; "
+            "reuse/connection will need PGPASSWORD or ~/.pgpass.\n")
     wait_ready(connection, name)
     if not host:
-        rows = snow_json(connection, f"DESCRIBE POSTGRES INSTANCE {name};")
-        host = rows[0].get("host") if rows else None
+        rows = snow_json(connection, "SHOW POSTGRES INSTANCES;")
+        row = _row_for(rows, name)
+        host = row.get("host") if row else None
+    # Persist creds to ~/.pgpass (best-effort) so idempotent re-runs can reuse.
+    if host and pw:
+        _write_pgpass(host, pw)
     return host, pw
 
 
-def wire_egress(connection, dev_ip=""):
-    ips = [SPCS_EGRESS_CIDR] + ([dev_ip] if dev_ip else [])
-    value_list = ",".join(f"'{ip}'" for ip in ips)
+def _write_pgpass(host, pw, user="snowflake_admin", db="postgres"):
+    try:
+        path = os.path.expanduser("~/.pgpass")
+        line = f"{host}:5432:{db}:{user}:{pw}"
+        existing = ""
+        if os.path.exists(path):
+            with open(path) as fh:
+                existing = fh.read()
+        if host not in existing:
+            with open(path, "a") as fh:
+                if existing and not existing.endswith("\n"):
+                    fh.write("\n")
+                fh.write(line + "\n")
+            os.chmod(path, 0o600)
+    except OSError:
+        pass
+
+
+def _detect_public_ip():
+    """Best-effort public IP of this machine, so local psql/ETL is admitted by the
+    instance's POSTGRES_INGRESS allowlist. Returns '' on failure."""
+    import urllib.request
+    for url in ("https://api.ipify.org", "https://checkip.amazonaws.com"):
+        try:
+            with urllib.request.urlopen(url, timeout=8) as resp:
+                ip = resp.read().decode().strip()
+                if ip:
+                    return ip
+        except Exception:  # noqa: BLE001
+            continue
+    return ""
+
+
+def wire_egress(connection, cidrs):
+    # Set the POSTGRES_INGRESS allowlist to exactly `cidrs`. Always includes the
+    # SPCS egress NAT pool (so the Martin service reaches PG); the caller adds the
+    # operator's dev IP so local PostGIS setup / data load / bake reach PG too.
+    value_list = ",".join(f"'{c}'" for c in cidrs)
     tag = ('{"origin":"sf_sit-is","name":"oss-deploy-tileserver","version":'
            '{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}')
     ddl = f"""
 CREATE DATABASE IF NOT EXISTS TILESERVER;
 CREATE SCHEMA IF NOT EXISTS TILESERVER.CORE;
-CREATE OR REPLACE NETWORK RULE TILESERVER.CORE.PG_INGRESS
+CREATE NETWORK RULE IF NOT EXISTS TILESERVER.CORE.PG_INGRESS
   MODE = POSTGRES_INGRESS TYPE = IPV4 VALUE_LIST = ({value_list})
   COMMENT = '{tag}';
+ALTER NETWORK RULE TILESERVER.CORE.PG_INGRESS SET VALUE_LIST = ({value_list});
 CREATE NETWORK POLICY IF NOT EXISTS TILESERVER_PG_POLICY
   ALLOWED_NETWORK_RULE_LIST = ('TILESERVER.CORE.PG_INGRESS')
   COMMENT = '{tag}';
@@ -148,6 +227,85 @@ def attach_policy(connection, instance, policy):
         sys.stderr.write(f"WARN: could not attach {policy} to {instance}; set it manually if egress fails\n")
 
 
+def _poll_connect(url, timeout_s=60):
+    """Return a live psycopg2 connection once PG is reachable, else None on timeout.
+    Tolerates the seconds-to-tens-of-seconds propagation delay after an ingress
+    rule / network-policy change."""
+    import psycopg2
+    deadline = time.time() + timeout_s
+    delay = 3
+    while time.time() < deadline:
+        try:
+            conn = psycopg2.connect(url, connect_timeout=10)
+            conn.autocommit = True
+            return conn
+        except Exception:  # noqa: BLE001 - timeout/refused while ingress propagates
+            time.sleep(delay)
+            delay = min(delay + 2, 10)
+    return None
+
+
+def establish_ingress(connection, url, dev_ip, instance_name):
+    """Make PG reachable from THIS machine for local ETL, then leave the ingress
+    allowlist tight.
+
+    The operator's public IP as seen on the :5432 path is not reliably the same as
+    an external HTTP probe reports (split egress by destination/port). So:
+      1. Try the best-effort detected dev IP (+ SPCS pool).
+      2. If that cannot connect, briefly widen ingress to 0.0.0.0/0 (password + TLS
+         still required) so the install never wedges on a wrong /32.
+      3. Once connected, learn the TRUE client IP from Postgres (inet_client_addr)
+         and re-tighten the allowlist to exactly [SPCS pool, real dev IP /32].
+    Set DEV_INGRESS_CIDR to pin a known egress CIDR and skip the 0.0.0.0/0 step.
+    Returns the resolved real dev IP (or None).
+    """
+    pinned = os.environ.get("DEV_INGRESS_CIDR", "").strip()
+    if pinned:
+        wire_egress(connection, [SPCS_EGRESS_CIDR, pinned])
+    else:
+        wire_egress(connection, [SPCS_EGRESS_CIDR] + ([f"{dev_ip}/32"] if dev_ip else []))
+    attach_policy(connection, instance_name, "TILESERVER_PG_POLICY")
+
+    conn = _poll_connect(url, timeout_s=45)
+    if conn is None and not pinned:
+        sys.stderr.write(
+            "WARN: PG not reachable with the detected dev IP; the local egress IP "
+            "likely differs from the HTTP-probe IP. Briefly widening ingress to "
+            "0.0.0.0/0 (password + TLS still required) to learn the real client IP.\n")
+        wire_egress(connection, ["0.0.0.0/0"])
+        conn = _poll_connect(url, timeout_s=120)
+    if conn is None:
+        raise SystemExit(
+            "PG unreachable from this machine. Set DEV_INGRESS_CIDR to your egress "
+            "CIDR, or check outbound :5432 is not blocked by a local firewall/VPN.")
+
+    real_ip = None
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT host(inet_client_addr())")
+            real_ip = cur.fetchone()[0]
+    except Exception:  # noqa: BLE001
+        pass
+    finally:
+        conn.close()
+
+    # Re-tighten precisely: SPCS pool + the real client /32 (or the pinned CIDR).
+    final = [SPCS_EGRESS_CIDR, pinned] if pinned else \
+            [SPCS_EGRESS_CIDR] + ([f"{real_ip}/32"] if real_ip else [])
+    wire_egress(connection, final)
+    if real_ip:
+        print(f"  dev ingress = {real_ip}/32 (true egress IP via inet_client_addr)", flush=True)
+    # Confirm the tightened rule still admits us before handing off downstream ETL.
+    conn2 = _poll_connect(url, timeout_s=45)
+    if conn2 is None:
+        # Fall back to leaving the broad rule so the install completes; warn loudly.
+        sys.stderr.write("WARN: tightened ingress blocked reconnect; leaving 0.0.0.0/0 for the install.\n")
+        wire_egress(connection, ["0.0.0.0/0"])
+    else:
+        conn2.close()
+    return real_ip
+
+
 def ensure_postgis(url):
     import psycopg2
     last = None
@@ -159,8 +317,12 @@ def ensure_postgis(url):
                 cur.execute("CREATE EXTENSION IF NOT EXISTS postgis;")
                 cur.execute("SELECT postgis_full_version();")
                 ver = cur.fetchone()[0]
-                cur.execute("SELECT length(ST_AsMVT(q)) FROM (SELECT 1 AS a) q;")
-                _ = cur.fetchone()
+                # Confirm the MVT builders exist (arm 1 depends on them) without
+                # executing ST_AsMVT (which requires a real geometry column).
+                cur.execute("SELECT count(*) FROM pg_proc WHERE proname IN ('st_asmvt','st_asmvtgeom','st_tileenvelope');")
+                nfn = cur.fetchone()[0]
+                if nfn < 3:
+                    raise RuntimeError(f"PostGIS MVT functions missing (found {nfn}/3)")
             conn.close()
             print(f"  PostGIS ready: {ver[:60]} ...", flush=True)
             return
@@ -196,6 +358,10 @@ def main() -> int:
         host = inst.get("host")
         pw = None
         print(f"Reusing Postgres instance {instance_name} (host {host}).", flush=True)
+        # A reused instance may still be building (or resuming); ensure it is
+        # READY before we try to connect for PostGIS setup.
+        if str(inst.get("state", "")).upper() != "READY":
+            wait_ready(args.connection, instance_name)
 
     if not host:
         sys.stderr.write("ERROR: could not resolve instance host.\n")
@@ -210,8 +376,8 @@ def main() -> int:
 
     url = f"postgresql://snowflake_admin:{pw}@{host}:5432/postgres?sslmode=require"
 
-    policy = wire_egress(args.connection, args.dev_ip)
-    attach_policy(args.connection, instance_name, policy)
+    dev_ip = args.dev_ip or _detect_public_ip()
+    establish_ingress(args.connection, url, dev_ip, instance_name)
     ensure_postgis(url)
 
     # machine-readable output for the orchestrator to capture

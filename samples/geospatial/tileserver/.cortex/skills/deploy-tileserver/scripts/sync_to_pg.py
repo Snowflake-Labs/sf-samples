@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""ETL: Overture DIVISION_AREA (countries + regions) from Snowflake -> PostGIS.
+"""ETL: owned SOURCE_FEATURES snapshot (Snowflake) -> PostGIS public.features.
 
 Portable / account-agnostic:
   * Snowflake connection comes from the SNOWFLAKE_CONNECTION env var (the active
     `snow` CLI connection name). If unset, the default connection is used.
-  * Source table comes from SOURCE_TABLE (default: the Overture divisions share);
-    optional COUNTRY filter narrows the load.
+  * Reads the fixed-schema snapshot built by build_source_snapshot.py
+    (TILESERVER.CORE.SOURCE_FEATURES by default; override with SNAPSHOT_TABLE), so
+    it is independent of the upstream source's columns and immune to a mid-run
+    Marketplace-share lapse. The snapshot is already COUNTRY-scoped.
   * Postgres side prefers the PG_URL / DATABASE_URL env (a full libpq URL); if
     absent it falls back to the libpq service named by PGSERVICE (default
     'tileserver'). No host, org, or account is hardcoded.
@@ -17,23 +19,13 @@ import snowflake.connector
 import psycopg2
 import psycopg2.extras
 
-SOURCE_TABLE = os.environ.get("SOURCE_TABLE", "OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION_AREA")
-COUNTRY = os.environ.get("COUNTRY", "")  # e.g. 'US' to filter to one country
-
-_country_clause = f"      AND COUNTRY = '{COUNTRY}'\n" if COUNTRY else ""
+SNAPSHOT_TABLE = os.environ.get("SNAPSHOT_TABLE", "TILESERVER.CORE.SOURCE_FEATURES")
 
 SF_QUERY = f"""
-SELECT
-  DIVISION_ID                         AS division_id,
-  NAMES:primary::string               AS name,
-  SUBTYPE                             AS subtype,
-  COUNTRY                             AS country,
-  ADMIN_LEVEL                         AS admin_level,
-  ST_ASWKB(GEOMETRY)                  AS wkb
-FROM {SOURCE_TABLE}
-WHERE SUBTYPE IN ('country','region')
-  AND GEOMETRY IS NOT NULL
-{_country_clause}"""
+SELECT division_id, name, subtype, country, admin_level, wkb
+FROM {SNAPSHOT_TABLE}
+WHERE wkb IS NOT NULL
+"""
 
 DDL = [
     "DROP TABLE IF EXISTS public.features",

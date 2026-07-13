@@ -42,8 +42,11 @@ echo "[bake] exporting GeoJSONL from Snowflake ..."
 SNOWFLAKE_CONNECTION="$CONNECTION" OUT="$GEOJSONL" python3 "$SCRIPT_DIR/export_geojson.py"
 
 # 2. Build the felt/tippecanoe image (not pullable from registries) from source.
-echo "[bake] building tippecanoe image ..."
-"$CONTAINER_CMD" build --platform linux/amd64 -t tileserver-tippecanoe:latest "$SKILL_DIR/tippecanoe"
+# Build/run for the HOST architecture: tippecanoe runs only locally here (it never
+# runs in SPCS), so forcing linux/amd64 would emulate under qemu on Apple Silicon
+# and hang. The Dockerfile builds from source, so a native arch build works.
+echo "[bake] building tippecanoe image (native arch) ..."
+"$CONTAINER_CMD" build -t tileserver-tippecanoe:latest "$SKILL_DIR/tippecanoe"
 
 # 3. tippecanoe -> mbtiles (per-subtype minzoom already stamped in each feature).
 echo "[bake] running tippecanoe ..."

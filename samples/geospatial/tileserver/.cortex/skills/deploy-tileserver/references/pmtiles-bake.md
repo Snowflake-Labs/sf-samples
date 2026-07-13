@@ -49,3 +49,13 @@ export_geojson.py            build tippecanoe image        tippecanoe
 - `COUNTRY=US` (or a bbox) keeps the export small and fast. A full global export via
   the Snowflake connector is slow (single-threaded fetch); for global/large, prefer
   reading Overture GeoParquet directly with DuckDB (parallel, predicate pushdown).
+- **tippecanoe's `NN.N%` progress meter is NON-LINEAR - do not mistake it for a hang.**
+  It reports position in the z/x/y tile walk, not fraction of work. With detailed
+  admin polygons (e.g. the Overture divisions source: ~27 MB GeoJSONL for 76 US
+  features) it lingers in the mid/high 80s%-90s% while grinding through z11, then
+  races through z12 to 100% in seconds. A default `-z12` US bake of that source
+  completes in a couple of minutes and is part of a ~15-18 min full from-scratch run
+  (dominated instead by the fresh PG create and the image push). If it looks stuck at
+  ~90%, it is CPU-bound tiling, not wedged - the container exits on its own and the
+  pipeline continues to `converting mbtiles -> pmtiles`. Lower `MAXZOOM` only if you
+  actually want smaller tiles, not to "unstick" it.
