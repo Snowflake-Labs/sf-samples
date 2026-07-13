@@ -1,0 +1,16 @@
+# Bake artifacts (produced by the PMTiles pipeline; do not commit - large/binary)
+viewer/*.pmtiles
+viewer/*.geojsonl
+viewer/*.mbtiles
+*.pmtiles
+*.geojsonl
+*.mbtiles
+
+# Skill run outputs
+.cortex/skills/deploy-tileserver/logs/*.md
+
+# Local secrets / scratch
+.pgpass
+.env
+__pycache__/
+*.pyc
