@@ -1,0 +1,26 @@
+spec:
+  containers:
+    - name: martin
+      image: /tileserver/core/images/martin:latest
+      args:
+        - "--pool-size"
+        - "4"
+        - "--listen-addresses"
+        - "0.0.0.0:3000"
+        - "--webui"
+        - "enable-for-all"
+        - "/tiles/features_pmt.pmtiles"
+      volumeMounts:
+        - name: tiles
+          mountPath: /tiles
+      secrets:
+        - snowflakeSecret: TILESERVER.CORE.PG_URL
+          secretKeyRef: secret_string
+          envVarName: DATABASE_URL
+  endpoints:
+    - name: tiles
+      port: 3000
+      public: true
+  volumes:
+    - name: tiles
+      source: "@TILESERVER.CORE.TILES"

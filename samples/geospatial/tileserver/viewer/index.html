@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Snowflake tiles demo</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
+  <style>
+    body { margin: 0; font-family: -apple-system, system-ui, sans-serif; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    #panel {
+      position: absolute; top: 12px; left: 12px; z-index: 1;
+      background: rgba(255,255,255,0.95); padding: 12px 14px; border-radius: 8px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.3); font-size: 13px; max-width: 260px;
+    }
+    #panel h3 { margin: 0 0 8px; font-size: 14px; color: #29B5E8; }
+    #panel label { display: block; margin: 4px 0; cursor: pointer; }
+    .swatch { display:inline-block; width:12px; height:12px; border-radius:2px; margin-right:6px; vertical-align:middle; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="panel">
+    <h3>Snowflake vector tiles</h3>
+    <div id="arms">
+      <label><input type="checkbox" id="dynamic" checked>
+        <span class="swatch" style="background:#29B5E8"></span>Dynamic (ST_AsMVT + Martin)</label>
+      <label><input type="checkbox" id="pmtiles">
+        <span class="swatch" style="background:#7D44F1"></span>PMTiles (precomputed)</label>
+    </div>
+    <div id="status" style="margin-top:8px;color:#666;font-size:11px;"></div>
+  </div>
+
+  <script>
+    const protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol('pmtiles', protocol.tile);
+
+    const MARTIN = 'http://localhost:3000';
+
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: {
+        version: 8,
+        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+        sources: {
+          basemap: {
+            type: 'raster',
+            tiles: ['https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '(c) OpenStreetMap, CARTO'
+          }
+        },
+        layers: [{ id: 'basemap', type: 'raster', source: 'basemap' }]
+      },
+      center: [10, 30],
+      zoom: 2
+    });
+
+    map.addControl(new maplibregl.NavigationControl());
+
+    map.on('load', () => {
+      // Arm 1: dynamic tiles from Martin function source
+      map.addSource('dynamic', {
+        type: 'vector',
+        tiles: [MARTIN + '/features_mvt/{z}/{x}/{y}'],
+        minzoom: 0, maxzoom: 14
+      });
+      map.addLayer({
+        id: 'dynamic-fill', type: 'fill', source: 'dynamic', 'source-layer': 'features',
+        paint: {
+          'fill-color': ['match', ['get', 'subtype'], 'country', '#29B5E8', 'region', '#11567F', '#999'],
+          'fill-opacity': 0.35
+        }
+      });
+      map.addLayer({
+        id: 'dynamic-line', type: 'line', source: 'dynamic', 'source-layer': 'features',
+        paint: { 'line-color': '#29B5E8', 'line-width': 0.6 }
+      });
+
+      document.getElementById('status').textContent = 'Dynamic tiles from Martin @ ' + MARTIN;
+
+      // Popup with attributes
+      map.on('click', 'dynamic-fill', (e) => {
+        const p = e.features[0].properties;
+        new maplibregl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(`<b>${p.name || '(unnamed)'}</b><br>subtype: ${p.subtype}<br>country: ${p.country || ''}<br>admin_level: ${p.admin_level ?? ''}`)
+          .addTo(map);
+      });
+      map.on('mouseenter', 'dynamic-fill', () => map.getCanvas().style.cursor = 'pointer');
+      map.on('mouseleave', 'dynamic-fill', () => map.getCanvas().style.cursor = '');
+    });
+
+    function toggle(id, layers) {
+      document.getElementById(id).addEventListener('change', (e) => {
+        const v = e.target.checked ? 'visible' : 'none';
+        layers.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
+      });
+    }
+    toggle('dynamic', ['dynamic-fill', 'dynamic-line']);
+  </script>
+</body>
+</html>
