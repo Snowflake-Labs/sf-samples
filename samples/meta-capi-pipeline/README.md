@@ -15,17 +15,17 @@ A Cortex Code skill that builds and manages Meta Conversions API (CAPI) pipeline
 
 This skill lives in [Snowflake-Labs/sf-samples](https://github.com/Snowflake-Labs/sf-samples/tree/main/samples/meta-capi-pipeline).
 
-### Option 1: Clone and symlink
+### Recommended: install from Cortex Code
 
-```bash
-# Clone the sf-samples repo anywhere
-git clone https://github.com/Snowflake-Labs/sf-samples.git
+Run this in a Cortex Code session to download and install the skill in one step:
 
-# Symlink the skill into your Cortex Code skills directory
-ln -s "$(pwd)/sf-samples/samples/meta-capi-pipeline" ~/.snowflake/cortex/skills/meta-capi-pipeline
+```
+/skill add https://github.com/Snowflake-Labs/sf-samples.git/samples/meta-capi-pipeline
 ```
 
-### Option 2: Sparse checkout (skill only)
+### Manual (for development)
+
+Clone the repo and symlink the skill into your Cortex Code skills directory:
 
 ```bash
 git clone --depth 1 --filter=blob:none --sparse https://github.com/Snowflake-Labs/sf-samples.git
@@ -34,14 +34,9 @@ git sparse-checkout set samples/meta-capi-pipeline
 ln -s "$(pwd)/samples/meta-capi-pipeline" ~/.snowflake/cortex/skills/meta-capi-pipeline
 ```
 
-### Verify Installation
+### Verify installation
 
-In Cortex Code, run:
-```
-/skills
-```
-
-You should see `meta-capi-pipeline` listed.
+In Cortex Code, run `/skill` and confirm `meta-capi-pipeline` is listed.
 
 ## Usage
 
