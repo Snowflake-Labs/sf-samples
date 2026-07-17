@@ -13,34 +13,30 @@ A Cortex Code skill that builds and manages Meta Conversions API (CAPI) pipeline
 
 ## Installation
 
-### Option 1: Clone to Skills Directory
+This skill lives in [Snowflake-Labs/sf-samples](https://github.com/Snowflake-Labs/sf-samples/tree/main/samples/meta-capi-pipeline).
+
+### Recommended: install from Cortex Code
+
+Run this in a Cortex Code session to download and install the skill in one step:
+
+```
+/skill add https://github.com/Snowflake-Labs/sf-samples.git/samples/meta-capi-pipeline
+```
+
+### Manual (for development)
+
+Clone the repo and symlink the skill into your Cortex Code skills directory:
 
 ```bash
-# Navigate to Cortex Code skills directory
-cd ~/.snowflake/cortex/skills
-
-# Clone this repo
-git clone https://github.com/sfc-gh-vakumar/meta-enhanced-capi.git
+git clone --depth 1 --filter=blob:none --sparse https://github.com/Snowflake-Labs/sf-samples.git
+cd sf-samples
+git sparse-checkout set samples/meta-capi-pipeline
+ln -s "$(pwd)/samples/meta-capi-pipeline" ~/.snowflake/cortex/skills/meta-capi-pipeline
 ```
 
-### Option 2: Symlink (for development)
+### Verify installation
 
-```bash
-# Clone anywhere
-git clone https://github.com/sfc-gh-vakumar/meta-enhanced-capi.git ~/projects/meta-enhanced-capi
-
-# Symlink to skills directory
-ln -s ~/projects/meta-enhanced-capi ~/.snowflake/cortex/skills/meta-enhanced-capi
-```
-
-### Verify Installation
-
-In Cortex Code, run:
-```
-/skills
-```
-
-You should see `meta-enhanced-capi` listed.
+In Cortex Code, run `/skill` and confirm `meta-capi-pipeline` is listed.
 
 ## Usage
 
@@ -81,7 +77,7 @@ Before using this skill, ensure you have:
 ## Skill Structure
 
 ```
-meta-enhanced-capi/
+meta-capi-pipeline/
 ├── SKILL.md                 # Main skill definition
 ├── README.md                # This file
 ├── references/
@@ -107,4 +103,4 @@ meta-enhanced-capi/
 
 ## License
 
-MIT
+Snowflake Skills License. See the [LICENSE](./LICENSE) file for details.
