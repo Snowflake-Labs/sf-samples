@@ -114,6 +114,34 @@ This means new Meta fields or custom parameters never require table DDL changes 
 
 ---
 
+#### Step 2A-2: Event Type Classification (MANDATORY — runs after table selection)
+
+> After the user selects a table, determine the appropriate Meta event type before generating any config.
+> Do NOT use a stored procedure for this. Perform the classification directly using your own reasoning.
+
+5. **Read** `references/meta_events.md` for the full list of 17 Meta standard events and their required fields.
+
+6. **Execute** column inspection:
+   ```sql
+   SELECT COLUMN_NAME, DATA_TYPE 
+   FROM <DB>.INFORMATION_SCHEMA.COLUMNS 
+   WHERE TABLE_SCHEMA = '<SCHEMA>' AND TABLE_NAME = '<TABLE>'
+   ORDER BY ORDINAL_POSITION;
+   ```
+
+7. **Execute** data sampling:
+   ```sql
+   SELECT * FROM <DB>.<SCHEMA>.<TABLE> LIMIT 5;
+   ```
+
+8. Based on the column names, data types, sample values, and the Meta events reference, **suggest up to 3 event types** with confidence (HIGH/MEDIUM/LOW) and brief reasoning for each.
+
+9. **Ask** user to confirm which event type to use. The highest-confidence suggestion is the default, but the user may choose any of the 17 Meta standard events.
+
+10. **Use the confirmed event type** when calling `generate_pipeline_config` in the next step.
+
+---
+
 #### Step 2B: Event ID & Custom Fields (MANDATORY — DO NOT SKIP)
 
 > ⛔ YOU MUST COMPLETE THIS STEP. DO NOT JUMP TO APPROVAL.

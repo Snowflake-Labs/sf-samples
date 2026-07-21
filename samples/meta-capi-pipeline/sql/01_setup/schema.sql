@@ -89,14 +89,6 @@ FROM META_CAPI_EVENTS
 WHERE STATUS = 'PENDING';
 
 -- =============================================================================
--- INDEXES
--- =============================================================================
-CREATE INDEX IF NOT EXISTS IDX_EVENTS_STATUS ON META_CAPI_EVENTS(STATUS);
-CREATE INDEX IF NOT EXISTS IDX_EVENTS_CREATED ON META_CAPI_EVENTS(CREATED_AT);
-CREATE INDEX IF NOT EXISTS IDX_EVENTS_NAME ON META_CAPI_EVENTS(EVENT_NAME);
-CREATE INDEX IF NOT EXISTS IDX_LOG_BATCH ON META_CAPI_LOG(BATCH_ID);
-
--- =============================================================================
 -- MIGRATION HELPER - Convert existing data from old schema to new
 -- Run this ONCE if upgrading from the fixed-column schema
 -- =============================================================================

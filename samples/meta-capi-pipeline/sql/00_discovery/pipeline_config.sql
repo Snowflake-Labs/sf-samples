@@ -8,6 +8,7 @@ USE SCHEMA META_CAPI_DB.PIPELINE;
 -- =============================================================================
 -- GENERATE PIPELINE CONFIG (Human Review)
 -- Creates a config object for review - does NOT create any objects
+-- Uses dynamic SQL to query the correct database's INFORMATION_SCHEMA
 -- =============================================================================
 CREATE OR REPLACE PROCEDURE generate_pipeline_config(
     source_database VARCHAR,
@@ -23,60 +24,66 @@ $$
 DECLARE
     config VARIANT;
     col_mappings VARIANT;
+    col_query VARCHAR;
 BEGIN
+    -- Dynamic SQL required: INFORMATION_SCHEMA must be qualified with the
+    -- source database, not the current session database (META_CAPI_DB).
+    col_query := '
     SELECT ARRAY_AGG(OBJECT_CONSTRUCT(
-        'source_column', COLUMN_NAME,
-        'source_type', DATA_TYPE,
-        'target_column', 
+        ''source_column'', COLUMN_NAME,
+        ''source_type'', DATA_TYPE,
+        ''target_column'', 
         CASE 
-            WHEN LOWER(COLUMN_NAME) LIKE '%email%' OR LOWER(COLUMN_NAME) = 'em' THEN 'EM'
-            WHEN LOWER(COLUMN_NAME) LIKE '%phone%' OR LOWER(COLUMN_NAME) = 'ph' THEN 'PH'
-            WHEN LOWER(COLUMN_NAME) LIKE '%first%name%' OR LOWER(COLUMN_NAME) = 'fn' THEN 'FN'
-            WHEN LOWER(COLUMN_NAME) LIKE '%last%name%' OR LOWER(COLUMN_NAME) = 'ln' THEN 'LN'
-            WHEN LOWER(COLUMN_NAME) LIKE '%amount%' OR LOWER(COLUMN_NAME) LIKE '%value%' OR LOWER(COLUMN_NAME) LIKE '%total%' OR LOWER(COLUMN_NAME) LIKE '%revenue%' THEN 'VALUE'
-            WHEN LOWER(COLUMN_NAME) LIKE '%currency%' THEN 'CURRENCY'
-            WHEN LOWER(COLUMN_NAME) LIKE '%time%' OR LOWER(COLUMN_NAME) LIKE '%date%' OR LOWER(COLUMN_NAME) LIKE '%created%' THEN 'EVENT_TIME'
-            WHEN LOWER(COLUMN_NAME) LIKE '%order%id%' THEN 'ORDER_ID'
-            WHEN LOWER(COLUMN_NAME) LIKE '%user%id%' OR LOWER(COLUMN_NAME) LIKE '%customer%id%' THEN 'EXTERNAL_ID'
-            WHEN LOWER(COLUMN_NAME) LIKE '%ip%' THEN 'CLIENT_IP_ADDRESS'
-            WHEN LOWER(COLUMN_NAME) LIKE '%agent%' OR LOWER(COLUMN_NAME) LIKE '%browser%' THEN 'CLIENT_USER_AGENT'
-            WHEN LOWER(COLUMN_NAME) LIKE '%city%' THEN 'CT'
-            WHEN LOWER(COLUMN_NAME) LIKE '%state%' OR LOWER(COLUMN_NAME) LIKE '%province%' THEN 'ST'
-            WHEN LOWER(COLUMN_NAME) LIKE '%zip%' OR LOWER(COLUMN_NAME) LIKE '%postal%' THEN 'ZP'
-            WHEN LOWER(COLUMN_NAME) LIKE '%country%' THEN 'COUNTRY'
-            WHEN LOWER(COLUMN_NAME) LIKE '%gender%' THEN 'GE'
-            WHEN LOWER(COLUMN_NAME) LIKE '%birth%' OR LOWER(COLUMN_NAME) LIKE '%dob%' THEN 'DB'
+            WHEN LOWER(COLUMN_NAME) LIKE ''%email%'' OR LOWER(COLUMN_NAME) = ''em'' THEN ''EM''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%phone%'' OR LOWER(COLUMN_NAME) = ''ph'' THEN ''PH''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%first%name%'' OR LOWER(COLUMN_NAME) = ''fn'' THEN ''FN''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%last%name%'' OR LOWER(COLUMN_NAME) = ''ln'' THEN ''LN''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%amount%'' OR LOWER(COLUMN_NAME) LIKE ''%value%'' OR LOWER(COLUMN_NAME) LIKE ''%total%'' OR LOWER(COLUMN_NAME) LIKE ''%revenue%'' THEN ''VALUE''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%currency%'' THEN ''CURRENCY''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%time%'' OR LOWER(COLUMN_NAME) LIKE ''%date%'' OR LOWER(COLUMN_NAME) LIKE ''%created%'' THEN ''EVENT_TIME''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%order%id%'' THEN ''ORDER_ID''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%user%id%'' OR LOWER(COLUMN_NAME) LIKE ''%customer%id%'' THEN ''EXTERNAL_ID''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%ip%'' THEN ''CLIENT_IP_ADDRESS''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%agent%'' OR LOWER(COLUMN_NAME) LIKE ''%browser%'' THEN ''CLIENT_USER_AGENT''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%city%'' THEN ''CT''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%state%'' OR LOWER(COLUMN_NAME) LIKE ''%province%'' THEN ''ST''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%zip%'' OR LOWER(COLUMN_NAME) LIKE ''%postal%'' THEN ''ZP''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%country%'' THEN ''COUNTRY''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%gender%'' THEN ''GE''
+            WHEN LOWER(COLUMN_NAME) LIKE ''%birth%'' OR LOWER(COLUMN_NAME) LIKE ''%dob%'' THEN ''DB''
             ELSE NULL
         END,
-        'requires_hashing', 
+        ''requires_hashing'', 
         CASE 
-            WHEN LOWER(COLUMN_NAME) LIKE ANY ('%email%', '%phone%', '%first%', '%last%', '%city%', '%state%', '%zip%', '%gender%', '%birth%', '%country%') THEN TRUE
+            WHEN LOWER(COLUMN_NAME) LIKE ANY (''%email%'', ''%phone%'', ''%first%'', ''%last%'', ''%city%'', ''%state%'', ''%zip%'', ''%gender%'', ''%birth%'', ''%country%'') THEN TRUE
             ELSE FALSE
         END,
-        'include', 
+        ''include'', 
         CASE 
-            WHEN LOWER(COLUMN_NAME) LIKE ANY ('%email%', '%phone%', '%first%', '%last%', '%amount%', '%value%', '%total%', '%time%', '%date%', '%created%', '%order%', '%user%id%', '%customer%') THEN TRUE
+            WHEN LOWER(COLUMN_NAME) LIKE ANY (''%email%'', ''%phone%'', ''%first%'', ''%last%'', ''%amount%'', ''%value%'', ''%total%'', ''%time%'', ''%date%'', ''%created%'', ''%order%'', ''%user%id%'', ''%customer%'', ''%ip%'', ''%agent%'', ''%city%'', ''%state%'', ''%zip%'', ''%country%'', ''%currency%'') THEN TRUE
             ELSE FALSE
-        END,
-        'notes', ''
-    )) INTO col_mappings
-    FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_CATALOG = :source_database
-    AND TABLE_SCHEMA = :source_schema
-    AND TABLE_NAME = :source_table;
+        END
+    )) FROM ' || :source_database || '.INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = ''' || :source_schema || '''
+    AND TABLE_NAME = ''' || :source_table || '''';
+
+    LET col_rs RESULTSET := (EXECUTE IMMEDIATE :col_query);
+    LET col_cur CURSOR FOR col_rs;
+    OPEN col_cur;
+    FETCH col_cur INTO col_mappings;
+    CLOSE col_cur;
 
     config := OBJECT_CONSTRUCT(
         '_metadata', OBJECT_CONSTRUCT(
             'generated_at', CURRENT_TIMESTAMP(),
             'generated_by', CURRENT_USER(),
-            'status', 'PENDING_REVIEW',
-            'instructions', 'Review mappings below. Edit as needed, then call deploy_pipeline_from_config() to activate.'
+            'status', 'PENDING_REVIEW'
         ),
         'source', OBJECT_CONSTRUCT(
             'database', :source_database,
             'schema', :source_schema,
             'table', :source_table,
-            'full_path', CONCAT(:source_database, '.', :source_schema, '.', :source_table)
+            'full_path', :source_database || '.' || :source_schema || '.' || :source_table
         ),
         'target', OBJECT_CONSTRUCT(
             'database', 'META_CAPI_DB',
@@ -87,27 +94,24 @@ BEGIN
             'event_type', :event_type,
             'action_source', :action_source
         ),
-        'column_mappings', col_mappings,
+        'column_mappings', :col_mappings,
         'pipeline_settings', OBJECT_CONSTRUCT(
             'pipeline_name', UPPER(REPLACE(:source_table, ' ', '_')) || '_TO_META',
             'schedule', 'ON_NEW_DATA',
             'batch_size', 10000,
             'enabled', FALSE
-        ),
-        'validation_rules', ARRAY_CONSTRUCT(
-            OBJECT_CONSTRUCT('rule', 'EVENT_TIME must not be NULL', 'severity', 'ERROR'),
-            OBJECT_CONSTRUCT('rule', 'At least one PII field (EM, PH, or EXTERNAL_ID) required', 'severity', 'ERROR'),
-            OBJECT_CONSTRUCT('rule', 'VALUE requires CURRENCY to be set', 'severity', 'WARNING')
         )
     );
     
-    RETURN config;
+    RETURN :config;
 END;
 $$;
 
 -- =============================================================================
 -- SAVE CONFIG TO TABLE
 -- Persists config for later review and deployment
+-- NOTE: Uses INSERT...SELECT (not VALUES) because VARIANT types cannot appear
+-- in VALUES clauses in Snowflake.
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS META_CAPI_DB.PIPELINE.PIPELINE_CONFIGS (
     CONFIG_ID VARCHAR(100) DEFAULT UUID_STRING() PRIMARY KEY,
@@ -134,29 +138,20 @@ $$
 DECLARE
     config_id VARCHAR;
     name VARCHAR;
+    source_table VARCHAR;
 BEGIN
     config_id := UUID_STRING();
-    name := COALESCE(:config_name, config:pipeline_settings:pipeline_name::VARCHAR);
+    name := COALESCE(:config_name, :config:pipeline_settings:pipeline_name::VARCHAR);
+    source_table := :config:source:full_path::VARCHAR;
     
+    -- INSERT...SELECT required: VARIANT params cannot be used in VALUES clauses
     INSERT INTO META_CAPI_DB.PIPELINE.PIPELINE_CONFIGS (CONFIG_ID, CONFIG_NAME, SOURCE_TABLE, CONFIG, STATUS)
-    VALUES (
-        :config_id,
-        :name,
-        config:source:full_path::VARCHAR,
-        :config,
-        'PENDING_REVIEW'
-    );
+    SELECT :config_id, :name, :source_table, :config, 'PENDING_REVIEW';
     
     RETURN OBJECT_CONSTRUCT(
         'status', 'SAVED',
-        'config_id', config_id,
-        'config_name', name,
-        'next_steps', ARRAY_CONSTRUCT(
-            '1. Review config: SELECT CONFIG FROM PIPELINE_CONFIGS WHERE CONFIG_ID = ''' || config_id || '''',
-            '2. Edit if needed: CALL update_pipeline_config(''' || config_id || ''', <updated_config>)',
-            '3. Approve: CALL approve_pipeline_config(''' || config_id || ''')',
-            '4. Deploy: CALL deploy_pipeline_from_config(''' || config_id || ''')'
-        )
+        'config_id', :config_id,
+        'config_name', :name
     );
 END;
 $$;
@@ -166,7 +161,7 @@ $$;
 -- Allows editing config before deployment
 -- =============================================================================
 CREATE OR REPLACE PROCEDURE update_pipeline_config(
-    config_id VARCHAR,
+    p_config_id VARCHAR,
     updated_config VARIANT
 )
 RETURNS VARIANT
@@ -177,11 +172,11 @@ BEGIN
     UPDATE META_CAPI_DB.PIPELINE.PIPELINE_CONFIGS
     SET CONFIG = :updated_config,
         STATUS = 'PENDING_REVIEW'
-    WHERE CONFIG_ID = :config_id;
+    WHERE CONFIG_ID = :p_config_id;
     
     RETURN OBJECT_CONSTRUCT(
         'status', 'UPDATED',
-        'config_id', config_id,
+        'config_id', :p_config_id,
         'message', 'Config updated. Review and approve before deploying.'
     );
 END;
@@ -192,7 +187,7 @@ $$;
 -- Marks config as reviewed and ready for deployment
 -- =============================================================================
 CREATE OR REPLACE PROCEDURE approve_pipeline_config(
-    config_id VARCHAR,
+    p_config_id VARCHAR,
     reviewer_notes VARCHAR DEFAULT NULL
 )
 RETURNS VARIANT
@@ -205,14 +200,12 @@ BEGIN
         REVIEWED_AT = CURRENT_TIMESTAMP(),
         REVIEWED_BY = CURRENT_USER(),
         NOTES = :reviewer_notes
-    WHERE CONFIG_ID = :config_id;
+    WHERE CONFIG_ID = :p_config_id;
     
     RETURN OBJECT_CONSTRUCT(
         'status', 'APPROVED',
-        'config_id', config_id,
-        'reviewed_by', CURRENT_USER(),
-        'message', 'Config approved. Ready for deployment.',
-        'deploy_command', 'CALL deploy_pipeline_from_config(''' || config_id || ''')'
+        'config_id', :p_config_id,
+        'reviewed_by', CURRENT_USER()
     );
 END;
 $$;
@@ -221,15 +214,18 @@ $$;
 -- DEPLOY FROM CONFIG
 -- Creates actual pipeline objects from approved config
 -- Builds USER_DATA and CUSTOM_DATA VARIANT columns from column_mappings
+--
+-- NOTE: All DECLARE'd variables use :prefix in SQL contexts.
+-- The FOR loop accesses flattened values via mapping.VALUE:field syntax.
 -- =============================================================================
-CREATE OR REPLACE PROCEDURE deploy_pipeline_from_config(config_id VARCHAR)
+CREATE OR REPLACE PROCEDURE deploy_pipeline_from_config(p_config_id VARCHAR)
 RETURNS VARIANT
 LANGUAGE SQL
 AS
 $$
 DECLARE
-    config VARIANT;
-    status VARCHAR;
+    v_config VARIANT;
+    v_status VARCHAR;
     pipe_name VARCHAR;
     stream_name VARCHAR;
     task_name VARCHAR;
@@ -241,41 +237,37 @@ DECLARE
     event_time_expr VARCHAR;
     event_source_url_expr VARCHAR;
 BEGIN
-    SELECT c.CONFIG, c.STATUS INTO config, status
+    SELECT c.CONFIG, c.STATUS INTO :v_config, :v_status
     FROM META_CAPI_DB.PIPELINE.PIPELINE_CONFIGS c
-    WHERE c.CONFIG_ID = :config_id;
+    WHERE c.CONFIG_ID = :p_config_id;
     
-    IF (status != 'APPROVED') THEN
+    IF (:v_status != 'APPROVED') THEN
         RETURN OBJECT_CONSTRUCT(
             'status', 'ERROR',
-            'message', 'Config must be APPROVED before deployment. Current status: ' || status,
-            'action', 'CALL approve_pipeline_config(''' || config_id || ''')'
+            'message', 'Config must be APPROVED before deployment. Current status: ' || :v_status
         );
     END IF;
     
-    pipe_name := config:pipeline_settings:pipeline_name::VARCHAR;
-    stream_name := pipe_name || '_STREAM';
-    task_name := pipe_name || '_TASK';
-    view_name := pipe_name || '_VW';
-    source_path := config:source:full_path::VARCHAR;
+    pipe_name := :v_config:pipeline_settings:pipeline_name::VARCHAR;
+    stream_name := :pipe_name || '_STREAM';
+    task_name := :pipe_name || '_TASK';
+    view_name := :pipe_name || '_VW';
+    source_path := :v_config:source:full_path::VARCHAR;
     
-    -- Determine EVENT_ID, EVENT_TIME, EVENT_SOURCE_URL from mappings
     event_id_expr := '''evt_'' || UUID_STRING()';
     event_time_expr := 'CURRENT_TIMESTAMP()';
     event_source_url_expr := 'NULL';
     
-    -- Route column_mappings into USER_DATA or CUSTOM_DATA based on target_column
-    FOR mapping IN (SELECT VALUE FROM TABLE(FLATTEN(input => config:column_mappings)) WHERE VALUE:include::BOOLEAN = TRUE) DO
-        LET target VARCHAR := mapping:target_column::VARCHAR;
-        LET source VARCHAR := mapping:source_column::VARCHAR;
-        LET hashed BOOLEAN := mapping:requires_hashing::BOOLEAN;
+    FOR mapping IN (SELECT VALUE FROM TABLE(FLATTEN(input => :v_config:column_mappings)) WHERE VALUE:include::BOOLEAN = TRUE) DO
+        LET target VARCHAR := mapping.VALUE:target_column::VARCHAR;
+        LET source VARCHAR := mapping.VALUE:source_column::VARCHAR;
+        LET hashed BOOLEAN := mapping.VALUE:requires_hashing::BOOLEAN;
         LET col_expr VARCHAR;
         
         IF (target IS NULL) THEN
             CONTINUE;
         END IF;
         
-        -- Top-level fields handled separately
         IF (target = 'EVENT_ID') THEN
             event_id_expr := 'COALESCE(' || source || '::VARCHAR, ''evt_'' || UUID_STRING())';
             CONTINUE;
@@ -289,78 +281,68 @@ BEGIN
             CONTINUE;
         END IF;
         
-        -- Build expression (hashed or raw)
         IF (hashed) THEN
             col_expr := 'ARRAY_CONSTRUCT(SHA2(LOWER(TRIM(' || source || ')), 256))';
         ELSE
             col_expr := source;
         END IF;
         
-        -- Route to USER_DATA or CUSTOM_DATA based on target field
         IF (target IN ('EM', 'PH', 'FN', 'LN', 'GE', 'DB', 'CT', 'ST', 'ZP', 'COUNTRY', 'EXTERNAL_ID', 'CLIENT_IP_ADDRESS', 'CLIENT_USER_AGENT', 'FBC', 'FBP')) THEN
             LET key_name VARCHAR := LOWER(target);
-            user_data_parts := user_data_parts || '''' || key_name || ''', ' || col_expr || ', ';
+            user_data_parts := :user_data_parts || '''' || key_name || ''', ' || col_expr || ', ';
         ELSE
             LET key_name VARCHAR := LOWER(target);
-            custom_data_parts := custom_data_parts || '''' || key_name || ''', ' || col_expr || ', ';
+            custom_data_parts := :custom_data_parts || '''' || key_name || ''', ' || col_expr || ', ';
         END IF;
     END FOR;
     
-    -- Finalize VARIANT expressions
-    user_data_parts := RTRIM(user_data_parts, ', ');
-    custom_data_parts := RTRIM(custom_data_parts, ', ');
+    user_data_parts := RTRIM(:user_data_parts, ', ');
+    custom_data_parts := RTRIM(:custom_data_parts, ', ');
     
-    LET user_data_sql VARCHAR := CASE WHEN user_data_parts = '' THEN 'NULL' ELSE 'OBJECT_CONSTRUCT_KEEP_NULL(' || user_data_parts || ')' END;
-    LET custom_data_sql VARCHAR := CASE WHEN custom_data_parts = '' THEN 'NULL' ELSE 'OBJECT_CONSTRUCT_KEEP_NULL(' || custom_data_parts || ')' END;
+    LET user_data_sql VARCHAR := CASE WHEN :user_data_parts = '' THEN 'NULL' ELSE 'OBJECT_CONSTRUCT_KEEP_NULL(' || :user_data_parts || ')' END;
+    LET custom_data_sql VARCHAR := CASE WHEN :custom_data_parts = '' THEN 'NULL' ELSE 'OBJECT_CONSTRUCT_KEEP_NULL(' || :custom_data_parts || ')' END;
     
-    -- Create stream
-    EXECUTE IMMEDIATE 'CREATE OR REPLACE STREAM META_CAPI_DB.PIPELINE.' || stream_name || 
-        ' ON TABLE ' || source_path || ' APPEND_ONLY = TRUE';
+    EXECUTE IMMEDIATE 'CREATE OR REPLACE STREAM META_CAPI_DB.PIPELINE.' || :stream_name || 
+        ' ON TABLE ' || :source_path || ' APPEND_ONLY = TRUE';
     
-    -- Create mapping view with USER_DATA and CUSTOM_DATA VARIANT columns
     EXECUTE IMMEDIATE '
-    CREATE OR REPLACE VIEW META_CAPI_DB.PIPELINE.' || view_name || ' AS
+    CREATE OR REPLACE VIEW META_CAPI_DB.PIPELINE.' || :view_name || ' AS
     SELECT 
-        ' || event_id_expr || ' AS EVENT_ID,
-        ''' || config:event_settings:event_type::VARCHAR || ''' AS EVENT_NAME,
-        ' || event_time_expr || ' AS EVENT_TIME,
-        ''' || config:event_settings:action_source::VARCHAR || ''' AS ACTION_SOURCE,
-        ' || event_source_url_expr || ' AS EVENT_SOURCE_URL,
+        ' || :event_id_expr || ' AS EVENT_ID,
+        ''' || :v_config:event_settings:event_type::VARCHAR || ''' AS EVENT_NAME,
+        ' || :event_time_expr || ' AS EVENT_TIME,
+        ''' || :v_config:event_settings:action_source::VARCHAR || ''' AS ACTION_SOURCE,
+        ' || :event_source_url_expr || ' AS EVENT_SOURCE_URL,
         ' || user_data_sql || ' AS USER_DATA,
         ' || custom_data_sql || ' AS CUSTOM_DATA
-    FROM META_CAPI_DB.PIPELINE.' || stream_name;
+    FROM META_CAPI_DB.PIPELINE.' || :stream_name;
     
-    -- Create task
     EXECUTE IMMEDIATE '
-    CREATE OR REPLACE TASK META_CAPI_DB.PIPELINE.' || task_name || '
+    CREATE OR REPLACE TASK META_CAPI_DB.PIPELINE.' || :task_name || '
         WAREHOUSE = COMPUTE_WH
         SCHEDULE = ''60 MINUTE''
-        WHEN SYSTEM$STREAM_HAS_DATA(''META_CAPI_DB.PIPELINE.' || stream_name || ''')
+        WHEN SYSTEM$STREAM_HAS_DATA(''META_CAPI_DB.PIPELINE.' || :stream_name || ''')
     AS
         INSERT INTO META_CAPI_DB.PIPELINE.META_CAPI_EVENTS 
         (EVENT_ID, EVENT_NAME, EVENT_TIME, ACTION_SOURCE, EVENT_SOURCE_URL, USER_DATA, CUSTOM_DATA, STATUS, CREATED_AT)
         SELECT EVENT_ID, EVENT_NAME, EVENT_TIME, ACTION_SOURCE, EVENT_SOURCE_URL, USER_DATA, CUSTOM_DATA, ''PENDING'', CURRENT_TIMESTAMP()
-        FROM META_CAPI_DB.PIPELINE.' || view_name;
+        FROM META_CAPI_DB.PIPELINE.' || :view_name;
     
-    -- Resume task
-    EXECUTE IMMEDIATE 'ALTER TASK META_CAPI_DB.PIPELINE.' || task_name || ' RESUME';
+    EXECUTE IMMEDIATE 'ALTER TASK META_CAPI_DB.PIPELINE.' || :task_name || ' RESUME';
     
-    -- Update config status
     UPDATE META_CAPI_DB.PIPELINE.PIPELINE_CONFIGS
     SET STATUS = 'DEPLOYED',
         DEPLOYED_AT = CURRENT_TIMESTAMP()
-    WHERE CONFIG_ID = :config_id;
+    WHERE CONFIG_ID = :p_config_id;
     
     RETURN OBJECT_CONSTRUCT(
         'status', 'DEPLOYED',
-        'config_id', config_id,
-        'pipeline_name', pipe_name,
+        'pipeline_name', :pipe_name,
         'objects_created', OBJECT_CONSTRUCT(
-            'stream', stream_name,
-            'view', view_name,
-            'task', task_name
-        ),
-        'message', 'Pipeline deployed and active.'
+            'stream', :stream_name,
+            'view', :view_name,
+            'task', :task_name
+        )
     );
 END;
 $$;

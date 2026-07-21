@@ -21,8 +21,7 @@ RETURNS TABLE (
     TABLE_NAME VARCHAR,
     ROW_COUNT NUMBER,
     MATCH_SCORE VARCHAR,
-    MATCHED_COLUMNS VARCHAR,
-    SUGGESTED_EVENT_TYPE VARCHAR
+    MATCHED_COLUMNS VARCHAR
 )
 LANGUAGE SQL
 AS
@@ -63,13 +62,7 @@ BEGIN
                 ) THEN c.COLUMN_NAME END,
                 ', '
             ) AS MATCHED_COLUMNS,
-            CASE
-                WHEN SUM(CASE WHEN LOWER(c.COLUMN_NAME) IN ('value', 'revenue', 'total', 'amount', 'order_total') THEN 1 ELSE 0 END) > 0
-                THEN 'Purchase'
-                WHEN SUM(CASE WHEN LOWER(c.COLUMN_NAME) LIKE '%lead%' OR LOWER(c.COLUMN_NAME) LIKE '%signup%' THEN 1 ELSE 0 END) > 0
-                THEN 'Lead'
-                ELSE 'ViewContent'
-            END AS SUGGESTED_EVENT_TYPE
+
         FROM IDENTIFIER(:columns_table) c
         JOIN IDENTIFIER(:tables_table) t
             ON c.TABLE_CATALOG = t.TABLE_CATALOG
