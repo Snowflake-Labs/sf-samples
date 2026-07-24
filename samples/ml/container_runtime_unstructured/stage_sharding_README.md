@@ -1,7 +1,5 @@
 # Stage Sharding — fast reads for many small unstructured files
 
-*Audience: ML practitioners, data scientists, and PMs. High level — no internals required.*
-
 ---
 
 ## TL;DR
@@ -165,7 +163,7 @@ representative, not guarantees.
 
 **Benchmark setup (100k):**
 - **Dataset**: 100,000 JPEGs (~1.85 GB total, ~19 KB avg) on a Snowflake internal stage.
-- **Environment**: Ray 2.55 local mode on a Mac laptop (10 CPU cores, 2 GB Ray object store), reading from a preprod stage via presigned URLs.
+- **Environment**: Ray 2.55 local mode on a Mac laptop (10 CPU cores, 2 GB Ray object store), reading from a Snowflake stage via presigned URLs.
 - **Shard config**: `target_shard_size_mb=256` (default) → 8 shards (~276 MB each).
 - **Decode**: Both paths decode to 224×224 RGB. Baseline (`SFStageImageDataSource`) decodes in-read; shard path decodes post-read via `map_batches`.
 - **Batch size**: 2048 images per batch.
