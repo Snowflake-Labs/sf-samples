@@ -1,7 +1,5 @@
 # Stage Sharding — fast reads for many small unstructured files
 
-*Audience: ML practitioners, data scientists, and PMs. High level — no internals required.*
-
 ---
 
 ## TL;DR
@@ -165,7 +163,7 @@ representative, not guarantees.
 
 **Benchmark setup (100k):**
 - **Dataset**: 100,000 JPEGs (~1.85 GB total, ~19 KB avg) on a Snowflake internal stage.
-- **Environment**: Ray 2.55 local mode on a Mac laptop (10 CPU cores, 2 GB Ray object store), reading from a preprod stage via presigned URLs.
+- **Environment**: Snowflake Notebooks on Container Runtime — single **GPU_NV_M** node (44 vCPU, 178 GiB RAM, 4× NVIDIA A10G), Ray 2.55, reading from a Snowflake internal stage.
 - **Shard config**: `target_shard_size_mb=256` (default) → 8 shards (~276 MB each).
 - **Decode**: Both paths decode to 224×224 RGB. Baseline (`SFStageImageDataSource`) decodes in-read; shard path decodes post-read via `map_batches`.
 - **Batch size**: 2048 images per batch.
@@ -181,14 +179,15 @@ representative, not guarantees.
 
 The sharded path is **stable to within ~0.4%** across runs; the baseline swings with
 stage-read network conditions, which is exactly the per-file overhead sharding
-removes. The 4.4× speedup comes from **cutting 100k presigned-URL lookups + S3 GETs
+removes. The 4.4× speedup comes from **cutting 100k lookups + S3 GETs
 down to 8**. The bytes on the wire are the same (JPEGs stay compressed); what shrinks
 is the number of round-trips.
 
 ### End-to-end distributed training
 
 The read numbers above translate directly into training time. We ran the **actual
-`PyTorchDistributor`** (4 workers, DDP) over the same 100k images, feeding it two ways
+`PyTorchDistributor`** (4 workers, DDP — one per A10G GPU on the same GPU_NV_M node)
+over the same 100k images, feeding it two ways
 — raw files via `SFStageImageDataSource` vs. shards via `SFStageShardDataSource` — with
 everything else identical (batch 2048, 64×64 RGB, same model):
 
