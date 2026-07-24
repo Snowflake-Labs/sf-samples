@@ -1,0 +1,27 @@
+definition_version: '2'
+entities:
+  Cortex_Agent_SiS_demo:
+    type: streamlit
+    title: "Cortex Agent Advanced SiS demo"
+    identifier:
+      name: CORTEX_AGENT_SIS_DEMO
+      schema: CA_SIS_DEMO_APP_SCHEMA
+      database: CORTEX_ANALYST_DEMO
+    main_file: Talk_to_your_data.py
+    pages_dir: pages
+    query_warehouse: CORTEX_ANALYST_WH
+    stage: CORTEX_ANALYST_DEMO.CA_SIS_DEMO_APP_SCHEMA.APP_CODE
+    artifacts:
+      - Talk_to_your_data.py
+      - environment.yml
+      - pages
+      - utils/analyst.py
+      - utils/db.py
+      - utils/llm.py
+      - utils/misc.py
+      - utils/notifications.py
+      - utils/plots.py
+      - utils/session_state.py
+      - utils/storage
+      - constants.py
+      - components
