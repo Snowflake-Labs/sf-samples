@@ -1,0 +1,9 @@
+definition_version: 2
+entities:
+  streamlit_app:
+    type: streamlit
+    main_file: support_ticket_response_app.py
+    artifacts:
+      - pyproject.toml
+      - support_ticket_response_app.py
+      - .streamlit/config.toml
