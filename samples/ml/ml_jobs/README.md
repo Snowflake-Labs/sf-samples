@@ -26,9 +26,9 @@ The Runtime Job API (`snowflake.ml.jobs`) API is available in
 pip install snowflake-ml-python>=1.9.0
 ```
 
-> NOTE: The Runtime Job API currently only supports Python 3.10.
-  Attempting to use the API with a different Python version may yield
-  unexpected errors.
+> NOTE: As of `snowflake-ml-python` 1.23.0, ML Jobs support Python 3.10, 3.11,
+> and 3.12. Jobs automatically select a runtime environment matching the client
+> Python version.
 
 ## Getting Started
 
@@ -480,8 +480,6 @@ Examples showcasing how ML Jobs can be integrated with workflow/DAG frameworks l
 
 ## Known Limitations
 
-1. ML Jobs currently only supports Python 3.10. Attempting to use
-other Python versions may throw unexpected errors like `UnpicklingError` or `TypeError`.
 1. Job submission may fail with `Failed to retrieve image <image_name> from the image repository`
 if your account has not been properly configured with image registries yet.
 This can be resolved by [creating an image repository](https://docs.snowflake.com/en/sql-reference/sql/create-image-repository)
