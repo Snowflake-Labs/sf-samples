@@ -3,12 +3,12 @@
 The Runtime Job API can be easily integrated with Airflow using the
 [SnowparkOperator](https://airflow.apache.org/docs/apache-airflow-providers-snowflake/stable/operators/snowpark.html).
 
-> NOTE: Make sure `snowflake-ml-python>=1.8.2` is installed in your Airflow worker environment(s)
+> NOTE: Make sure `snowflake-ml-python>=1.26.0` is installed in your Airflow worker environment(s)
 
 ```python
 import datetime
 from airflow.decorators import dag, task
-from snowflake.ml import remote, submit_file
+from snowflake.ml.jobs import remote, submit_file
 
 @dag(start_date=datetime.datetime(2025, 1, 1), schedule="@daily")
 def my_dag():

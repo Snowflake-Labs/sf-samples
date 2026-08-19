@@ -4,8 +4,6 @@
 
 ## Setup
 
-> NOTE: The MLJob API currently only supports Python 3.10 clients.
-
 Install Python requirements using `pip install -r requirements.txt` from the sample directory.
 
 This sample uses synthetic data for training and evaluation. Be sure to run data

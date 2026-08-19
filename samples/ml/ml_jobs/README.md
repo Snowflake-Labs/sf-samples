@@ -20,15 +20,15 @@ See the [Examples](#examples) section to find end-to-end examples of using ML Jo
 ## Setup
 
 The Runtime Job API (`snowflake.ml.jobs`) API is available in
-`snowflake-ml-python>=1.9.0`.
+`snowflake-ml-python>=1.26.0`.
 
 ```bash
-pip install snowflake-ml-python>=1.9.0
+pip install snowflake-ml-python>=1.26.0
 ```
 
-> NOTE: The Runtime Job API currently only supports Python 3.10.
-  Attempting to use the API with a different Python version may yield
-  unexpected errors.
+> NOTE: As of `snowflake-ml-python` 1.23.0, ML Jobs support Python 3.10, 3.11,
+> and 3.12. Jobs automatically select a runtime environment matching the client
+> Python version.
 
 ## Getting Started
 
@@ -171,9 +171,8 @@ job_definition = MLJobDefinition.register(
     "/path/to/repo/my_script.py",
     # If you register a source directory, provide the entrypoint file:
     # entrypoint="/path/to/repo/my_script.py",
-    compute_pool=self.compute_pool,
+    compute_pool=compute_pool,
     stage_name="payload_stage",
-    session=self.session,
 )
 # Arguments follow the same format used in file dispatch
 job1 = job_definition("arg1", "--arg2_key", "arg2_value")
@@ -198,10 +197,16 @@ train_model_task = DAGTask("TRAIN_MODEL", definition=train_model)
 
 ### Supporting Additional Payloads in Submissions
 
-When submitting a file, directory, or from a stage, additional payloads are supported for use during job execution.
-The import path can be specified explicitly; otherwise, the name of the addtional payload will be used as the import path.
+When submitting a file, directory, or from a stage, use the `imports` argument to declare additional
+dependencies such as ZIP files and Python modules. The import path can be specified explicitly;
+otherwise, it is inferred from the location of the additional payload.
 
-> Note: currently, only directories can be specified as import sources. Importing individual files is not supported.
+Local directories and Python files are automatically compressed, and their internal layout is
+determined by the specified import path. The import path applies only to local directories,
+Python files, and staged Python files. When referencing files in a stage, only individual files
+are supported, not directories.
+
+> Note: The `additional_payloads` argument is deprecated. Use `imports` instead.
 
 ```python
 from snowflake.ml.jobs import submit_file, submit_directory, submit_from_stage
@@ -210,8 +215,8 @@ job1 = submit_file(
     "/path/to/repo/my_script.py",
     compute_pool,
     stage_name="payload_stage",
-    args=["arg1", "--arg2_key", "arg2_value"],  
-    additional_payloads=[
+    args=["arg1", "--arg2_key", "arg2_value"],
+    imports=[
       ("src/utils/", "utils"), # The import path is utils
     ],
 )
@@ -222,8 +227,8 @@ job2 = submit_directory(
     compute_pool,
     entrypoint="my_script.py",
     stage_name="payload_stage",
-    args=["arg1", "arg2"], 
-    additional_payloads=[
+    args=["arg1", "arg2"],
+    imports=[
       ("src/utils/"), # The import path is utils
     ],
 )
@@ -233,9 +238,9 @@ job3 = submit_from_stage(
     compute_pool,
     entrypoint="@test_stage/path/to/repo/my_script.py",
     stage_name="payload_stage",
-    args=["arg1", "arg2"], 
-    additional_payloads=[
-      ("@source_stage/src/utils/sub_utils/", "utils.sub_utils"), # The import path is utils.sub_utils
+    args=["arg1", "arg2"],
+    imports=[
+      ("@source_stage/src/utils.py", "utils"), # Stage imports must be individual files
     ],
 )
 ```
@@ -359,6 +364,35 @@ The Job UI makes it easy to:
 
 ## Advanced Usage
 
+### Specifying a Container Runtime
+
+The `@remote` decorator, as well as `submit_file`, `submit_directory`, and
+`submit_from_stage`, support the `runtime_environment` keyword. When you omit it,
+Snowflake uses the latest available Snowflake Container Runtime on your compute pool.
+
+To pin a specific Container Runtime version, pass the version string (for example, `2.3.0`).
+See [Container Runtime releases](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime/releases)
+for available versions and default packages.
+
+```python
+from snowflake.ml.jobs import remote, submit_file
+
+@remote(
+    compute_pool,
+    stage_name="payload_stage",
+    runtime_environment="2.3.0",
+)
+def train_model():
+    ...
+
+job = submit_file(
+    "/path/to/repo/my_script.py",
+    compute_pool,
+    stage_name="payload_stage",
+    runtime_environment="2.3.0",
+)
+```
+
 ### Custom Python Dependencies
 
 The Runtime Job API runs payloads inside the Snowflake
@@ -478,10 +512,15 @@ Examples showcasing how ML Jobs can be integrated with workflow/DAG frameworks l
 - [e2e_task_graph](./e2e_task_graph/) - end-to-end feature engineering and modeling pipeline using Snowflake Task Graph
 - [xgb_classifier_airflow](./xgb_classifier_airflow/) - orchestrate model training and evaluation using Apache Airflow
 
+### LLM Fine-Tuning
+
+Examples showcasing LLM post-training with ML Jobs.
+
+- [llm_finetune](./llm_finetune) - supervised fine-tuning of Qwen3-1.7B with ArcticTraining (including LoRA)
+- [rl_finetuning](./rl_finetuning) - GRPO reinforcement learning recipes for medical SOAP notes with AReaL
+
 ## Known Limitations
 
-1. ML Jobs currently only supports Python 3.10. Attempting to use
-other Python versions may throw unexpected errors like `UnpicklingError` or `TypeError`.
 1. Job submission may fail with `Failed to retrieve image <image_name> from the image repository`
 if your account has not been properly configured with image registries yet.
 This can be resolved by [creating an image repository](https://docs.snowflake.com/en/sql-reference/sql/create-image-repository)
@@ -495,7 +534,7 @@ anywhere in your account.
     
     ```python
     from snowflake.ml.jobs import list_jobs, delete_job
-    for _, row in list_jobs(limit=-1).iterrows()::
+    for _, row in list_jobs(limit=-1).iterrows():
       if row["status"] in {"DONE", "FAILED"}:
         delete_job(row["name"])
     ```
