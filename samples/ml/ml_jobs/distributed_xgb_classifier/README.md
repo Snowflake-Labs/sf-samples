@@ -15,7 +15,7 @@ The sample trains an XGBoost model on a large dataset using Ray's distributed ca
 
 ## Prerequisites
 
-- `snowflake-ml-python>=1.9.0`
+- `snowflake-ml-python>=1.26.0`
 - A Snowflake compute pool with sufficient resources
 
 ## How to Run
