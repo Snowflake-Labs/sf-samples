@@ -1,0 +1,9 @@
+definition_version: 1
+streamlit:
+  name: sample_app
+  query_warehouse: my_streamlit_warehouse # Note that an XS warehouse is recommended
+  main_file: streamlit_app.py
+  env_file: environment.yml
+  pages_dir: pages/
+  additional_source_files:
+    - common/*.py
