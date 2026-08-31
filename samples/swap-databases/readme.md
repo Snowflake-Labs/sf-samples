@@ -1,4 +1,4 @@
-# sfdc-data360migrate-abstractviews
+# swap-databases
 
 A Cortex Code skill for safely swapping two Snowflake databases with three operational modes.
 
@@ -24,14 +24,14 @@ A Cortex Code skill for safely swapping two Snowflake databases with three opera
 Install as a Cortex Code skill and invoke with:
 
 ```
-$sfdc-data360migrate-abstractviews swap databases DB1 and DB2
+$swap-databases swap databases DB1 and DB2
 ```
 
 Or for specific modes:
 
 ```
-$sfdc-data360migrate-abstractviews redirect views from OLD_SHARE_DB to NEW_CLD_DB
-$sfdc-data360migrate-abstractviews zerocopy swap IMPORTED_DB with CLD_DB
+$swap-databases redirect views from OLD_SHARE_DB to NEW_CLD_DB
+$swap-databases zerocopy swap IMPORTED_DB with CLD_DB
 ```
 
 ## Prerequisites
