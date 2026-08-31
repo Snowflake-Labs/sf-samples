@@ -1,0 +1,43 @@
+max_steps = 20
+seq_len = 2048
+
+[model]
+name = "PrimeIntellect/Qwen3-0.6B-Reverse-Text-SFT"
+
+[deployment]
+# PrimeRL resolves this as one logical two-GPU allocation. The external ML Job
+# dispatcher places the roles on separate single-GPU instances.
+gpus_per_node = 2
+num_train_gpus = 1
+num_infer_gpus = 1
+
+[weight_broadcast]
+type = "nccl"
+
+[rollout_transport]
+type = "zmq"
+
+[monitors.file]
+
+[orchestrator]
+batch_size = 128
+group_size = 16
+
+[orchestrator.train.sampling]
+max_completion_tokens = 128
+
+[[orchestrator.train.source]]
+name = "reverse-text"
+env.taskset.id = "reverse-text"
+env.agent.harness.id = "null"
+env.agent.runtime.type = "subprocess"
+
+[trainer.optim]
+lr = 3e-6
+
+[ckpt]
+
+[inference]
+
+[orchestrator.renderer]
+name = "prime-qwen3"
