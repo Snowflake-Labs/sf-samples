@@ -29,6 +29,9 @@ pip install snowflake-ml-python>=1.26.0
 > NOTE: As of `snowflake-ml-python` 1.23.0, ML Jobs support Python 3.10, 3.11,
 > and 3.12. Jobs automatically select a runtime environment matching the client
 > Python version.
+>
+> Some advanced distributed examples in [`distributed_training`](./distributed_training)
+> use direct per-instance execution and require `snowflake-ml-python>=1.54.0`.
 
 ## Getting Started
 
@@ -458,13 +461,16 @@ job3 = submit_directory(
 
 ### Multi-Node Capabilities
 
-ML Jobs also support running distributed machine learning workloads across [multiple nodes](https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/distributed-ml-jobs),
-allowing you to:
-- Scale workloads across multiple compute instances via [Ray](https://docs.ray.io/en/latest/ray-overview/examples.html)
-- Process larger datasets and train more complex models through distributed data connectors and trainers that can efficiently handle data processing and model training across multiple nodes
-- Speed up training through parallelization
+ML Jobs also support running distributed machine learning workloads across [multiple nodes](https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/distributed-ml-jobs).
 
-To use multi-node capabilities, specify the `target_instances` parameter:
+Common execution patterns include:
+
+- Head/worker frameworks such as [Ray](https://docs.ray.io/en/latest/ray-overview/examples.html) and distributor-based trainers
+- Direct per-instance execution for repositories that already manage their own launcher, rendezvous, or multi-role topology
+
+Both patterns let you scale workloads across multiple compute instances, process larger datasets, and speed up training through parallelization.
+
+For head/worker frameworks such as Ray, specify the `target_instances` parameter:
 
 ```python
 @remote(compute_pool, stage_name="payload_stage", target_instances=3)
@@ -476,11 +482,32 @@ def my_distributed_function():
     print(f"Ray nodes: {ray.nodes()}")
 ```
 
+For user-owned launchers such as `torchrun`, DeepSpeed, `mpirun`, or multi-role application dispatchers, ML Jobs can also execute the same entrypoint on every allocated instance by setting `parallel=True`:
+
+```python
+from snowflake.ml.jobs import submit_directory
+
+job = submit_directory(
+    "/path/to/repo/",
+    compute_pool,
+    entrypoint=["bash", "launch.sh"],
+    stage_name="payload_stage",
+    target_instances=2,
+    min_instances=2,
+    parallel=True,
+)
+
+result = job.distributed_result()
+print(result.exit_codes)
+```
+
+In this mode, each instance receives a consistent topology through environment variables such as `SNOWFLAKE_JOB_INDEX`, `SNOWFLAKE_JOBS_COUNT`, `MLRS_HEAD_IP`, `MLRS_NODE_IPS`, and `MLRS_RDZV_PORT`. See [`distributed_training`](./distributed_training) for end-to-end examples that adapt native PyTorch DDP, DeepSpeed ZeRO-3, Open MPI, and a multi-role PrimeRL workflow to that contract.
+
 For multi-node jobs, you can access logs from individual instances:
 
 ```python
 # Get logs from specific instances
-job.get_logs()  # Head node
+job.get_logs()  # Instance 0
 job.get_logs(instance_id=1)  # Node 1
 job.get_logs(instance_id=2)  # Node 2
 ```
@@ -496,6 +523,7 @@ Examples showcasing how ML Jobs can be used from an IDE such as VSCode, Cursor, 
   image classification. Also demonstrates integration with Weights and Biases for experiment tracking
 - [distributed_xgb_classifier](./distributed_xgb_classifier) - train an XGBoost model using the [Snowflake Container Runtime's distributor APIs](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml#xgboost)
   for distributed training across multiple nodes 
+- [distributed_training](./distributed_training) - run user-owned distributed launchers directly on every ML Job instance, including PyTorch DDP, DeepSpeed ZeRO-3, Open MPI, and a multi-role PrimeRL workflow
 
 ### Jupyter Notebooks
 
