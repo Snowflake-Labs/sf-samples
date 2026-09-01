@@ -132,7 +132,7 @@ def prepare_dataloader(
         pin_memory=True,
         drop_last=True,
     )
-    if not loader:
+    if len(loader) == 0:
         raise ValueError(
             "The dataset is too small for the requested world size and batch size."
         )

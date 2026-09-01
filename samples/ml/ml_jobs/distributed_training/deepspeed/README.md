@@ -56,7 +56,9 @@ CREATE OR REPLACE NETWORK RULE HUGGINGFACE_NETWORK_RULE
   TYPE = HOST_PORT
   VALUE_LIST = (
     'huggingface.co:443',
-    'us.aws.cdn.hf.co:443'
+    'us.aws.cdn.hf.co:443',
+    'cdn-lfs.huggingface.co:443',
+    'cdn-lfs-us-1.huggingface.co:443'
   );
 
 CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION PYPI_HF_EAI
