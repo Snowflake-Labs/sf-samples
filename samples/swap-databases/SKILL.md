@@ -57,7 +57,6 @@ Use when both databases are writable and you want to swap their names.
 - Both databases must be writable (not imported/shared)
 - A single matching schema exists in both databases
 
-## Workflow
 
 ### Step 1: Gather Parameters
 
