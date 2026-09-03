@@ -52,7 +52,7 @@ If Mode C → proceed to [Workflow C](#workflow-c-zerocopy-swap--datashare-to-cl
 
 Use when both databases are writable and you want to swap their names.
 
-## Workflow A Prerequisites
+### Workflow A Prerequisites
 
 - Both databases must be writable (not imported/shared)
 - A single matching schema exists in both databases
