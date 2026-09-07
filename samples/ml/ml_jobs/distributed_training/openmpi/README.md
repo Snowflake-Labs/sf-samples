@@ -2,7 +2,7 @@
 
 ## Overview
 
-This sample trains an MPI-enabled LightGBM binary classifier on a bounded partition of the UCI HIGGS dataset. It demonstrates how a repository whose standard entrypoint is `mpirun` can run on direct per-instance ML Jobs even though ML Jobs does not configure SSH or MPI launch agents between instances.
+This sample trains an MPI-enabled LightGBM binary classifier on a bounded partition of the UCI HIGGS dataset. It demonstrates how a codebase whose standard entrypoint is `mpirun` can run on direct per-instance ML Jobs even though ML Jobs does not configure SSH or MPI launch agents between instances.
 
 LightGBM's data-parallel tree learner is a representative MPI workload: every MPI rank reads a distinct pre-partitioned slice, participates in distributed histogram reduction, and contributes to one trained model.
 
@@ -139,6 +139,8 @@ Distributed result: {
 }
 ```
 
+On failure, `distributed_result()` raises `DistributedJobError`; inspect `error.result` for the per-instance outcome. See [Monitor Your Job](../README.md#monitor-your-job) for details.
+
 ### Output Files
 
 Instance 0 writes the trained model and run metadata to `output/openmpi/` under the `app/` directory of this job's folder on the stage you passed as `--stage-name`:
@@ -170,18 +172,18 @@ for instance_id in range(2):
     print(job.get_logs(instance_id=instance_id))
 ```
 
-## Adapt the Launcher to Your Repository
+## Adapt the Launcher to Your Codebase
 
-Use this recipe only when the repository genuinely depends on agent-based remote process creation and cannot use direct, no-SSH, or per-instance startup.
+Use this recipe only when the codebase genuinely depends on agent-based remote process creation and cannot use direct, no-SSH, or per-instance startup.
 
-1. Put the repository's MPI distribution and build or runtime dependencies in `src/requirements.txt`, or select a compatible Snowflake Container Runtime that already contains them.
+1. Put the codebase's MPI distribution and build or runtime dependencies in `src/requirements.txt`, or select a compatible Snowflake Container Runtime that already contains them.
 2. Keep the job-scoped key generation and launch-agent readiness checks.
-3. Replace the `lightgbm` command and hostfile slot count with the repository's normal `mpirun` command.
+3. Replace the `lightgbm` command and hostfile slot count with the codebase's normal `mpirun` command.
 4. Preserve the port layout: SSH, completion control, and two small disjoint sub-ranges for ORTE OOB and the TCP BTL, all within the exported ephemeral range, plus the subnet pinning for ORTE and the BTL.
 5. Preserve head-to-worker completion signaling so every ML Job entrypoint returns a consistent status.
 6. Submit the directory with `parallel=True`, `min_instances` equal to `target_instances`, and the framework-agnostic wiring preflight.
 
-Libraries and launchers must be ABI-compatible across all nodes. If the repository supports a no-SSH launcher or can start one process directly on every instance, that simpler pattern generally has fewer moving parts.
+Libraries and launchers must be ABI-compatible across all nodes. If the codebase supports a no-SSH launcher or can start one process directly on every instance, that simpler pattern generally has fewer moving parts.
 
 ## Configuration and Reproducibility
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This sample performs full-parameter instruction tuning of a pinned Qwen3-1.7B model on a pinned Dolly-15k dataset subset with DeepSpeed ZeRO-3. It demonstrates how an existing DeepSpeed repository can keep its hostfile-based launcher without configuring SSH between ML Job instances.
+This sample performs full-parameter instruction tuning of a pinned Qwen3-1.7B model on a pinned Dolly-15k dataset subset with DeepSpeed ZeRO-3. It demonstrates how an existing DeepSpeed codebase can keep its hostfile-based launcher without configuring SSH between ML Job instances.
 
 ZeRO-3 is a natural fit for this workload because it partitions parameters, gradients, and optimizer state across the distributed world instead of replicating the complete training state on every GPU.
 
@@ -128,6 +128,8 @@ Distributed result: {
 }
 ```
 
+On failure, `distributed_result()` raises `DistributedJobError`; inspect `error.result` for the per-instance outcome. See [Monitor Your Job](../README.md#monitor-your-job) for details.
+
 ### Output Files
 
 Rank 0 gathers the ZeRO-3 parameter shards and writes a metrics file and a full Hugging Face checkpoint to a relative `output/deepspeed/`. The payload runs from the `app/` directory of this job's folder on the stage you passed as `--stage-name`, so the files land there:
@@ -161,18 +163,18 @@ for instance_id in range(2):
     print(job.get_logs(instance_id=instance_id))
 ```
 
-## Adapt the Launcher to Your Repository
+## Adapt the Launcher to Your Codebase
 
-An existing DeepSpeed repository that supports no-SSH launch normally needs only the topology adapter:
+An existing DeepSpeed codebase that supports no-SSH launch normally needs only the topology adapter:
 
-1. Copy the hostfile construction in `launch.sh` next to the repository entrypoint.
-2. Replace `train.py` and its arguments with the repository's normal DeepSpeed command.
+1. Copy the hostfile construction in `launch.sh` next to the codebase entrypoint.
+2. Replace `train.py` and its arguments with the codebase's normal DeepSpeed command.
 3. Keep `--no_ssh`, `--node_rank`, `--master_addr`, and `--master_port` so every per-instance launcher joins the same world.
-4. Set the hostfile slot count to the number of processes the repository should start per node.
-5. Put the repository's dependencies in `src/requirements.txt` or use a runtime image that already contains them.
+4. Set the hostfile slot count to the number of processes the codebase should start per node.
+5. Put the codebase's dependencies in `src/requirements.txt` or use a runtime image that already contains them.
 6. Submit the directory with `parallel=True` and `min_instances` equal to `target_instances`.
 
-The launcher pattern is independent of ZeRO stage. A repository can use another DeepSpeed training strategy while keeping the same hostfile and no-SSH topology mapping.
+The launcher pattern is independent of ZeRO stage. A codebase can use another DeepSpeed training strategy while keeping the same hostfile and no-SSH topology mapping.
 
 ## Configuration and Reproducibility
 

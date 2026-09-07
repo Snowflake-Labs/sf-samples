@@ -121,6 +121,8 @@ Distributed result: {
 }
 ```
 
+On failure, `distributed_result()` raises `DistributedJobError`; inspect `error.result` for the per-instance outcome. See [Monitor Your Job](../README.md#monitor-your-job) for details.
+
 ### Output Files
 
 Rank 0 writes a metrics file and a full Hugging Face checkpoint to a relative `output/pytorch_ddp/`. The payload runs from the `app/` directory of this job's folder on the stage you passed as `--stage-name`, so the files land there:
@@ -156,19 +158,19 @@ for instance_id in range(2):
     print(job.get_logs(instance_id=instance_id))
 ```
 
-## Adapt the Launcher to Your Repository
+## Adapt the Launcher to Your Codebase
 
-An existing `torchrun` repository normally needs only the launcher adapter:
+An existing `torchrun` codebase normally needs only the launcher adapter:
 
-1. Copy `launch.sh` next to the repository entrypoint.
-2. Replace `train.py` and its arguments with the repository's normal command.
+1. Copy `launch.sh` next to the codebase entrypoint.
+2. Replace `train.py` and its arguments with the codebase's normal command.
 3. Keep the static `nnodes`, `node-rank`, `master-address`, and `master-port` mapping.
-4. Put the repository's dependencies in `src/requirements.txt` or use a runtime image that already contains them.
+4. Put the codebase's dependencies in `src/requirements.txt` or use a runtime image that already contains them.
 5. Submit the directory with `parallel=True` and `min_instances` equal to `target_instances`.
 
 The training strategy can change without changing the topology mapping. For example, `train.py` can wrap the model with FSDP instead of DDP while `launch.sh` continues to use the same `torchrun` command.
 
-The launcher can change too. A repository that runs `accelerate launch` instead of `torchrun` maps the same topology onto accelerate's `--num_machines`, `--num_processes`, `--machine_rank`, `--main_process_ip`, and `--main_process_port`. Pass the head IP and port (`MLRS_HEAD_IP`/`MLRS_RDZV_PORT`) directly, as `launch.sh` does, so accelerate uses a static rendezvous.
+The launcher can change too. A codebase that runs `accelerate launch` instead of `torchrun` maps the same topology onto accelerate's `--num_machines`, `--num_processes`, `--machine_rank`, `--main_process_ip`, and `--main_process_port`. Pass the instance 0 IP and port (`MLRS_HEAD_IP`/`MLRS_RDZV_PORT`) directly, as `launch.sh` does, so accelerate uses a static rendezvous.
 
 ## Configuration and Reproducibility
 

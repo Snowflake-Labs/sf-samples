@@ -2,7 +2,7 @@
 
 ## Overview
 
-This sample runs PrimeRL's official reverse-text Quick Run on two `GPU_NV_S` ML Job instances. Its purpose is to demonstrate that native per-instance execution with `parallel=True` can run a real multi-role PrimeRL workflow without converting the roles into head-created ML Job tasks.
+This sample runs PrimeRL's official reverse-text Quick Run on two `GPU_NV_S` ML Job instances. Its purpose is to demonstrate that direct per-instance execution with `parallel=True` can run a real multi-role PrimeRL workflow without converting the roles into head-created ML Job tasks.
 
 PrimeRL is a natural multi-role example: policy inference generates rollouts, an environment server scores them, the orchestrator batches the rollouts and coordinates weight versions, and the trainer updates the policy.
 
@@ -151,16 +151,18 @@ result = job.distributed_result()
 print(result)
 ```
 
-A successful run reports one zero exit code for each role instance:
+A successful run reports one zero exit code for each ML Job instance:
 
 ```text
 Distributed result: {
   'success': True,
-  'exit_codes': {0: 0, 1: 0},   # each role instance's exit code
+  'exit_codes': {0: 0, 1: 0},   # each ML Job instance's exit code
   'failed_instance': None,
   'return_value': None          # None; dispatch.py reports status via exit code
 }
 ```
+
+On failure, `distributed_result()` raises `DistributedJobError`; inspect `error.result` for the per-instance outcome. See [Monitor Your Job](../README.md#monitor-your-job) for details.
 
 ### Output Files
 
@@ -202,14 +204,14 @@ print("Trainer and orchestrator roles")
 print(job.get_logs(instance_id=1))
 ```
 
-## Adapt the Dispatcher to Your Repository
+## Adapt the Dispatcher to Your Codebase
 
-An application-specific multi-role repository normally needs a small dispatcher rather than a training-code rewrite:
+An application-specific multi-role codebase normally needs a small dispatcher rather than a training-code rewrite:
 
-1. Define a deterministic mapping from `SNOWFLAKE_JOB_INDEX` to repository roles.
+1. Define a deterministic mapping from `SNOWFLAKE_JOB_INDEX` to codebase roles.
 2. Allocate every inter-node listener consistently from `MLRS_EPHEMERAL_PORT_MIN` through `MLRS_EPHEMERAL_PORT_MAX`.
 3. Build service URLs and transport endpoints from the ordered `MLRS_NODE_IPS` roster.
-4. Start each role with the repository's native entrypoint and configuration.
+4. Start each role with the codebase's native entrypoint and configuration.
 5. Distinguish terminal roles from support roles, monitor early failures, and define a clean shutdown protocol.
 6. Copy role-specific logs and artifacts to non-conflicting stage paths.
 7. Submit with `parallel=True`, a fixed `min_instances`, and the wiring preflight.

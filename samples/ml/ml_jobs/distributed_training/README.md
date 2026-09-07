@@ -1,8 +1,12 @@
-# Run Distributed Training Repositories on Snowflake ML Jobs
+# Run Existing Distributed Training Codebases on Snowflake ML Jobs
 
-These samples demonstrate how to run existing distributed training repositories on [Snowflake ML Jobs](https://docs.snowflake.com/developer-guide/snowflake-ml/ml-jobs/overview) while keeping their native launchers, training strategies, and entrypoints.
+These samples demonstrate how to run an existing distributed training codebase on [Snowflake ML Jobs](https://docs.snowflake.com/developer-guide/snowflake-ml/ml-jobs/overview) while keeping its native launcher, training strategy, and entrypoint.
 
-Rather than requiring a Snowflake-specific head process to create or fan out tasks to workers, ML Jobs can invoke the same entrypoint directly on every allocated instance. The repository then uses the provided static topology to start `torchrun`, build a DeepSpeed hostfile, bootstrap SSH for `mpirun`, or assign application-specific roles.
+Here, a distributed training codebase means training code that is already designed to launch and coordinate work across multiple nodes through tools such as `torchrun`, `accelerate launch`, `deepspeed`, or `mpirun`.
+
+These samples use direct per-instance execution. ML Jobs invokes the same entrypoint on every allocated instance and provides the static topology needed by the codebase's launcher. This lets an existing codebase keep its launcher instead of restructuring its training logic around a head process. ML Jobs provides the multi-node execution environment; the codebase and its distributed framework still implement behavior such as DDP, FSDP, or ZeRO.
+
+For detailed guidance about this execution mode, see [Direct per-instance execution for multi-node ML Jobs](https://docs.snowflake.com/en/developer-guide/snowflake-ml/ml-jobs/direct-per-instance-execution). For a comparison with the default head/worker mode, see [Multi-Node Capabilities](../README.md#multi-node-capabilities).
 
 ## Overview
 
@@ -24,11 +28,11 @@ jobs.submit_directory(
 
 The entrypoint can be a Python file or a list containing a command and its arguments. This sample uses the list form to launch a Bash adapter.
 
-Each entrypoint receives its instance index, the number of instances, and the same ordered node roster. This gives a distributed repository enough information to construct its own process topology without a Snowflake-specific head-to-worker task layer.
+Each entrypoint receives its instance index, the number of instances, and the same ordered node roster. This gives a distributed training codebase enough information to construct its own process topology without a Snowflake-specific head-to-worker task layer.
 
-### Why Bring Your Own Distributed Repository?
+### Why Bring Your Own Distributed Training Codebase?
 
-Many distributed training repositories already define how processes are launched and coordinated. Direct per-instance execution lets the repository retain:
+Many distributed training codebases already define how processes are launched and coordinated. Direct per-instance execution lets the codebase retain:
 
 - its normal training entrypoint and command-line arguments;
 - its launcher or role dispatcher;
@@ -36,7 +40,7 @@ Many distributed training repositories already define how processes are launched
 - its framework and model dependencies;
 - its checkpointing and artifact behavior.
 
-Keep the ML Job integration in a small launcher or dispatcher adapter. The adapter translates the ML Job topology into the interface expected by the repository, while the training code remains framework-native and does not need Snowflake-specific imports.
+Keep the ML Job integration in a small launcher or dispatcher adapter. The adapter translates the ML Job topology into the interface expected by the codebase, while the training code remains framework-native and does not need Snowflake-specific imports.
 
 ## Key Features
 
@@ -74,7 +78,7 @@ job = jobs.submit_directory(
 )
 ```
 
-The two preflight modes validate c10d-based infrastructure before the workload starts:
+The two preflight levels validate c10d-based infrastructure before the workload starts:
 
 - `wiring` uses a PyTorch c10d `TCPStore` rendezvous and then runs a small Gloo or NCCL `all_reduce`.
 - `reference` includes the `wiring` checks and, on GPU runtimes, times one synthetic DDP training step. CPU-only pools skip that extra step.
@@ -83,7 +87,7 @@ A successful preflight confirms the corresponding c10d connectivity and collecti
 
 ### Distributed Results
 
-Use `distributed_result()` to wait for the job and retrieve a structured result across all instances:
+Use `distributed_result()` to wait for the job and retrieve a structured result across the target instances:
 
 ```python
 result = job.distributed_result()
@@ -95,30 +99,32 @@ print(result.failed_instance)
 The distributed result contains:
 
 
-| Field             | Meaning                                                                           |
-| ----------------- | --------------------------------------------------------------------------------- |
-| `success`         | Whether every instance completed successfully                                     |
-| `exit_codes`      | Mapping from instance index to process exit code                                  |
-| `failed_instance` | Instance associated with the failure, or `None` on success                        |
-| `return_value`    | Entrypoint return value when available; list-form commands normally return `None` |
+| Field | Meaning |
+| --- | --- |
+| `success` | Whether every target instance exited successfully |
+| `exit_codes` | Mapping from instance index to that instance's exit code |
+| `failed_instance` | Earliest-failing instance, or `None` on success |
+| `return_value` | Return value recorded by instance 0 on success; list-form commands normally return `None` |
 
 
-If an instance fails, ML Jobs raises `DistributedJobError` and makes the same structured result available through `error.result`.
+If any instance doesn't exit successfully, ML Jobs raises `DistributedJobError` and makes the same structured result available through `error.result`.
 
 ## Execution Patterns
 
-These are repository-defined execution patterns, not ML Jobs training modes. ML Jobs provides direct per-instance execution and a static topology; each repository decides how its processes launch and coordinate.
+The four patterns below demonstrate how different distributed training codebases can use direct per-instance execution while retaining their existing launch and coordination logic.
 
-Each directory pairs an execution pattern with a representative workload. The bounded defaults are intended to validate a real execution path and produce real artifacts, not to benchmark model quality or distributed scaling.
+Each directory pairs one of these patterns with a representative workload. The bounded defaults are intended to validate a real execution path and produce real artifacts, not to benchmark model quality or distributed scaling.
 
-| Execution pattern | Reference workload |
-| --- | --- |
-| Static rendezvous | [PyTorch DDP with `torchrun`](./pytorch_ddp): Qwen3-0.6B continued pretraining on WikiText-103 |
-| Hostfile-based launch | [DeepSpeed in no-SSH mode](./deepspeed): full-parameter instruction tuning of Qwen3-1.7B on Dolly-15k with ZeRO-3 |
-| SSH-based `mpirun` launch | [Open MPI](./openmpi): distributed LightGBM gradient boosting on the HIGGS dataset |
-| Multi-role topology | [PrimeRL](./prime_rl): reverse-text Quick Run with Qwen3-0.6B, vLLM inference, a GRPO trainer, and a reverse-text environment server |
+| Pattern | How it works | Reference workload |
+| --- | --- | --- |
+| Static rendezvous | Each instance starts `torchrun` with a shared rendezvous endpoint and its own node rank | [PyTorch DDP](./pytorch_ddp): Qwen3-0.6B continued pretraining on WikiText-103 |
+| No-SSH hostfile launch | Each instance starts DeepSpeed with the same hostfile and its own node rank | [DeepSpeed](./deepspeed): full-parameter instruction tuning of Qwen3-1.7B on Dolly-15k with ZeRO-3 |
+| SSH-based `mpirun` launch | Instance 0 uses a generated hostfile and job-scoped SSH to launch MPI processes on every instance | [Open MPI](./openmpi): distributed LightGBM gradient boosting on the HIGGS dataset |
+| Multi-role topology | A dispatcher assigns different application roles to fixed instances and coordinates their lifecycle | [PrimeRL](./prime_rl): reverse-text Quick Run with Qwen3-0.6B, vLLM inference, a GRPO trainer, and a reverse-text environment server |
 
-A meta-launcher maps onto one of these patterns rather than adding a new one. For example, `accelerate launch` builds a static `torchrun` rendezvous, so an Accelerate repository follows the same topology mapping as [`pytorch_ddp`](./pytorch_ddp) — see that sample's "Adapt the Launcher to Your Repository" section.
+Start with PyTorch DDP for a standard `torchrun` pattern or DeepSpeed for no-SSH hostfile launch. Open MPI and PrimeRL demonstrate more advanced integration patterns.
+
+A meta-launcher maps onto one of these patterns rather than adding a new one. For example, `accelerate launch` builds a static `torchrun` rendezvous, so an Accelerate codebase follows the same topology mapping as [`pytorch_ddp`](./pytorch_ddp) — see that sample's "Adapt the Launcher to Your Codebase" section.
 
 ## Prerequisites
 
@@ -160,7 +166,7 @@ The individual sample READMEs provide their additional local dependencies and ex
 
 ## How to Run
 
-### Step 1: Choose an Execution Pattern
+### Step 1: Choose a Sample
 
 Choose a sample from the [execution patterns](#execution-patterns) above and change to its directory. Each sample README documents its workload, external access, runtime, and resource requirements.
 
@@ -184,11 +190,19 @@ Add any sample-specific options documented in its README, such as an external ac
 
 These samples use a fixed world size. Their submission scripts set `min_instances` equal to `target_instances` so the entrypoints start only after the complete requested topology is available.
 
+## Monitor Your Job
+
+Use the following options to monitor a direct per-instance job:
+
+- **Job status:** Use `job.status`, `job.wait()`, or the ML Job page in Snowsight to check the overall job state.
+- **Per-instance logs:** Use `job.get_logs(instance_id=i)` to inspect launcher and workload output. Add `verbose=True` for runtime and bootstrap details.
+- **Distributed results:** Use `distributed_result()` for the per-instance outcome described in [Distributed Results](#distributed-results). If it raises `DistributedJobError`, inspect `error.result` and the failed instance's logs.
+- **Ray Dashboard:** Use it for infrastructure-level visibility while the job is running. Use per-instance logs to monitor launcher and workload progress, and distributed results to inspect per-instance outcomes after the job completes.
+
 ## Limitations
 
 - `parallel=True` exposes a fixed topology for the lifetime of the job. Elastic membership and dynamic replacement of a failed instance are not supported.
-- ML Jobs does not preconfigure SSH between instances. Prefer a framework's direct or no-SSH mode when available; a workload that genuinely needs SSH-based remote process creation can bootstrap and secure its own, as the `openmpi` sample does.
-- Multi-node `torchrun` must use static rendezvous: pass the head node IP via `--master-addr`/`--master-port` (or an `--rdzv-endpoint` with torchrun's default static backend), as `pytorch_ddp` does. c10d dynamic rendezvous does not work because ML Jobs instances cannot resolve one another by hostname.
+- Multi-node `torchrun` must use a static rendezvous. Pass the instance 0 IP and port with `--master-addr` and `--master-port`, or use `--rdzv-endpoint` with torchrun's default static backend, as `pytorch_ddp` does. Dynamic rendezvous isn't supported.
 
 ## Troubleshooting
 
@@ -196,14 +210,10 @@ These samples use a fixed world size. Their submission scripts set `min_instance
 
 Confirm that the compute pool has enough available nodes for `target_instances`. Then confirm that the submission requests more than one instance, sets `parallel=True`, and has `min_instances` equal to `target_instances` for a fixed world size.
 
-### The Launcher Waits Indefinitely
+### A c10d-Based Launcher Waits Indefinitely
 
 Run the wiring preflight before the workload. Verify that every instance maps the same head address and rendezvous port, and that each instance uses its own `SNOWFLAKE_JOB_INDEX` as the node rank.
 
 ### Dependency or Model Downloads Fail
 
-Confirm that the job is configured with an external access integration and that its network rules allow every external host used by the repository.
-
-### SSH Is Not Preconfigured
-
-ML Jobs does not preconfigure SSH between instances. Prefer a framework's direct or no-SSH mode when available. A workload that still needs remote process creation can bootstrap and secure its own SSH, as the `openmpi` sample demonstrates.
+Confirm that the job is configured with an external access integration and that its network rules allow every external host used by the codebase.
