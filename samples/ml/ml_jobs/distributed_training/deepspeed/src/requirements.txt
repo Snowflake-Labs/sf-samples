@@ -1,0 +1,4 @@
+# PyTorch is provided by the runtime image; do not add or repin it here.
+datasets==5.0.1
+deepspeed==0.19.5
+transformers==5.15.0
