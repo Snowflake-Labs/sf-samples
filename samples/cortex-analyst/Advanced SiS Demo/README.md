@@ -131,6 +131,7 @@ Upload all files from this repository to the `cortex_analyst_demo.ca_sis_demo_ap
 * [Snowsight UI](https://docs.snowflake.com/en/user-guide/data-load-local-file-system-stage-ui)
 * [SnowSQL](https://docs.snowflake.com/en/user-guide/data-load-local-file-system-stage)
 * [Snowflake git integratrion](https://docs.snowflake.com/en/developer-guide/git/git-overview)
+* [Snowflake CLI](https://docs.snowflake.com/developer-guide/snowflake-cli/index)
 
 **Note:** Make sure to maintain the same directory structure as in this repository.
 
@@ -178,6 +179,20 @@ Just remember to replace `<warehouse name>` with the actual name of the warehous
 ### Note on Applying Code Changes deployed SiS app
 
 If you have already deployed your SiS app and made changes to the code, it can happen that you'll need to recreate the app in roder to reflect those changes to the deployed app. Just `CREATE OR REPLACE STREAMLIT` command after pushing updated code to app's stage.
+
+### Example of deploying using Snowflake CLI
+
+1. [Install Snowflake CLI](https://docs.snowflake.com/developer-guide/snowflake-cli/installation/installation)
+2. [Configure the connection to your account](https://docs.snowflake.com/en/developer-guide/snowflake-cli/connecting/connect)
+3. Run the Streamlit deployment command in this app's directory:
+
+    ```shell
+    snow streamlit deploy --replace --role=CORTEX_USER_ROLE
+    ```
+
+    The `snowflake.yml` file provided in this repository will configure `snow` to deploy the code into the schema created above.
+
+    `--role` switch will ensure that the application gets the proper owner's role.
 
 ---
 
