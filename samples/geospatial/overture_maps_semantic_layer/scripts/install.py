@@ -66,11 +66,13 @@ def literal(value: str) -> str:
     return "'" + value.replace("\\", "\\\\").replace("'", "''") + "'"
 
 
-def load_config(path: Path) -> dict[str, Any]:
+def load_config(path: Path, require_connection: bool = True) -> dict[str, Any]:
     config = tomllib.loads(path.read_text())
     for key in ("role", "warehouse", "database", "schema", "viewer_role"):
         identifier(config[key])
-    if not isinstance(config["connection"], str) or not config["connection"].strip():
+    if require_connection and (
+        not isinstance(config.get("connection"), str) or not config["connection"].strip()
+    ):
         raise ValueError("A named Snowflake CLI connection is required")
     source = config["source"]
     if source["mode"] not in {"existing", "s3"}:
@@ -268,9 +270,11 @@ def projection(theme: str) -> str:
     )
 
 
-def load_s3(config: dict[str, Any], client: SnowCLI) -> None:
+def load_s3(config: dict[str, Any], client: SnowCLI, load_id: str | None = None) -> None:
     if config["source"]["mode"] != "s3":
         raise ValueError("load-s3 requires source.mode = 's3'")
+    if load_id is not None and not re.fullmatch(r"[A-F0-9]{8}", load_id):
+        raise ValueError("load_id must be eight uppercase hexadecimal characters")
     ensure_namespace(config, client, create=True)
     check_owned_objects(config, client)
     ns = namespace(config)
@@ -288,7 +292,8 @@ def load_s3(config: dict[str, Any], client: SnowCLI) -> None:
     release = resolve_release(files, config.get("s3", {}).get("release", "latest"))
     candidates: list[tuple[str, str]] = []
     for theme in THEMES:
-        candidate = f"{ns}.LOAD_{theme.upper()}_{uuid.uuid4().hex[:8].upper()}"
+        suffix = load_id or uuid.uuid4().hex[:8].upper()
+        candidate = f"{ns}.LOAD_{theme.upper()}_{suffix}"
         candidates.append((candidate, f"{ns}.RAW_{theme.upper()}"))
         bbox = config.get("s3", {}).get("place_bbox", [])
         where = ""
@@ -392,6 +397,8 @@ def agent_sql(config: dict[str, Any], dataset: dict[str, Any]) -> str:
 
 
 def grant_sql(config: dict[str, Any]) -> str:
+    if config["role"].upper() == config["viewer_role"].upper():
+        return ""
     ns = namespace(config)
     role = identifier(config["viewer_role"])
     statements = [f"grant usage on database {identifier(config['database'])} to role {role}",
@@ -465,11 +472,17 @@ def run(command: str, config: dict[str, Any], execute: bool) -> None:
         return
     if command in {"install", "load-s3", "cleanup"} and not execute:
         raise ValueError(f"{command} changes Snowflake objects; review first, then pass --execute")
-    client = SnowCLI(config)
+    execute_workflow(command, config, SnowCLI(config))
+
+
+def execute_workflow(command: str, config: dict[str, Any], client: Any,
+                     load_id: str | None = None) -> None:
+    files = ("sql/10_sources.sql", "semantic/overture.sql", "sql/30_category_search.sql")
+    dataset = {"RELEASE": config["source"]["release"], "COVERAGE": config["source"]["coverage"]}
     if command == "preflight":
         preflight(config, client)
     elif command == "load-s3":
-        load_s3(config, client)
+        load_s3(config, client, load_id=load_id)
     elif command == "install":
         preflight(config, client)
         ensure_namespace(config, client, create=True)
@@ -480,7 +493,9 @@ def run(command: str, config: dict[str, Any], execute: bool) -> None:
         for name in files:
             client.query(render_file(name, config))
         client.query(agent_sql(config, dataset))
-        client.query(grant_sql(config))
+        grants = grant_sql(config)
+        if grants:
+            client.query(grants)
         verify(config, client)
     elif command == "verify":
         verify(config, client)

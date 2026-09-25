@@ -38,6 +38,8 @@ semantics. Land and maritime areas stay separate and retain their own IDs.
 S3 staging tables contain only the columns this sample needs. They are not a
 complete replacement for all columns in a Marketplace share.
 
-All four themes are required for v1. Explicit mappings support renamed databases
-and existing copies without automatic discovery. A missing share never triggers
+All four themes are required for v1. The agent-driven workflow can discover
+candidate sources, then validates explicit mappings for renamed databases and
+existing copies. The manual CLI requires those mappings in configuration.
+A missing share never triggers
 an automatic load. The destination schema must not contain existing sources.
