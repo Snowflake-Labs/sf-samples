@@ -10,6 +10,16 @@
     "caveat": "Address locality, not exact city-boundary containment; primary tag only."
   },
   {
+    "id": "sf_hexagons",
+    "question": "Map the density of places with locality San Francisco in California, US, using resolution-8 H3 hexagons, colored by place count. Show the 500 busiest cells.",
+    "requires": ["place"],
+    "coverage": "San Francisco, US-CA; within the default SF-only S3 load",
+    "layer": "h3",
+    "columns": ["H3_CELL", "PLACE_COUNT"],
+    "reference_sql": "select h3_cell, count(*) as place_count from $ns.PLACE where country = 'US' and region = 'CA' and locality = 'San Francisco' group by h3_cell order by place_count desc, h3_cell limit 500",
+    "caveat": "Top 500 cells within installed coverage; locality filter, not administrative containment."
+  },
+  {
     "id": "berlin_hexagons",
     "question": "Map the density of places with locality Berlin in Germany using resolution-8 H3 hexagons, colored by place count. Show the 500 busiest cells.",
     "requires": ["place"],

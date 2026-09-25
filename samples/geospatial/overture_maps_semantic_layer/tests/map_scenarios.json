@@ -1,0 +1,82 @@
+[
+  {
+    "id": "point_map",
+    "prompt_id": "hospital_points",
+    "setup": "Fresh conversation; nonempty SF hospital reference result and native maps enabled.",
+    "follow_ups": [],
+    "expected": ["Resolve the hospital category, preserve US/CA/San Francisco filters and the 200-row limit.", "Use numeric coordinates and unique place IDs from successful SQL; compare to reference results.", "Observe a native map artifact with the same returned locations."],
+    "status": "not tested"
+  },
+  {
+    "id": "polygon_map",
+    "prompt_id": "california_counties",
+    "setup": "Fresh conversation; nonempty California county reference result.",
+    "follow_ups": ["Show only the 10 largest counties by land area."],
+    "expected": ["Use logical area_class and region US-CA; retain unique area IDs.", "Measure area on original geometry and display simplified GeoJSON without grouping by geometry.", "The follow-up returns at most 10 counties ordered by area and updates the map."],
+    "status": "not tested"
+  },
+  {
+    "id": "default_h3_map",
+    "prompt_id": "sf_hexagons",
+    "setup": "Default SF-only load with nonempty locality coverage.",
+    "follow_ups": ["Show the 20 busiest cells as a table, keeping resolution 8."],
+    "expected": ["Reuse the string h3_cell field without inventing H3 conversion functions.", "The map has at most 500 resolution-8 cells and numeric counts.", "The follow-up preserves geographic filters and resolution and returns at most 20 cells."],
+    "status": "not tested"
+  },
+  {
+    "id": "table_to_map",
+    "prompt_id": "hospital_points",
+    "setup": "First ask the gallery question with 'Return a table only instead of a map' appended.",
+    "follow_ups": ["Show these same results on a map."],
+    "expected": ["Reuse a resolvable successful SQL result without fabricated IDs.", "A required re-query preserves filters and limits and occurs at most once for result recovery.", "Compare table IDs and coordinates to the actual map artifact."],
+    "status": "not tested"
+  },
+  {
+    "id": "missing_result",
+    "prompt_id": "nearby_cafes",
+    "setup": "In an isolated test harness, make the prior SQL result unavailable to the map tool; do not change production data or permissions.",
+    "follow_ups": ["Map the same cafes."],
+    "expected": ["On lookup failure, rerun the same authorized bounded query locally at most once.", "Use its returned SQL result ID; if it still fails, return available data and the blocker.", "Do not broaden access, change filters, loop on retries or create a Python map fallback."],
+    "status": "not tested"
+  },
+  {
+    "id": "wrong_result_type",
+    "prompt_id": "sf_hexagons",
+    "setup": "First request the gallery data as a bar chart, then ask for a map.",
+    "follow_ups": ["Now map those cells."],
+    "expected": ["Map the underlying successful SQL result, not the chart tool result.", "If the SQL result is unavailable, apply bounded result recovery and report unresolved failures.", "Do not describe a bar chart or table as a successful native map."],
+    "status": "not tested"
+  },
+  {
+    "id": "subagent_handoff",
+    "prompt_id": "sf_hexagons",
+    "setup": "Optional integration test: an approved parent agent delegates the bounded SQL query to this sample; do not add routing tools to the sample itself.",
+    "follow_ups": ["Map those results in the parent conversation."],
+    "expected": ["Inspect whether the parent can resolve the actual delegated SQL result.", "If not, use a scoped local re-query only when authorized and supported; otherwise report the handoff blocker.", "Record parent/subagent result linkage and artifact emission separately from browser rendering; missing integration support is blocked, not passed."],
+    "status": "not tested"
+  },
+  {
+    "id": "logical_geometry",
+    "prompt_id": "nearby_cafes",
+    "setup": "Fresh conversation; reference result is nonempty.",
+    "follow_ups": ["Use only cafes within 500 metres of the same point and show the nearest 10."],
+    "expected": ["Generated semantic SQL uses exposed logical names, not physical GEOM/CLASS/ID aliases.", "Use GEOGRAPHY spatial functions rather than GET_PATH or coordinates[]; retain longitude-first point construction.", "Compare results to a reference query with the same 500-metre radius and 10-row limit."],
+    "status": "not tested"
+  },
+  {
+    "id": "unsupported_spatial_join",
+    "prompt_id": "california_counties",
+    "setup": "Fresh conversation with the unmodified sample model.",
+    "follow_ups": ["Count cafes inside each county polygon and color the counties by that count."],
+    "expected": ["Explain the need for an additional exact spatial association step.", "Do not substitute locality counts, H3 coverage or invented relationships for exact containment.", "Do not silently create objects or broaden data access."],
+    "status": "not tested"
+  },
+  {
+    "id": "maps_unavailable",
+    "prompt_id": "hospital_points",
+    "setup": "Client without enabled native maps; authorized SQL access remains available.",
+    "follow_ups": [],
+    "expected": ["Return the bounded table and state that native map rendering is unavailable.", "Do not claim map success, add a custom data_to_map declaration or install plotting packages."],
+    "status": "not tested"
+  }
+]

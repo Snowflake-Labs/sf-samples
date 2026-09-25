@@ -96,6 +96,37 @@ No user-declared `data_to_map` tool needs to be added to the sample's agent spec
 The map capability belongs to the enabled platform/client workflow. An Agent API
 answer or Desktop SQL result is not a CoWork rendering test.
 
+### Result references and recovery
+
+A native map needs a successful SQL result with geographic columns. A chart
+result, an invented ID or an inaccessible result from another agent/thread is
+not interchangeable with that SQL result. If lookup fails, the sample instructions
+allow one re-execution of the same authorized, bounded query in the mapping
+agent's context, preserving filters and limits. If that cannot recover the result,
+return any available table and the blocker. Do not broaden access or silently
+switch to a Python plotting workflow.
+
+This guidance mitigates failures; it does not fix platform result handoff or
+guarantee that a parent can access a subagent's results. Record SQL success,
+map-tool execution, artifact emission and browser rendering separately.
+
+### Conversation acceptance tests
+
+[map_scenarios.json](../tests/map_scenarios.json) contains unexecuted acceptance
+cases for points, polygons, default-coverage H3, follow-up filtering, table/chart
+to map, unresolved results, logical geometry names and unsupported joins. Start
+each case in a fresh test conversation with verified nonempty source coverage.
+Use its gallery `prompt_id` and then its follow-ups. Compare generated SQL and
+returned IDs/measures to reference results at the same scope and release.
+
+Inspect actual tool traces for result IDs and retry counts, and inspect the
+native map in CoWork. Run missing-result cases only in an isolated test harness;
+if controlled failure injection is unavailable, mark them not tested. Subagent
+handoff needs a separately approved integration setup. Record passed, failed,
+blocked or not tested with sanitized evidence in a separate run report. Offline
+fixture tests check coverage and references, not agent behavior. Do not publish
+private prompts, customer identifiers or account-specific traces in this repo.
+
 ## Demo checklist
 
 The exact prompts and reference SQL live in [prompts.json](../examples/prompts.json)
@@ -110,6 +141,7 @@ standalone Snowflake SQL variable; substitute its quoted identifiers before use.
 | `california_counties` | California county land areas | `GEOJSON`, color `AREA_SQKM`; `ID`, `NAME` | Show only the 10 largest counties by land area. |
 | `nearby_cafes` | Places near the supplied SF point | Coordinates, `DISTANCE_M`; `ID`, `NAME` | Limit this to the 10 nearest cafes and state the selected primary category. |
 | `reverse_geocode` | County land area containing the SF point | `GEOJSON`; `ID`, `NAME` | Return the county name and ID as a table. |
+| `sf_hexagons` | San Francisco places, including the default SF-only load | String `H3_CELL`, color `PLACE_COUNT` | Show the 20 busiest cells as a table, keeping resolution 8. |
 | `berlin_hexagons` | Berlin places, not the default SF-only load | String `H3_CELL`, color `PLACE_COUNT` | Show the 20 busiest cells as a table, keeping resolution 8. |
 
 All results depend on installed coverage and release. Primary category matching
@@ -300,6 +332,8 @@ registration. Conversely, an agent answering correctly does not validate renderi
 | H3 map blank or misplaced | Use string H3 IDs at one declared resolution. Do not send 64-bit IDs as floating-point numbers or infer a resolution different from the query. |
 | Geometry shown as text, not a map | Check map selection/binding and output format. GeoJSON needs a complete valid geometry; WKT text is not a GeoJSON column. |
 | Answer says map, but no artifact appears | Check for an actual map output in the client/trace if available. Record SQL success and missing rendering separately. |
+| Map reports no result found or wrong result type | Check that the referenced ID belongs to successful SQL, not a chart. Try the bounded recovery described above once; report unresolved cross-agent handoff through the approved support channel. |
+| Invalid identifier or JSON access on GEOGRAPHY | Generated semantic SQL must use the model's logical names, such as `geometry` and `area_class`. Physical reference SQL uses `GEOM` and `CLASS`. Use exposed coordinates and string H3 fields; GEOGRAPHY is not a JSON object. |
 | Saved map differs from initial view | Compare IDs/row counts after reopening and refreshing. Saved snapshots and query-backed refresh may have different behavior. |
 
 Start small to isolate the issue; then increase scope gradually. Row count alone

@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import re
 import sys
 import unittest
@@ -9,6 +10,22 @@ from agent_install import split_statements
 
 
 class MapGuideTests(unittest.TestCase):
+    def test_map_scenarios_reference_gallery_and_remain_unverified(self):
+        prompts = json.loads((ROOT / "examples/prompts.json").read_text())
+        scenarios = json.loads((ROOT / "tests/map_scenarios.json").read_text())
+        prompt_ids = {prompt["id"] for prompt in prompts}
+        scenario_ids = {scenario["id"] for scenario in scenarios}
+        self.assertEqual(len(scenario_ids), len(scenarios))
+        self.assertTrue({"table_to_map", "wrong_result_type", "missing_result",
+                         "subagent_handoff", "logical_geometry", "default_h3_map",
+                         "unsupported_spatial_join", "maps_unavailable"} <= scenario_ids)
+        for scenario in scenarios:
+            self.assertIn(scenario["prompt_id"], prompt_ids)
+            self.assertEqual(scenario["status"], "not tested")
+            self.assertTrue(scenario["setup"])
+            self.assertIsInstance(scenario["follow_ups"], list)
+            self.assertGreaterEqual(len(scenario["expected"]), 2)
+
     def test_examples_are_six_read_only_statements(self):
         sql = (ROOT / "docs/examples/map_queries.sql").read_text()
         names = re.findall(r"^-- example: (\w+)$", sql, re.MULTILINE)

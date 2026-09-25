@@ -58,7 +58,7 @@ All created objects live in the database and dedicated schema you configure.
 | Object | Purpose |
 | --- | --- |
 | `PLACE`, `DIVISION`, `DIVISION_AREA`, `DIVISION_BOUNDARY` | Local views exposing a consistent set of columns over the chosen sources. |
-| `OVERTURE_MAPS_SV` | Semantic view for geographic queries, with five reference-query examples. |
+| `OVERTURE_MAPS_SV` | Semantic view for geographic queries, with six reference-query examples. |
 | `CATEGORY_VOCAB`, `CATEGORY_SEARCH` | Installation-time place-category vocabulary and its Cortex Search service. |
 | `OVERTURE_MAPS_AGENT` | Agent displayed as **Overture Maps**, using Analyst and category search. |
 | `DATASET_INFO` | Recorded source mode, release and geographic coverage. |
@@ -71,9 +71,10 @@ configured by this sample.
 
 ## Questions it can help answer
 
-Use these five prompts for a first demonstration. Their reference SQL is included
-in [examples/prompts.json](../examples/prompts.json). The SQL patterns were tested;
-the agent responses and native maps still need verification in your account.
+Use the prompts within your installed coverage for a first demonstration. Their
+reference SQL is included in [examples/prompts.json](../examples/prompts.json).
+See the [validation record](validation.md) for executed checks; agent responses
+and native maps still need verification in your account.
 
 ### Find places on a map
 
@@ -110,6 +111,12 @@ Expected output: the matching county name and polygon, using exact point-in-poly
 containment. This is reverse geocoding to an administrative area, not a street address.
 
 ### Find concentrations of places
+
+> Map the density of places with locality San Francisco in California, US, using
+> resolution-8 H3 hexagons, colored by place count. Show the 500 busiest cells.
+
+Use this example for the default SF-only load after confirming a nonempty result.
+For Berlin coverage, use the additional gallery prompt:
 
 > Map the density of places with locality Berlin in Germany using resolution-8
 > H3 hexagons, colored by place count. Show the 500 busiest cells.
@@ -344,9 +351,14 @@ python3 scripts/install.py verify-prompts --config config.toml
 ```
 
 `verify` checks normalized views, one semantic query, the agent's existence and
-search readiness. `verify-prompts` runs the five reference queries and checks
-their columns. Neither tests the agent's answers or the map renderer. An empty
-result is reported as empty, not passed as proof of data coverage.
+search readiness. `verify-prompts` runs the six bounded reference queries and
+checks every row: required columns, unique string IDs, finite numeric coordinates
+and measures, coordinate ranges and complete Polygon/MultiPolygon GeoJSON.
+For H3, a read-only VALUES query checks the returned string IDs with
+`H3_IS_VALID_CELL` and `H3_GET_RESOLUTION`; it does not rescan the source.
+Polygon checks validate structure, not topology. Neither command tests the
+agent's answers or the map renderer. An empty result is reported as empty, not
+passed as proof of data coverage.
 
 To check viewer access, make a separate local copy of your configuration and
 change `role` to the actual viewer role. Run only `verify` and `verify-prompts`

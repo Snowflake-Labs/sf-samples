@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from decimal import Decimal
 import hashlib
 import json
 import math
@@ -439,6 +440,80 @@ def verify(config: dict[str, Any], client: SnowCLI) -> None:
     print("Agent responses and native maps: NOT TESTED. Run examples in CoWork as the viewer.")
 
 
+def finite_number(value: Any) -> bool:
+    return (not isinstance(value, bool) and isinstance(value, (int, float, Decimal))
+            and math.isfinite(value))
+
+
+def valid_polygon(value: Any) -> bool:
+    """Check complete display GeoJSON structure, not polygon topology or rendering."""
+    if not isinstance(value, str):
+        return False
+    try:
+        shape = json.loads(value)
+    except (ValueError, RecursionError):
+        return False
+    if not isinstance(shape, dict):
+        return False
+    coordinates = shape.get("coordinates")
+    if shape.get("type") == "Polygon":
+        polygons = [coordinates]
+    elif shape.get("type") == "MultiPolygon":
+        polygons = coordinates
+    else:
+        return False
+    if not isinstance(polygons, list) or not polygons:
+        return False
+    for polygon in polygons:
+        if not isinstance(polygon, list) or not polygon:
+            return False
+        for ring in polygon:
+            if not isinstance(ring, list) or len(ring) < 4 or ring[0] != ring[-1]:
+                return False
+            for point in ring:
+                if (not isinstance(point, list) or len(point) != 2
+                        or not all(finite_number(value) for value in point)
+                        or not -180 <= point[0] <= 180 or not -90 <= point[1] <= 90):
+                    return False
+    return True
+
+
+def validate_map_rows(prompt: dict[str, Any], rows: list[dict[str, Any]],
+                      client: Any) -> None:
+    """Validate the bounded reference result; never scan the source again."""
+    layer = prompt["layer"]
+    if layer not in {"latlon", "h3", "geojson"}:
+        raise ValueError(f"Unknown map layer for {prompt['id']}")
+    seen = set()
+    for index, row in enumerate(rows, 1):
+        context = f"{prompt['id']}: row {index}"
+        if not set(prompt["columns"]) <= set(row):
+            raise ValueError(f"{context}: missing output columns")
+        key = row["H3_CELL" if layer == "h3" else "ID"]
+        if not isinstance(key, str) or not key.strip() or key in seen:
+            raise ValueError(f"{context}: expected a unique nonempty string ID")
+        seen.add(key)
+        for column in ("PLACE_COUNT", "AREA_SQKM", "DISTANCE_M"):
+            if column in prompt["columns"] and not finite_number(row[column]):
+                raise ValueError(f"{context}: {column} must be finite and numeric")
+        if layer == "latlon":
+            for column, bound in (("LATITUDE", 90), ("LONGITUDE", 180)):
+                if not finite_number(row[column]) or not -bound <= row[column] <= bound:
+                    raise ValueError(f"{context}: {column} must be numeric and in range")
+        elif layer == "geojson" and not valid_polygon(row["GEOJSON"]):
+            raise ValueError(f"{context}: expected complete Polygon/MultiPolygon GeoJSON")
+    if layer == "h3" and rows:
+        cells = ",".join(f"({literal(row['H3_CELL'])})" for row in rows)
+        checks = client.query(
+            "select count(*) as checked, coalesce(count_if(case "
+            "when h3_is_valid_cell(column1) then h3_get_resolution(column1) != 8 "
+            f"else true end), 0) as invalid from values {cells}"
+        )
+        if (len(checks) != 1 or checks[0].get("CHECKED") != len(rows)
+                or checks[0].get("INVALID") != 0):
+            raise ValueError(f"{prompt['id']}: H3 validity/resolution-8 check failed")
+
+
 def verify_prompts(config: dict[str, Any], client: SnowCLI) -> None:
     for prompt in json.loads((ROOT / "examples/prompts.json").read_text()):
         sql = Template(prompt["reference_sql"]).substitute(ns=namespace(config))
@@ -446,9 +521,8 @@ def verify_prompts(config: dict[str, Any], client: SnowCLI) -> None:
         if not rows:
             print(f"{prompt['id']}: EMPTY; check {prompt['coverage']}")
             continue
-        if not set(prompt["columns"]) <= set(rows[0]):
-            raise ValueError(f"Unexpected output columns for {prompt['id']}")
-        print(f"{prompt['id']}: reference SQL returned {len(rows)} rows. "
+        validate_map_rows(prompt, rows, client)
+        print(f"{prompt['id']}: reference SQL and map contract passed for {len(rows)} rows. "
               "Agent equivalence and map rendering require separate checks.")
 
 

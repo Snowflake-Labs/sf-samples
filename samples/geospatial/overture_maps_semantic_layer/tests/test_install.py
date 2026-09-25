@@ -83,7 +83,7 @@ class InstallerTests(unittest.TestCase):
 
     def test_prompt_contract(self) -> None:
         prompts = json.loads((ROOT / "examples/prompts.json").read_text())
-        self.assertEqual(len(prompts), 5)
+        self.assertEqual(len(prompts), 6)
         for prompt in prompts:
             self.assertTrue(prompt["reference_sql"].startswith("select "))
             self.assertIn("limit ", prompt["reference_sql"])
@@ -97,8 +97,25 @@ class InstallerTests(unittest.TestCase):
         decoded = encoded.replace("''", "'").replace("\\\\", "\\")
         spec = json.loads(decoded)
         self.assertEqual(spec["models"]["orchestration"], "auto")
-        self.assertEqual(len(spec["instructions"]["sample_questions"]), 5)
+        self.assertEqual(len(spec["instructions"]["sample_questions"]), 6)
         self.assertNotIn("data_to_map", str(spec["tools"]))
+        self.assertEqual(spec["tool_resources"]["overture_maps"]["execution_environment"],
+                         {"type": "warehouse", "warehouse": self.config["warehouse"].upper()})
+        instructions = spec["instructions"]["orchestration"]
+        self.assertIn("at most\nonce", instructions)
+        self.assertIn("not physical GEOM or CLASS", instructions)
+        self.assertIn("Never\ninvent a result ID", instructions)
+
+    def test_default_s3_keeps_sf_h3_example(self) -> None:
+        self.config["source"]["mode"] = "s3"
+        sql = install.agent_sql(self.config, {"COVERAGE": "SF"})
+        encoded = sql.split("from specification ", 1)[1][1:-2]
+        spec = json.loads(encoded.replace("''", "'").replace("\\\\", "\\"))
+        questions = [item["question"] for item in spec["instructions"]["sample_questions"]]
+        self.assertEqual(len(questions), 5)
+        self.assertTrue(any("San Francisco" in text and "hexagons" in text
+                            for text in questions))
+        self.assertFalse(any("Berlin" in text for text in questions))
 
     def test_cli_multiple_json_results(self) -> None:
         result = subprocess.CompletedProcess([], 0, '[{"status":"ok"}]\n[{"name":"PLACE"}]', '')

@@ -71,8 +71,13 @@ metrics (
 )
 comment = $owner_comment
 ai_sql_generation 'Use original geometry for predicates and simplified GeoJSON only for display.
+Use exposed logical names in semantic SQL: geometry, area_class and place_id,
+not physical GEOM, CLASS or ID from reference queries against normalized views.
+Geometry is GEOGRAPHY, not JSON; do not use GET_PATH or coordinates[] on it.
+Reuse exposed latitude, longitude and resolution-8 string h3_cell fields.
+Do not GROUP BY geometry or use GROUP BY ALL when selecting geometry.
 Group map geometry by area_id and point coordinates by place_id, never name alone.
 Filter land area with area_class = land. Place region is CA, area region is US-CA.
-The five examples are reference queries; counts depend on installed release and coverage.
+The examples are reference queries; counts depend on installed release and coverage.
 Use coordinate literals, not semantic variables. There is no place-to-area spatial relationship.'
 $verified_queries;

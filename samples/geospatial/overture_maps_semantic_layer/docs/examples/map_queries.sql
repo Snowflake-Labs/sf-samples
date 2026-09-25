@@ -70,7 +70,7 @@ from areas
 left join counts on areas.area_id = counts.area_id
 order by areas.area_id;
 
--- Overture examples: ../../examples/prompts.json holds the five reference queries.
+-- Overture examples: ../../examples/prompts.json holds the reference queries.
 -- Replace $ns there with your quoted installation database/schema, for example
 -- "MY_DATABASE"."OVERTURE_SEMANTIC_V1". Do not run the JSON as SQL.
 -- Keep the queries' coverage filters, stable IDs and limits.

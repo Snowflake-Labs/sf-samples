@@ -114,6 +114,32 @@ wording, validate the public links on the published revision, and complete the
 relevant surface tests. Internal rollout details and customer identifiers are not
 part of the guide.
 
+## Map friction checks (2026-09-25)
+
+The updated suite has 60 passing offline tests. Added checks cover the default
+SF H3 prompt, rendered agent configuration, every-row map result validation and
+successful and failed receipt replay of the H3 validation query. Negative cases
+include missing columns, duplicate/null IDs, text or nonfinite coordinates and measures, out-of-range
+coordinates, incomplete or wrong-type GeoJSON, numeric H3 IDs and failed H3
+validity/resolution results. Polygon checks validate structure, not topology.
+`git diff --check` passes.
+
+A read-only Snowflake query over three synthetic strings checked the H3 SQL:
+one valid resolution-8 cell, one valid resolution-9 cell and one invalid string.
+It returned CHECKED = 3 and INVALID = 2. No source table scan or deployment was
+performed. The new SF reference query has not been run against installed data.
+
+The ten cases in [map_scenarios.json](../tests/map_scenarios.json) are acceptance
+specifications, not executed agent conversations. Offline tests validate their
+gallery references and coverage only. Updated instructions, generated semantic
+SQL, multi-turn recovery, subagent handoff and native rendering still require
+tests in an approved isolated installation and enabled CoWork session.
+
+Unlike the earlier documentation-only update, these instruction, prompt and
+installer changes alter the deployment fingerprint. Use an approved fresh schema
+for testing; do not overwrite existing ownership markers or replace a live agent.
+The earlier smoke test does not verify this revision.
+
 ## Acceptance still required
 
 - Complete exact-template installation and unchanged rerun using the receipt

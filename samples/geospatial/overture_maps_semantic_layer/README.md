@@ -80,7 +80,8 @@ reports the specific administrator action rather than silently escalating roles.
 Native map enablement is a separate platform prerequisite that this sample cannot
 install. A SQL or API response alone does not prove a map renders in CoWork.
 
-**Validation status:** 45 offline tests pass. An approved isolated live smoke test
+**Validation status:** See the [validation record](docs/validation.md) for current
+offline test results. An approved isolated live smoke test of the earlier revision
 checked the deployed SQL objects, search readiness, one real agent answer and the
 helper's verification receipt cycle. Full clean-session single-prompt installation,
 exact-template deployment/rerun and native maps remain unverified. See the
@@ -117,7 +118,7 @@ roads and address datasets are outside this sample. See the
 ## Questions to try
 
 Select the installed **Overture Maps** agent in CoWork. Start with one of the
-prompts the installer verified against your source. These five examples have
+prompts the installer verified against your source. These six examples have
 [reference SQL and expected columns](examples/prompts.json).
 See the [demo checklist](docs/map-testing-guide.md#demo-checklist) for coverage,
 field bindings and follow-up questions for each example.
@@ -155,13 +156,20 @@ not a street address.
 
 ### Geographic density
 
+> Map the density of places with locality San Francisco in California, US, using
+> resolution-8 H3 hexagons, colored by place count. Show the 500 busiest cells.
+
+This example uses the default SF places coverage. Check that its reference query
+returns rows before recommending it; locality is not exact boundary containment.
+
+For an installation with Berlin coverage, also try:
+
 > Map the density of places with locality Berlin in Germany using resolution-8
 > H3 hexagons, colored by place count. Show the 500 busiest cells.
 
-Requires Berlin coverage. The default S3 demo loads San Francisco places and
-global administrative divisions, so the first four examples apply, but Berlin
-does not. Counts vary by release; results outside known coverage are not evidence
-of real-world absence.
+The default S3 demo loads San Francisco places and global administrative
+divisions, so it does not cover Berlin. Counts vary by release; results outside
+known coverage are not evidence of real-world absence.
 
 You can adapt locations and categories within your data coverage. Specify country,
 region, units and desired output. Follow up with "Return a table instead" or
@@ -235,6 +243,7 @@ Travel routing and real-time opening hours are not included.
 - [Source contract](docs/source-contract.md): required columns and geometry semantics.
 - [Validation record](docs/validation.md): completed checks and remaining acceptance work.
 - [Prompt gallery](examples/prompts.json): questions and reference queries.
+- [Conversation acceptance cases](tests/map_scenarios.json): unexecuted map and recovery scenarios.
 
 Run offline tests from this sample directory with `python3 -m unittest discover -s tests -v`.
 The agent and manual CLI paths share installation functions and SQL templates.
