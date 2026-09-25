@@ -1,0 +1,7 @@
+config.toml
+!config.example.toml
+__pycache__/
+*.pyc
+rendered/
+.venv/
+.install/

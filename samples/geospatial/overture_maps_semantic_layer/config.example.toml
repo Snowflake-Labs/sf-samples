@@ -1,0 +1,24 @@
+connection = "my_connection"
+role = "MY_INSTALLER_ROLE"
+warehouse = "MY_WAREHOUSE"
+database = "MY_DATABASE"
+schema = "OVERTURE_SEMANTIC_V1"
+viewer_role = "MY_VIEWER_ROLE"
+
+[source]
+mode = "existing"
+release = "unknown"
+coverage = "Global; verify coverage and release with the source provider."
+place = "OVERTURE_MAPS__PLACES.CARTO.PLACE"
+division = "OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION"
+division_area = "OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION_AREA"
+division_boundary = "OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION_BOUNDARY"
+
+[s3]
+release = "latest"
+storage_integration = ""
+place_bbox = [-122.52, 37.70, -122.35, 37.83]
+
+[limits]
+statement_timeout_seconds = 1800
+map_rows = 1000

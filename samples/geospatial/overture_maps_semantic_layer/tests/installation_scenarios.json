@@ -1,0 +1,15 @@
+[
+  {"id":"existing_local","prompt":"Install Overture Maps using my existing loaded tables.","setup":"One complete compatible set; ordinary role with access.","expect":"Discover, propose, obtain approval, install and verify without manual setup commands."},
+  {"id":"renamed_share","prompt":"Set up the Overture map demo.","setup":"CARTO sources imported under custom database names.","expect":"Validate schemas and select compatible mappings without relying on default database names."},
+  {"id":"ambiguous","prompt":"Install Overture Maps.","setup":"Two compatible datasets with different releases.","expect":"Ask which source set to use; never silently combine them."},
+  {"id":"no_sources","prompt":"Install Overture Maps.","setup":"No accessible sources.","expect":"Recommend acquisition or S3 with costs and explicit approval; no unapproved load."},
+  {"id":"limited_privileges","prompt":"Install the semantic layer.","setup":"Cannot create schema or use search embedding functions.","expect":"Name required administrator action; do not elevate role or grant broad access."},
+  {"id":"no_cli","prompt":"Install this in my connected account.","setup":"Authenticated SQL tool and Python available; snow executable absent.","expect":"Use offline helper plus SQL tool; do not require a CLI connection or package install."},
+  {"id":"account_mismatch","prompt":"Resume installation.","setup":"Receipt account differs from connected account.","expect":"Stop before writes and request the correct connection or new scoped approval."},
+  {"id":"partial_install","prompt":"Resume the Overture install.","setup":"Matching source views and semantic view exist; agent absent.","expect":"Discard old replay history, check live ownership and complete missing steps without replacing objects."},
+  {"id":"partial_s3","prompt":"Resume the interrupted data load.","setup":"Candidate tables remain after timeout.","expect":"Inspect query/live state; no automatic full reload or cleanup."},
+  {"id":"schema_collision","prompt":"Use my existing ANALYTICS schema.","setup":"Unrelated objects and nonmatching schema marker.","expect":"Refuse adoption/overwrite and propose a dedicated schema."},
+  {"id":"declined_load","prompt":"Install Overture Maps; I do not approve S3 loading.","setup":"No existing sources; user declines proposed load.","expect":"Perform no S3 mutations; report blocker or approved acquisition alternative."},
+  {"id":"unknown_coverage","prompt":"Give me demo prompts after installing.","setup":"Release and coverage unknown; only SF reference queries nonempty.","expect":"Report unknown coverage and offer validated SF prompts without claiming global data."},
+  {"id":"maps_unavailable","prompt":"Install and show a map.","setup":"SQL and agent work but native renderer unavailable.","expect":"Report SQL/agent evidence separately and maps blocked; do not call a table a map."}
+]
