@@ -18,14 +18,30 @@ from typing import Any
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 THEMES = ("place", "division", "division_area", "division_boundary")
+# Opt-in themes. Each is too large for an unbounded scan (buildings: a bbox
+# filter scanned 15 GB in 1.8 s; the same box as a geometry predicate scanned
+# 644 GB in 14.5 min), so their views expose BBOX_* columns as required filters.
+OPTIONAL_THEMES = ("address", "segment", "building")
+S3_THEMES = {"place": "places", "division": "divisions", "division_area": "divisions",
+             "division_boundary": "divisions", "address": "addresses",
+             "segment": "transportation", "building": "buildings"}
+# CARTO Marketplace listings, one per Overture theme family.
+LISTINGS = {"places": "GZT0Z4CM1E9KR", "divisions": "GZT0Z4CM1E9M9",
+            "addresses": "GZT0Z4CM1E9NQ", "transportation": "GZT0Z4CM1E9KJ",
+            "buildings": "GZT0Z4CM1E9KN"}
+STAC_URL = "https://stac.overturemaps.org/catalog.json"
+RELEASE = re.compile(r"\d{4}-\d{2}-\d{2}\.\d+\Z")
 GEOMETRY_DIMENSIONS = {"place": 0, "division": 0, "division_area": 2,
-                       "division_boundary": 1}
+                       "division_boundary": 1, "address": 0, "segment": 1,
+                       "building": 2}
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_$]*\Z")
 REQUIRED = {
+    # Overture replaced CATEGORIES with TAXONOMY and BASIC_CATEGORY; the CARTO
+    # Marketplace share no longer carries CATEGORIES at all.
     "place": {"ID": "text", "GEOMETRY": "geo", "NAMES": "object",
-              "CATEGORIES": "object", "ADDRESSES": "array"},
+              "TAXONOMY": "object", "BASIC_CATEGORY": "text", "ADDRESSES": "array"},
     "division": {"ID": "text", "GEOMETRY": "geo", "NAMES": "object",
                  "COUNTRY": "text", "REGION": "text", "SUBTYPE": "text",
                  "POPULATION": "number"},
@@ -35,19 +51,30 @@ REQUIRED = {
     "division_boundary": {"ID": "text", "GEOMETRY": "geo", "COUNTRY": "text",
                           "REGION": "text", "SUBTYPE": "text", "CLASS": "text",
                           "IS_LAND": "boolean"},
+    "address": {"ID": "text", "GEOMETRY": "geo", "STREET": "text", "NUMBER": "text",
+                "POSTCODE": "text", "POSTAL_CITY": "text", "ADDRESS_LEVELS": "array",
+                "COUNTRY": "text", "BBOX": "object"},
+    "segment": {"ID": "text", "GEOMETRY": "geo", "NAMES": "object", "SUBTYPE": "text",
+                "CLASS": "text", "SUBCLASS": "text", "SPEED_LIMITS": "array",
+                "BBOX": "object"},
+    "building": {"ID": "text", "GEOMETRY": "geo", "NAMES": "object", "SUBTYPE": "text",
+                 "CLASS": "text", "HEIGHT": "float", "NUM_FLOORS": "number",
+                 "BBOX": "object"},
 }
 TYPE_PREFIXES = {
     "text": ("VARCHAR", "TEXT", "STRING"), "geo": ("GEOGRAPHY",),
     "object": ("VARIANT", "OBJECT"), "array": ("VARIANT", "ARRAY"),
     "number": ("NUMBER", "DECIMAL", "INT", "FLOAT", "DOUBLE", "REAL"),
+    "float": ("FLOAT", "DOUBLE", "REAL", "NUMBER", "DECIMAL"),
     "boolean": ("BOOLEAN",),
 }
+ALL_THEMES = THEMES + OPTIONAL_THEMES
 OBJECTS = {
-    "VIEW": [theme.upper() for theme in THEMES],
+    "VIEW": [theme.upper() for theme in ALL_THEMES],
     "SEMANTIC VIEW": ["OVERTURE_MAPS_SV"],
     "CORTEX SEARCH SERVICE": ["CATEGORY_SEARCH"],
     "AGENT": ["OVERTURE_MAPS_AGENT"],
-    "TABLE": ["DATASET_INFO", "CATEGORY_VOCAB"] + [f"RAW_{theme.upper()}" for theme in THEMES],
+    "TABLE": ["DATASET_INFO", "CATEGORY_VOCAB"] + [f"RAW_{theme.upper()}" for theme in ALL_THEMES],
     "STAGE": ["OVERTURE_S3"],
     "FILE FORMAT": ["OVERTURE_PARQUET"],
 }
@@ -82,7 +109,11 @@ def load_config(path: Path, require_connection: bool = True) -> dict[str, Any]:
         if not isinstance(source[key], str) or not source[key].strip():
             raise ValueError(f"source.{key} must be a non-empty string")
     target = f'{config["database"]}.{config["schema"]}'
-    for theme in THEMES:
+    optional = source.setdefault("optional_themes", [])
+    if (not isinstance(optional, list) or len(set(optional)) != len(optional)
+            or not set(optional) <= set(OPTIONAL_THEMES)):
+        raise ValueError(f"source.optional_themes must be a subset of {list(OPTIONAL_THEMES)}")
+    for theme in THEMES + tuple(optional):
         if source["mode"] == "s3":
             source[theme] = f"{target}.RAW_{theme.upper()}"
         identifier(source[theme], 3)
@@ -92,9 +123,11 @@ def load_config(path: Path, require_connection: bool = True) -> dict[str, Any]:
     if integration:
         identifier(integration)
     release = config.get("s3", {}).get("release", "latest")
-    if release != "latest" and not re.fullmatch(r"\d{4}-\d{2}-\d{2}\.\d+", release):
+    if release != "latest" and not RELEASE.fullmatch(release):
         raise ValueError("s3.release must be latest or YYYY-MM-DD.N")
     bbox = config.get("s3", {}).get("place_bbox", [])
+    if source["mode"] == "s3" and optional and not bbox:
+        raise ValueError("Optional themes loaded from S3 require place_bbox; global copies are too large")
     if bbox:
         if len(bbox) != 4 or any(
             isinstance(value, bool) or not isinstance(value, (int, float))
@@ -116,10 +149,22 @@ def namespace(config: dict[str, Any]) -> str:
     return identifier(config["database"]) + "." + identifier(config["schema"])
 
 
+def active_themes(config: dict[str, Any]) -> tuple[str, ...]:
+    return THEMES + tuple(config["source"].get("optional_themes", []))
+
+
+def available_prompts(config: dict[str, Any]) -> list[dict[str, Any]]:
+    """Prompts whose required themes are installed; others would reference missing views."""
+    themes = set(active_themes(config))
+    return [prompt for prompt in json.loads((ROOT / "examples/prompts.json").read_text())
+            if set(prompt["requires"]) <= themes]
+
+
 def marker(config: dict[str, Any]) -> str:
     content = {key: value for key, value in config.items() if key != "connection"}
     digest_builder = hashlib.sha256(json.dumps(content, sort_keys=True).encode())
-    for folder in ("sql", "semantic", "agent", "examples", "scripts"):
+    for folder in ("sql", "sql/themes", "semantic", "semantic/themes", "agent", "examples",
+                   "scripts"):
         for path in sorted((ROOT / folder).glob("*")):
             if path.is_file():
                 digest_builder.update(path.relative_to(ROOT).as_posix().encode())
@@ -134,13 +179,53 @@ def context(config: dict[str, Any]) -> dict[str, str]:
         "warehouse": identifier(config["warehouse"]),
         "owner_comment": literal(marker(config)),
         "map_rows": str(config["limits"]["map_rows"]),
-        **{f"source_{theme}": identifier(config["source"][theme], 3) for theme in THEMES},
+        **{f"source_{theme}": identifier(config["source"][theme], 3)
+           for theme in active_themes(config)},
     }
+
+
+BBOX_GUIDANCE = (
+    " Tables {tables} are global and very large. Every query on them must filter "
+    "bbox_xmin, bbox_xmax, bbox_ymin and bbox_ymax with literal coordinates spanning "
+    "a small area before any geometry predicate; a geometry predicate alone scans the "
+    "whole table. If no area is given, ask for one. Their height, floors and subtype "
+    "fields are often NULL, so never present a NULL-heavy count as absence."
+)
+
+
+def theme_sections(theme: str) -> dict[str, str]:
+    text = (ROOT / "semantic/themes" / f"{theme}.sql").read_text()
+    sections = {}
+    for block in text.split("@@")[1:]:
+        name, _, body = block.partition("\n")
+        sections[name.strip()] = body.rstrip()
+    if set(sections) != {"tables", "facts", "dimensions", "metrics"}:
+        raise ValueError(f"semantic/themes/{theme}.sql must define all four sections")
+    return sections
+
+
+def semantic_extras(config: dict[str, Any]) -> dict[str, str]:
+    optional = config["source"].get("optional_themes", [])
+    extras = {f"extra_{name}": "" for name in ("tables", "facts", "dimensions", "metrics")}
+    for theme in optional:
+        for name, body in theme_sections(theme).items():
+            extras[f"extra_{name}"] += ",\n" + body
+    extras["extra_guidance"] = (
+        BBOX_GUIDANCE.format(tables=", ".join(theme.upper() for theme in optional))
+        if optional else "")
+    return extras
+
+
+def install_files(config: dict[str, Any]) -> list[str]:
+    return (["sql/10_sources.sql"]
+            + [f"sql/themes/{theme}.sql" for theme in config["source"].get("optional_themes", [])]
+            + ["semantic/overture.sql", "sql/30_category_search.sql"])
 
 
 def render_file(name: str, config: dict[str, Any], **values: str) -> str:
     if name == "semantic/overture.sql":
         values["verified_queries"] = verified_queries(config)
+        values.update(semantic_extras(config))
     return Template((ROOT / name).read_text()).substitute(context(config), **values).strip()
 
 
@@ -187,7 +272,7 @@ def validate_columns(theme: str, rows: list[dict[str, Any]]) -> None:
 def preflight(config: dict[str, Any], client: SnowCLI) -> None:
     rows = client.query("select current_account() as account, current_role() as role")
     print(json.dumps(rows), file=sys.stderr)
-    for theme in THEMES:
+    for theme in active_themes(config):
         source = identifier(config["source"][theme], 3)
         validate_columns(theme, client.query(f"describe table {source}"))
         sample = client.query(f"select id from {source} limit 1")
@@ -195,23 +280,23 @@ def preflight(config: dict[str, Any], client: SnowCLI) -> None:
             raise ValueError(f"{source} is empty; missing data is not an installed theme")
         expected_dimension = GEOMETRY_DIMENSIONS[theme]
         geometry = client.query(
-            "select count_if(geometry is null or not st_isvalid(geometry) "
+            "select count_if(geometry is null "
             f"or st_dimension(geometry) != {expected_dimension}) as invalid "
             f"from (select geometry from {source} limit 100)"
         )[0]
         if int(geometry["INVALID"] or 0):
-            raise ValueError(f"{source}: invalid or unexpected geometry in the first 100 rows")
+            raise ValueError(f"{source}: null or unexpected geometry in the first 100 rows")
     place = identifier(config["source"]["place"], 3)
     sample = client.query(
         f"select typeof(to_variant(names)) as names_type, "
-        f"typeof(to_variant(categories)) as categories_type, "
+        f"typeof(to_variant(taxonomy)) as taxonomy_type, "
         f"typeof(to_variant(addresses)) as addresses_type from {place} "
-        "where names is not null and categories is not null and addresses is not null limit 1"
+        "where names is not null and taxonomy is not null and addresses is not null limit 1"
     )
     if not sample or sample[0] != {
-        "NAMES_TYPE": "OBJECT", "CATEGORIES_TYPE": "OBJECT", "ADDRESSES_TYPE": "ARRAY"
+        "NAMES_TYPE": "OBJECT", "TAXONOMY_TYPE": "OBJECT", "ADDRESSES_TYPE": "ARRAY"
     }:
-        raise ValueError("Expected Overture objects for names/categories and an addresses array")
+        raise ValueError("Expected Overture objects for names/taxonomy and an addresses array")
     print("Source contract passed (metadata and sample, not a full quality audit).", file=sys.stderr)
 
 
@@ -238,44 +323,93 @@ def check_owned_objects(config: dict[str, Any], client: SnowCLI,
         for row in client.query(f"show {plural} in schema {namespace(config)}"):
             name = row["NAME"]
             candidate = (allow_candidates and kind == "TABLE"
-                         and re.fullmatch(r"LOAD_(PLACE|DIVISION|DIVISION_AREA|DIVISION_BOUNDARY)_[A-F0-9]{8}", name))
+                         and re.fullmatch(r"LOAD_(" + "|".join(t.upper() for t in ALL_THEMES)
+                                          + r")_[A-F0-9]{8}", name))
             if (name not in OBJECTS[kind] and not candidate) or row.get("COMMENT") != marker(config):
                 raise ValueError(f"Unrecognized or modified {kind} {name}; refusing to mutate schema")
 
 
-def resolve_release(rows: list[dict[str, Any]], requested: str) -> str:
+def published_release(document: Any) -> str:
+    """Return the release Overture marks as published in its STAC catalog."""
+    release = document.get("latest") if isinstance(document, dict) else None
+    if not isinstance(release, str) or not RELEASE.fullmatch(release):
+        raise ValueError("STAC catalog has no valid published latest release")
+    return release
+
+
+def fetch_published_release() -> str:
+    # A fixed public metadata GET; no account data or credentials leave here.
+    from urllib.request import urlopen
+    try:
+        with urlopen(STAC_URL, timeout=30) as response:
+            return published_release(json.load(response))
+    except OSError as error:
+        raise ValueError(f"Could not read {STAC_URL} ({error}); pin s3.release instead") from error
+
+
+def resolve_release(rows: list[dict[str, Any]], requested: str,
+                    themes: tuple[str, ...] = THEMES) -> str:
+    """Check the requested release is complete in the bucket for every theme.
+
+    "latest" is resolved from STAC by the caller, never from bucket listing order:
+    a newer release directory can exist in the bucket before it is published.
+    """
     releases: dict[str, set[str]] = {}
     pattern = r"release/(\d{4}-\d{2}-\d{2}\.\d+)/theme=\w+/type=(\w+)/"
     for row in rows:
         match = re.search(pattern, row["NAME"])
         if match:
             releases.setdefault(match[1], set()).add(match[2])
-    complete = sorted(
-        (release for release, types in releases.items() if set(THEMES) <= types),
-        key=lambda release: (release.rsplit(".", 1)[0], int(release.rsplit(".", 1)[1])),
-    )
-    if requested == "latest" and complete:
-        return complete[-1]
-    if requested in complete:
+    if requested in releases and set(themes) <= releases[requested]:
         return requested
-    raise ValueError("No available release has all four required types; nothing will be loaded")
+    raise ValueError(f"Release {requested} does not have all required types "
+                     f"{list(themes)} in the bucket; nothing will be loaded")
+
+
+def choose_source(existing: dict[str, Any] | None, listing: dict[str, Any] | None) -> str:
+    """Pick a theme source, failing closed when Marketplace readiness is unknown.
+
+    existing is the SHOW DATABASES row for the theme database, listing the
+    SHOW AVAILABLE LISTINGS row. A permission or unknown readiness state must not
+    be mistaken for unavailability and silently trigger an S3 load.
+    """
+    if existing:
+        if str(existing.get("KIND", "")).upper() == "IMPORTED DATABASE" or existing.get("ORIGIN"):
+            return "imported"
+        return "existing"
+    if listing is None:
+        return "s3"
+    ready = str(listing.get("IS_READY_FOR_IMPORT", "")).lower()
+    if ready in {"true", "yes", "1"}:
+        return "marketplace"
+    if ready in {"false", "no", "0"}:
+        return "s3"
+    raise ValueError("Listing readiness is unknown; refusing to infer an S3 fallback")
 
 
 def projection(theme: str) -> str:
+    # allow_invalid keeps parseable but self-intersecting shapes, as the
+    # Marketplace share does; strict conversion silently dropped 7 of 1,084,259
+    # division areas. Corrupt WKB still yields NULL and fails the load check.
     types = {"text": "varchar", "object": "variant", "array": "variant",
-             "number": "number", "boolean": "boolean"}
+             "number": "number", "boolean": "boolean", "float": "float"}
     return ",\n       ".join(
-        "try_to_geography($1:geometry::binary) as GEOMETRY" if kind == "geo"
+        "try_to_geography($1:geometry::binary, true) as GEOMETRY" if kind == "geo"
         else f"$1:{name.lower()}::{types[kind]} as {name}"
         for name, kind in REQUIRED[theme].items()
     )
 
 
-def load_s3(config: dict[str, Any], client: SnowCLI, load_id: str | None = None) -> None:
+def load_s3(config: dict[str, Any], client: SnowCLI, load_id: str | None = None,
+            release: str | None = None) -> None:
     if config["source"]["mode"] != "s3":
         raise ValueError("load-s3 requires source.mode = 's3'")
     if load_id is not None and not re.fullmatch(r"[A-F0-9]{8}", load_id):
         raise ValueError("load_id must be eight uppercase hexadecimal characters")
+    requested = config.get("s3", {}).get("release", "latest")
+    if requested != "latest" and release and release != requested:
+        raise ValueError("Release override conflicts with the pinned s3.release")
+    themes = active_themes(config)
     ensure_namespace(config, client, create=True)
     check_owned_objects(config, client)
     ns = namespace(config)
@@ -286,38 +420,46 @@ def load_s3(config: dict[str, Any], client: SnowCLI, load_id: str | None = None)
     client.query(render_file("sql/05_s3_setup.sql", config,
                             integration=f"storage_integration = {identifier(integration)}"
                             if integration else ""))
+    if requested != "latest":
+        release = requested
+    else:
+        release = published_release({"latest": release}) if release else fetch_published_release()
     files = client.query(
-        f"list @{ns}.OVERTURE_S3 "
-        "pattern = '.*/type=(place|division|division_area|division_boundary)/part-00000.*[.]parquet'"
+        f"list @{ns}.OVERTURE_S3/{release}/ "
+        f"pattern = '.*/type=({'|'.join(themes)})/part-00000.*[.]parquet'"
     )
-    release = resolve_release(files, config.get("s3", {}).get("release", "latest"))
+    release = resolve_release(files, release, themes)
     candidates: list[tuple[str, str]] = []
-    for theme in THEMES:
+    bbox = config.get("s3", {}).get("place_bbox", [])
+    for theme in themes:
         suffix = load_id or uuid.uuid4().hex[:8].upper()
         candidate = f"{ns}.LOAD_{theme.upper()}_{suffix}"
         candidates.append((candidate, f"{ns}.RAW_{theme.upper()}"))
-        bbox = config.get("s3", {}).get("place_bbox", [])
         where = ""
-        if theme == "place" and bbox:
+        if (theme == "place" or theme in OPTIONAL_THEMES) and bbox:
             west, south, east, north = bbox
             where = (f"where $1:bbox:xmin::float <= {east} and $1:bbox:xmax::float >= {west} "
                      f"and $1:bbox:ymin::float <= {north} and $1:bbox:ymax::float >= {south}")
         print(f"Loading {theme}, release {release}", file=sys.stderr)
         client.query(render_file("sql/06_load_table.sql", config, candidate=candidate,
                                 projection=projection(theme), release=release,
-                                theme="places" if theme == "place" else "divisions",
+                                theme=S3_THEMES[theme],
                                 type=theme, filter=where))
         quality = client.query(
-            f"select count(*) as row_count, count_if(geometry is null or not st_isvalid(geometry) "
+            f"select count(*) as row_count, count_if(geometry is null "
             f"or st_dimension(geometry) != {GEOMETRY_DIMENSIONS[theme]}) "
-            f"as invalid, count_if(id is null) as null_ids, count(distinct id) as ids "
-            f"from {candidate}"
+            f"as invalid, count_if(geometry is not null and not st_isvalid(geometry)) "
+            f"as self_intersecting, count_if(id is null) as null_ids, "
+            f"count(distinct id) as ids from {candidate}"
         )[0]
         if (not int(quality["ROW_COUNT"]) or int(quality["INVALID"] or 0)
                 or int(quality["NULL_IDS"] or 0)
                 or int(quality["ROW_COUNT"]) != int(quality["IDS"])):
             raise ValueError(f"Load validation failed for {candidate}: {quality}. "
                              "Candidates retained for inspection; no views published.")
+        if int(quality.get("SELF_INTERSECTING") or 0):
+            print(f"{theme}: kept {quality['SELF_INTERSECTING']} invalid but parseable "
+                  "geometries, matching the Marketplace share", file=sys.stderr)
     orphan = client.query(
         f"select count(*) as orphan_count from {candidates[2][0]} areas "
         f"left join {candidates[1][0]} divisions on areas.division_id = divisions.id "
@@ -327,7 +469,10 @@ def load_s3(config: dict[str, Any], client: SnowCLI, load_id: str | None = None)
         raise ValueError("Area-to-division relationship has orphan keys; candidates retained")
     for candidate, target in candidates:
         client.query(f"alter table {candidate} rename to {target}")
-    coverage = f"Places bbox {config.get('s3', {}).get('place_bbox', []) or 'global'}; divisions global"
+    optional = config["source"].get("optional_themes", [])
+    coverage = f"Places bbox {bbox or 'global'}; divisions global"
+    if optional:
+        coverage += f"; {', '.join(optional)} bbox {bbox}"
     create_dataset_info(config, client, release, coverage)
 
 
@@ -346,9 +491,8 @@ def dataset_sql(config: dict[str, Any], release: str, coverage: str) -> str:
 
 
 def verified_queries(config: dict[str, Any]) -> str:
-    prompts = json.loads((ROOT / "examples/prompts.json").read_text())
     queries = []
-    for prompt in prompts:
+    for prompt in available_prompts(config):
         sql = Template(prompt["reference_sql"]).substitute(ns=namespace(config))
         queries.append(f"{prompt['id']} as (question {literal(prompt['question'])} "
                        f"sql {literal(sql)})")
@@ -357,8 +501,11 @@ def verified_queries(config: dict[str, Any]) -> str:
 
 def agent_sql(config: dict[str, Any], dataset: dict[str, Any]) -> str:
     ns = namespace(config)
-    prompts = json.loads((ROOT / "examples/prompts.json").read_text())
+    prompts = available_prompts(config)
     instructions = (ROOT / "agent/instructions.md").read_text()
+    optional = config["source"].get("optional_themes", [])
+    if optional:
+        instructions += "\n" + (ROOT / "agent/large_themes.md").read_text()
     instructions += (f"\nInstalled source metadata: {json.dumps(dataset)}\n"
                      f"Return at most {config['limits']['map_rows']} map rows.")
     spec = {
@@ -376,7 +523,9 @@ def agent_sql(config: dict[str, Any], dataset: dict[str, Any]) -> str:
             {"tool_spec": {"type": "cortex_analyst_text_to_sql", "name": "overture_maps",
                            "description": "Query Overture places and administrative geography. "
                            "Supports literal-point distance, containment, H3 density and map shapes. "
-                           "No modeled place-to-area spatial join."}},
+                           "No modeled place-to-area spatial join."
+                           + (f" Also {', '.join(optional)} with mandatory bbox filters."
+                              if optional else "")}},
             {"tool_spec": {"type": "cortex_search", "name": "category_vocabulary",
                            "description": "Resolve place types to primary category tags present "
                            "in this installation. Search first for category questions. "
@@ -405,7 +554,7 @@ def grant_sql(config: dict[str, Any]) -> str:
     statements = [f"grant usage on database {identifier(config['database'])} to role {role}",
                   f"grant usage on schema {ns} to role {role}",
                   f"grant usage on warehouse {identifier(config['warehouse'])} to role {role}"]
-    for name in OBJECTS["VIEW"] + ["DATASET_INFO"]:
+    for name in [theme.upper() for theme in active_themes(config)] + ["DATASET_INFO"]:
         statements.append(f"grant select on view {ns}.{name} to role {role}" if name != "DATASET_INFO"
                           else f"grant select on table {ns}.{name} to role {role}")
     statements += [f"grant select on semantic view {ns}.OVERTURE_MAPS_SV to role {role}",
@@ -417,7 +566,7 @@ def grant_sql(config: dict[str, Any]) -> str:
 def verify(config: dict[str, Any], client: SnowCLI) -> None:
     ns = namespace(config)
     first_place_id = None
-    for theme in THEMES:
+    for theme in active_themes(config):
         rows = client.query(f"select id from {ns}.{theme.upper()} limit 1")
         if not rows:
             raise ValueError(f"Normalized {theme} is empty")
@@ -478,11 +627,41 @@ def valid_polygon(value: Any) -> bool:
     return True
 
 
+def valid_lines(value: Any) -> bool:
+    """Check complete LineString/MultiLineString GeoJSON structure, not rendering."""
+    if not isinstance(value, str):
+        return False
+    try:
+        shape = json.loads(value)
+    except (ValueError, RecursionError):
+        return False
+    if not isinstance(shape, dict):
+        return False
+    coordinates = shape.get("coordinates")
+    if shape.get("type") == "LineString":
+        lines = [coordinates]
+    elif shape.get("type") == "MultiLineString":
+        lines = coordinates
+    else:
+        return False
+    if not isinstance(lines, list) or not lines:
+        return False
+    for line in lines:
+        if not isinstance(line, list) or len(line) < 2:
+            return False
+        for point in line:
+            if (not isinstance(point, list) or len(point) != 2
+                    or not all(finite_number(value) for value in point)
+                    or not -180 <= point[0] <= 180 or not -90 <= point[1] <= 90):
+                return False
+    return True
+
+
 def validate_map_rows(prompt: dict[str, Any], rows: list[dict[str, Any]],
                       client: Any) -> None:
     """Validate the bounded reference result; never scan the source again."""
     layer = prompt["layer"]
-    if layer not in {"latlon", "h3", "geojson"}:
+    if layer not in {"latlon", "h3", "geojson", "lines"}:
         raise ValueError(f"Unknown map layer for {prompt['id']}")
     seen = set()
     for index, row in enumerate(rows, 1):
@@ -493,7 +672,7 @@ def validate_map_rows(prompt: dict[str, Any], rows: list[dict[str, Any]],
         if not isinstance(key, str) or not key.strip() or key in seen:
             raise ValueError(f"{context}: expected a unique nonempty string ID")
         seen.add(key)
-        for column in ("PLACE_COUNT", "AREA_SQKM", "DISTANCE_M"):
+        for column in ("PLACE_COUNT", "AREA_SQKM", "DISTANCE_M", "LENGTH_KM", "HEIGHT_M"):
             if column in prompt["columns"] and not finite_number(row[column]):
                 raise ValueError(f"{context}: {column} must be finite and numeric")
         if layer == "latlon":
@@ -502,6 +681,8 @@ def validate_map_rows(prompt: dict[str, Any], rows: list[dict[str, Any]],
                     raise ValueError(f"{context}: {column} must be numeric and in range")
         elif layer == "geojson" and not valid_polygon(row["GEOJSON"]):
             raise ValueError(f"{context}: expected complete Polygon/MultiPolygon GeoJSON")
+        elif layer == "lines" and not valid_lines(row["GEOJSON"]):
+            raise ValueError(f"{context}: expected complete LineString/MultiLineString GeoJSON")
     if layer == "h3" and rows:
         cells = ",".join(f"({literal(row['H3_CELL'])})" for row in rows)
         checks = client.query(
@@ -515,7 +696,7 @@ def validate_map_rows(prompt: dict[str, Any], rows: list[dict[str, Any]],
 
 
 def verify_prompts(config: dict[str, Any], client: SnowCLI) -> None:
-    for prompt in json.loads((ROOT / "examples/prompts.json").read_text()):
+    for prompt in available_prompts(config):
         sql = Template(prompt["reference_sql"]).substitute(ns=namespace(config))
         rows = client.query(sql)
         if not rows:
@@ -527,7 +708,7 @@ def verify_prompts(config: dict[str, Any], client: SnowCLI) -> None:
 
 
 def run(command: str, config: dict[str, Any], execute: bool) -> None:
-    files = ("sql/10_sources.sql", "semantic/overture.sql", "sql/30_category_search.sql")
+    files = install_files(config)
     dataset = {"RELEASE": config["source"]["release"], "COVERAGE": config["source"]["coverage"]}
     if command == "render":
         print("-- Review only. Preflight and schema ownership checks require the installer.")
@@ -550,13 +731,13 @@ def run(command: str, config: dict[str, Any], execute: bool) -> None:
 
 
 def execute_workflow(command: str, config: dict[str, Any], client: Any,
-                     load_id: str | None = None) -> None:
-    files = ("sql/10_sources.sql", "semantic/overture.sql", "sql/30_category_search.sql")
+                     load_id: str | None = None, release: str | None = None) -> None:
+    files = install_files(config)
     dataset = {"RELEASE": config["source"]["release"], "COVERAGE": config["source"]["coverage"]}
     if command == "preflight":
         preflight(config, client)
     elif command == "load-s3":
-        load_s3(config, client, load_id=load_id)
+        load_s3(config, client, load_id=load_id, release=release)
     elif command == "install":
         preflight(config, client)
         ensure_namespace(config, client, create=True)

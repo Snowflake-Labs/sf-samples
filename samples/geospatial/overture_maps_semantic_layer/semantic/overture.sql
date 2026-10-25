@@ -7,7 +7,7 @@ tables (
     divisions as $ns.DIVISION primary key (ID)
         comment = 'Administrative labels as points, not containment polygons.',
     boundaries as $ns.DIVISION_BOUNDARY primary key (ID)
-        comment = 'Border line segments. Filter IS_LAND for land-only length.'
+        comment = 'Border line segments. Filter IS_LAND for land-only length.'$extra_tables
 )
 relationships (
     area_to_division as areas(DIVISION_ID) references divisions(ID)
@@ -22,13 +22,15 @@ facts (
     areas.area_sqkm as AREA_SQKM,
     divisions.population_value as POPULATION,
     boundaries.geometry as GEOM,
-    boundaries.length_km as LENGTH_KM
+    boundaries.length_km as LENGTH_KM$extra_facts
 )
 dimensions (
     places.place_id as ID,
     places.name as NAME,
     places.category as CATEGORY
-        comment = 'Exact primary category tag. Resolve with category_vocabulary first.',
+        comment = 'Exact Overture taxonomy primary tag. Resolve with category_vocabulary first.',
+    places.basic_category as BASIC_CATEGORY
+        comment = 'Coarser Overture basic category; use when the taxonomy tag is too specific.',
     places.country as COUNTRY,
     places.region as REGION comment = 'Bare code, e.g. CA. Not US-CA.',
     places.locality as LOCALITY comment = 'Address locality, not exact polygon containment.',
@@ -49,7 +51,7 @@ dimensions (
     boundaries.region as REGION,
     boundaries.subtype as SUBTYPE,
     boundaries.boundary_class as CLASS,
-    boundaries.is_land as IS_LAND
+    boundaries.is_land as IS_LAND$extra_dimensions
 )
 metrics (
     places.place_count as count(places.ID),
@@ -67,7 +69,7 @@ metrics (
     divisions.division_count as count(divisions.ID),
     divisions.total_population as sum(divisions.POPULATION)
         comment = 'Incomplete population coverage; not a complete census total.',
-    boundaries.total_length_km as sum(boundaries.LENGTH_KM)
+    boundaries.total_length_km as sum(boundaries.LENGTH_KM)$extra_metrics
 )
 comment = $owner_comment
 ai_sql_generation 'Use original geometry for predicates and simplified GeoJSON only for display.
@@ -79,5 +81,5 @@ Do not GROUP BY geometry or use GROUP BY ALL when selecting geometry.
 Group map geometry by area_id and point coordinates by place_id, never name alone.
 Filter land area with area_class = land. Place region is CA, area region is US-CA.
 The examples are reference queries; counts depend on installed release and coverage.
-Use coordinate literals, not semantic variables. There is no place-to-area spatial relationship.'
+Use coordinate literals, not semantic variables. There is no place-to-area spatial relationship.$extra_guidance'
 $verified_queries;

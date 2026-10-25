@@ -41,6 +41,12 @@ candidate objects, then DESCRIBE each candidate. Build candidate sets and run
 `select-sources` as described in the protocol. Names alone are not proof of a
 compatible source. Check source access, types and samples with `preflight`.
 Keep release/coverage unknown unless established from source metadata or results.
+When choosing between a share, a listing and S3, use `choose-source`; it refuses
+to treat unknown listing readiness as absence.
+
+Address, segment and building sources are optional. Offer them only when the
+user wants addresses, roads or buildings, and explain that every question on
+them needs a small area.
 
 Prefer an existing usable database and warehouse in the current context. If
 ambiguous, ask one consolidated question. Default the viewer role to the current
@@ -93,6 +99,8 @@ Cortex sessions, or subagents to execute SQL.
 
 Existing sources: `preflight`, then `install`, then `verify-prompts`.
 Approved fresh S3: `load-s3`, then `preflight`, `install`, `verify-prompts`.
+For `load-s3` with release `latest`, record the `release` action's value in the
+receipt before the first statement.
 Start a fresh history for each command. An empty result is not proof of coverage.
 Respect timeouts and wait for long-running queries rather than starting duplicate
 loads. Resolve newly required privileges or costs before continuing.

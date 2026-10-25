@@ -13,6 +13,12 @@ place = "OVERTURE_MAPS__PLACES.CARTO.PLACE"
 division = "OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION"
 division_area = "OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION_AREA"
 division_boundary = "OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION_BOUNDARY"
+# Opt-in large themes: any of "address", "segment", "building". Each needs a
+# source below in existing mode; S3 mode loads them clipped to place_bbox.
+optional_themes = []
+address = "OVERTURE_MAPS__ADDRESSES.CARTO.ADDRESS"
+segment = "OVERTURE_MAPS__TRANSPORTATION.CARTO.SEGMENT"
+building = "OVERTURE_MAPS__BUILDINGS.CARTO.BUILDING"
 
 [s3]
 release = "latest"

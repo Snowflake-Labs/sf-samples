@@ -33,7 +33,8 @@ def discovery_sql(database: str, schema: str | None = None) -> str:
     return (
         f"select table_catalog, table_schema, table_name, table_type "
         f"from {install.identifier(database)}.information_schema.tables "
-        "where (upper(table_name) like '%PLACE%' or upper(table_name) like '%DIVISION%')"
+        "where (upper(table_name) like '%PLACE%' or upper(table_name) like '%DIVISION%' "
+        "or upper(table_name) in ('ADDRESS', 'SEGMENT', 'BUILDING'))"
         f"{scope} order by table_schema, table_name limit 100"
     )
 
@@ -45,10 +46,12 @@ def select_sources(candidates: list[dict[str, Any]]) -> dict[str, Any]:
     for candidate in candidates:
         try:
             sources = candidate["sources"]
-            for theme in install.THEMES:
+            optional = [theme for theme in install.OPTIONAL_THEMES if theme in sources]
+            for theme in install.THEMES + tuple(optional):
                 install.identifier(sources[theme], 3)
                 install.validate_columns(theme, normalize_rows(candidate["columns"][theme]))
             compatible.append({"label": candidate["label"], "sources": sources,
+                               "optional_themes": optional,
                                "release": candidate.get("release", "unknown"),
                                "coverage": candidate.get("coverage", "unknown")})
         except (ValueError, KeyError) as error:
@@ -156,6 +159,12 @@ def next_statement(command: str, config: dict[str, Any], receipt: dict[str, Any]
         raise ValueError("Receipt belongs to another configuration, code revision or command")
     if command == "load-s3" and not re.fullmatch(r"[A-F0-9]{8}", receipt.get("load_id", "")):
         raise ValueError("S3 receipt needs a stable eight-digit hexadecimal load_id")
+    release = receipt.get("release")
+    if command == "load-s3" and config.get("s3", {}).get("release", "latest") == "latest":
+        # Replays must not re-read STAC: a newly published release would change
+        # the emitted SQL mid-load. Pin the value from the `release` action.
+        if not isinstance(release, str) or not install.RELEASE.fullmatch(release):
+            raise ValueError("S3 receipt needs the release returned by the release action")
     history = receipt.get("history", [])
     if not isinstance(history, list):
         raise ValueError("Receipt history must be a list")
@@ -163,7 +172,8 @@ def next_statement(command: str, config: dict[str, Any], receipt: dict[str, Any]
     logs = io.StringIO()
     try:
         with redirect_stdout(logs), redirect_stderr(logs):
-            install.execute_workflow(command, config, client, load_id=receipt.get("load_id"))
+            install.execute_workflow(command, config, client, load_id=receipt.get("load_id"),
+                                     release=release if command == "load-s3" else None)
     except NextStatement as pending:
         mutation = mutates(pending.sql)
         approved = receipt.get("approved_marker") == marker
@@ -191,6 +201,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="action", required=True)
     subparsers.add_parser("identity")
+    subparsers.add_parser("release")
+    choose = subparsers.add_parser("choose-source")
+    choose.add_argument("--rows", type=Path, required=True)
     discover = subparsers.add_parser("discover")
     discover.add_argument("--database", required=True)
     discover.add_argument("--schema")
@@ -207,6 +220,16 @@ def main() -> None:
     args = parser.parse_args()
     if args.action == "identity":
         result = {"sql": IDENTITY_SQL, "mutates": False}
+    elif args.action == "release":
+        result = {"release": install.fetch_published_release(), "source": install.STAC_URL,
+                  "mutates": False}
+    elif args.action == "choose-source":
+        rows = json.loads(args.rows.read_text())
+        result = {family: install.choose_source(
+                      *(normalize_rows([item[key]])[0] if item.get(key) else None
+                        for key in ("database", "listing")))
+                  for family, item in rows.items()}
+        result["listings"] = install.LISTINGS
     elif args.action == "discover":
         result = {"sql": discovery_sql(args.database, args.schema), "mutates": False}
     elif args.action == "select-sources":

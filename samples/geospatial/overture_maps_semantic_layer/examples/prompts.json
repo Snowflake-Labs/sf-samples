@@ -58,5 +58,35 @@
     "columns": ["ID", "NAME", "GEOJSON"],
     "reference_sql": "select id, name, geojson from $ns.DIVISION_AREA where country = 'US' and subtype = 'county' and class = 'land' and st_contains(geom, to_geography('POINT(-122.4194 37.7749)')) order by id limit 10",
     "caveat": "Exact literal-point containment; a point on a boundary may need ST_COVERS."
+  },
+  {
+    "id": "market_street_addresses",
+    "question": "Show up to 500 addresses on Market Street in downtown San Francisco, between longitude -122.42 and -122.39 and latitude 37.77 and 37.80, on a map.",
+    "requires": ["address"],
+    "coverage": "Downtown San Francisco bbox; inside the default SF S3 clip",
+    "layer": "latlon",
+    "columns": ["ID", "STREET", "HOUSE_NUMBER", "LATITUDE", "LONGITUDE"],
+    "reference_sql": "select id, street, house_number, latitude, longitude from $ns.ADDRESS where bbox_xmin >= -122.42 and bbox_xmax <= -122.39 and bbox_ymin >= 37.77 and bbox_ymax <= 37.80 and street ilike 'market st%' order by id limit 500",
+    "caveat": "Street names are matched as published; bbox bounds the scan."
+  },
+  {
+    "id": "downtown_major_roads",
+    "question": "Map the motorway, trunk and primary road segments in downtown San Francisco, between longitude -122.42 and -122.39 and latitude 37.77 and 37.80, with their length in kilometres.",
+    "requires": ["segment"],
+    "coverage": "Downtown San Francisco bbox; inside the default SF S3 clip",
+    "layer": "lines",
+    "columns": ["ID", "NAME", "CLASS", "GEOJSON", "LENGTH_KM"],
+    "reference_sql": "select id, name, class, geojson, length_km from $ns.SEGMENT where bbox_xmin >= -122.42 and bbox_xmax <= -122.39 and bbox_ymin >= 37.77 and bbox_ymax <= 37.80 and subtype = 'road' and class in ('motorway', 'trunk', 'primary') order by id limit 500",
+    "caveat": "Mapped reference roads, not a routing graph; segments crossing the box edge are excluded."
+  },
+  {
+    "id": "tallest_buildings",
+    "question": "What are the 10 tallest buildings in downtown San Francisco, between longitude -122.41 and -122.39 and latitude 37.78 and 37.80? Show their footprints on a map.",
+    "requires": ["building"],
+    "coverage": "Downtown San Francisco bbox; inside the default SF S3 clip",
+    "layer": "geojson",
+    "columns": ["ID", "NAME", "GEOJSON", "HEIGHT_M"],
+    "reference_sql": "select id, name, geojson, height_m from $ns.BUILDING where bbox_xmin >= -122.41 and bbox_xmax <= -122.39 and bbox_ymin >= 37.78 and bbox_ymax <= 37.80 and height_m is not null order by height_m desc, id limit 10",
+    "caveat": "Only footprints with a recorded height; height coverage varies by city."
   }
 ]

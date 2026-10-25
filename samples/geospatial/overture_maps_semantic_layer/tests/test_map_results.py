@@ -29,6 +29,19 @@ class MapResultTests(unittest.TestCase):
     def validate(self, prompt_id: str, rows: list[dict]) -> None:
         install.validate_map_rows(self.prompts[prompt_id], rows, self.client)
 
+    def test_lines_require_complete_linestrings(self) -> None:
+        road = {"ID": "seg-1", "NAME": "Market St", "CLASS": "primary", "LENGTH_KM": 0.4,
+                "GEOJSON": json.dumps({"type": "LineString",
+                                       "coordinates": [[-122.40, 37.79], [-122.39, 37.79]]})}
+        self.validate("downtown_major_roads", [road])
+        for shape in ({"type": "LineString", "coordinates": [[-122.40, 37.79]]},
+                      {"type": "Polygon", "coordinates": [self.ring]},
+                      {"type": "LineString", "coordinates": [[-200, 37.79], [-122.39, 37.79]]}):
+            with self.assertRaises(ValueError):
+                self.validate("downtown_major_roads", [dict(road, GEOJSON=json.dumps(shape))])
+        with self.assertRaises(ValueError):
+            self.validate("downtown_major_roads", [dict(road, LENGTH_KM=None)])
+
     def test_points_accept_finite_numeric_coordinates(self) -> None:
         self.point["LATITUDE"] = Decimal("37.79")
         self.validate("hospital_points", [self.point])
@@ -105,7 +118,8 @@ class MapResultTests(unittest.TestCase):
         config = install.load_config(ROOT / "config.example.toml")
         with patch("builtins.print") as output:
             install.verify_prompts(config, self.client)
-        self.assertEqual(self.client.query.call_count, len(self.prompts))
+        self.assertEqual(self.client.query.call_count, len(install.available_prompts(config)))
+        self.assertEqual(len(install.available_prompts(config)), 6)
         self.assertTrue(all("EMPTY" in call.args[0] for call in output.call_args_list))
 
     def test_verify_prompts_runs_all_contracts(self) -> None:

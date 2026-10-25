@@ -1,6 +1,8 @@
 create view if not exists $ns.PLACE comment = $owner_comment as
 select id::varchar as id, geometry as geom,
-       names:primary::varchar as name, categories:primary::varchar as category,
+       names:primary::varchar as name,
+       coalesce(taxonomy:primary::varchar, basic_category::varchar) as category,
+       basic_category::varchar as basic_category,
        addresses[0]:country::varchar as country,
        addresses[0]:region::varchar as region,
        addresses[0]:locality::varchar as locality,

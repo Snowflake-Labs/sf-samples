@@ -143,6 +143,13 @@ standalone Snowflake SQL variable; substitute its quoted identifiers before use.
 | `reverse_geocode` | County land area containing the SF point | `GEOJSON`; `ID`, `NAME` | Return the county name and ID as a table. |
 | `sf_hexagons` | San Francisco places, including the default SF-only load | String `H3_CELL`, color `PLACE_COUNT` | Show the 20 busiest cells as a table, keeping resolution 8. |
 | `berlin_hexagons` | Berlin places, not the default SF-only load | String `H3_CELL`, color `PLACE_COUNT` | Show the 20 busiest cells as a table, keeping resolution 8. |
+| `market_street_addresses` | Optional `address` theme, downtown SF bbox | `LATITUDE`, `LONGITUDE`; `ID`, `HOUSE_NUMBER` labels | Count the addresses by house-number parity as a table. |
+| `downtown_major_roads` | Optional `segment` theme, downtown SF bbox | LineString `GEOJSON`, color `CLASS`; `ID`, `NAME` | Total the length by road class as a table. |
+| `tallest_buildings` | Optional `building` theme, downtown SF bbox | `GEOJSON`, color `HEIGHT_M`; `ID`, `NAME` | Return the same buildings with height and floors as a table. |
+
+The last three appear only when their optional theme is installed. Their
+reference SQL filters all four `BBOX_*` columns; an agent answer that drops
+those filters should be treated as a failure even if it returns rows.
 
 All results depend on installed coverage and release. Primary category matching
 is not a census of real businesses. Address locality is not exact city-boundary

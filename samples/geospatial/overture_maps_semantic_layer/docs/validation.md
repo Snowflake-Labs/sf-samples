@@ -36,8 +36,31 @@ in clean sessions, capture transcripts and check their expected behaviors before
 claiming single-prompt installation is verified. In particular, test a session
 without Snowflake CLI and a resumed conversation with stale receipt history.
 
-The remote bootstrap prompt becomes usable only once its referenced branch
-includes the skill and helper files.
+## Review fixes and optional themes (2026-10-25)
+
+Read-only checks against the CARTO Marketplace shares imported in account
+tib85385. PLACE has TAXONOMY and BASIC_CATEGORY and no CATEGORIES column, so
+the previous place view and taxonomy probe would have failed preflight on a
+Marketplace source. `taxonomy:primary` holds the leaf tag (for example
+`skin_care_and_makeup`). The new PLACE, ADDRESS, SEGMENT and BUILDING view
+bodies compiled against those shares.
+
+The three new reference queries were run with the view expressions inlined over
+the share tables, all inside downtown San Francisco boxes. The address box held
+71,133 addresses, 1,778 of them on streets matching `market st%`. The road box
+held 7,595 segments, 113 of them motorway, trunk or primary. The building box
+held 2,562 footprints, 2,340 with a height and a maximum of 326 m. These counts
+come from one snapshot.
+
+The suite now has 70 passing offline tests. New coverage includes optional-theme
+rendering into one semantic view, prompt and grant gating by installed theme,
+bbox clipping of optional S3 loads, `allow_invalid` geometry conversion, STAC
+release parsing and its offline failure, the pinned release in agent replays,
+fail-closed source choice and LineString map validation.
+
+Not verified: creating the semantic view with optional themes, an S3 load of any
+optional theme, agent answers that keep the bbox filters, and native line and
+footprint rendering in CoWork.
 
 ## Isolated live smoke test
 

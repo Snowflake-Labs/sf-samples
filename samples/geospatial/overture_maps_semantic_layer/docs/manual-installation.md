@@ -180,12 +180,6 @@ git clone https://github.com/Snowflake-Labs/sf-samples.git
 cd sf-samples
 ```
 
-If you are evaluating the sample before its PR is merged, check out its branch:
-
-```bash
-git switch --track origin/overture-maps-semantic-layer
-```
-
 Then enter the directory. Run all subsequent commands from here:
 
 ```bash

@@ -106,6 +106,16 @@ Create a receipt for the command, with actual identity and proposal values:
 After approval, add `approved_marker` with the proposal marker. For `load-s3`,
 also assign a stable `load_id` of eight uppercase hexadecimal characters. Keep
 it unchanged for the entire uninterrupted load so candidate names remain stable.
+When `s3.release` is `latest`, run `python3 scripts/agent_install.py release`
+once and store its `release` value in the receipt. Replays never reread the
+catalog, so a release published mid-load cannot change the emitted SQL.
+
+To decide between an existing share, a Marketplace listing and S3 for each theme
+family, collect the `SHOW DATABASES` row for its database and the
+`SHOW AVAILABLE LISTINGS` row for its listing (IDs are printed by the command),
+save them as `{"places": {"database": ..., "listing": ...}, ...}` and run
+`python3 scripts/agent_install.py choose-source --rows .install/sources.json`.
+An unknown listing readiness is an error, not a reason to fall back to S3.
 
 ```bash
 python3 scripts/agent_install.py next \

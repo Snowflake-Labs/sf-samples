@@ -41,9 +41,33 @@ class InstallerTests(unittest.TestCase):
         rows = [{"NAME": f"s3://overturemaps-us-west-2/release/2026-08-19.0/theme=x/type={theme}/part-00000.parquet"}
                 for theme in install.THEMES]
         rows.append({"NAME": "release/2026-09-23.0/theme=places/type=place/part-00000.parquet"})
-        self.assertEqual(install.resolve_release(rows, "latest"), "2026-08-19.0")
+        self.assertEqual(install.resolve_release(rows, "2026-08-19.0"), "2026-08-19.0")
         with self.assertRaises(ValueError):
             install.resolve_release(rows, "2026-09-23.0")
+        with self.assertRaises(ValueError):
+            install.resolve_release(rows, "2026-08-19.0", install.THEMES + ("building",))
+
+    def test_stac_release_parsing(self) -> None:
+        self.assertEqual(install.published_release({"latest": "2026-10-21.0"}), "2026-10-21.0")
+        for document in ({}, {"latest": "main"}, {"latest": "2026-10-21.0; drop"}, [], None):
+            with self.assertRaises(ValueError):
+                install.published_release(document)
+
+    def test_unreachable_stac_fails_closed(self) -> None:
+        with patch("urllib.request.urlopen", side_effect=OSError("offline")):
+            with self.assertRaisesRegex(ValueError, "pin s3.release"):
+                install.fetch_published_release()
+
+    def test_choose_source_fails_closed(self) -> None:
+        imported = {"KIND": "IMPORTED DATABASE", "ORIGIN": "X.Y.SHARE"}
+        self.assertEqual(install.choose_source(imported, None), "imported")
+        self.assertEqual(install.choose_source({"KIND": "STANDARD"}, None), "existing")
+        self.assertEqual(install.choose_source(None, None), "s3")
+        self.assertEqual(install.choose_source(None, {"IS_READY_FOR_IMPORT": "true"}), "marketplace")
+        self.assertEqual(install.choose_source(None, {"IS_READY_FOR_IMPORT": "false"}), "s3")
+        for listing in ({}, {"IS_READY_FOR_IMPORT": None}, {"IS_READY_FOR_IMPORT": "pending"}):
+            with self.assertRaisesRegex(ValueError, "unknown"):
+                install.choose_source(None, listing)
 
     def test_marker_tracks_configuration(self) -> None:
         updated = deepcopy(self.config)
@@ -63,7 +87,70 @@ class InstallerTests(unittest.TestCase):
             projection=install.projection("place"), release="2026-08-19.0",
             theme="places", type="place", filter="")
         self.assertIn("$1:geometry", rendered)
-        self.assertIn("try_to_geography", rendered)
+        self.assertIn("try_to_geography($1:geometry::binary, true)", rendered)
+
+    def optional_config(self, themes=install.OPTIONAL_THEMES, mode="existing"):
+        config = deepcopy(self.config)
+        config["source"]["optional_themes"] = list(themes)
+        config["source"]["mode"] = mode
+        with patch.object(install.tomllib, "loads", return_value=config):
+            return install.load_config(ROOT / "config.example.toml")
+
+    def test_optional_themes_render_into_one_semantic_view(self) -> None:
+        base = install.render_file("semantic/overture.sql", self.config)
+        self.assertNotIn("BBOX", base)
+        self.assertNotIn("tallest_buildings", base)
+        config = self.optional_config()
+        sql = install.render_file("semantic/overture.sql", config)
+        for expected in ("addresses as", "segments as", "buildings as", "buildings.bbox_xmin",
+                         "segments.speed_limit_kmh", "tallest_buildings as",
+                         "must filter bbox_xmin"):
+            self.assertIn(expected, sql)
+        self.assertNotIn("$extra", sql)
+        self.assertEqual(install.install_files(config)[1:4],
+                         [f"sql/themes/{theme}.sql" for theme in install.OPTIONAL_THEMES])
+        for name in install.install_files(config):
+            rendered = install.render_file(name, config)
+            self.assertNotIn("--", rendered)
+            self.assertNotIn("create or replace", rendered.lower())
+
+    def test_optional_prompts_follow_installed_themes(self) -> None:
+        ids = {prompt["id"] for prompt in install.available_prompts(self.optional_config(["building"]))}
+        self.assertIn("tallest_buildings", ids)
+        self.assertNotIn("market_street_addresses", ids)
+        self.assertNotIn("tallest_buildings", {p["id"] for p in install.available_prompts(self.config)})
+        grants = install.grant_sql(self.optional_config(["building"])).lower()
+        self.assertIn('view "my_database"."overture_semantic_v1".building', grants.replace('"building"', "building"))
+        self.assertNotIn("address", install.grant_sql(self.config).lower())
+
+    def test_optional_theme_configuration(self) -> None:
+        for themes in (["connector"], ["building", "building"], "building"):
+            with self.assertRaises(ValueError):
+                self.optional_config(themes)
+        config = deepcopy(self.config)
+        config["s3"]["place_bbox"] = []
+        config["source"].update(mode="s3", optional_themes=["building"])
+        with patch.object(install.tomllib, "loads", return_value=config):
+            with self.assertRaisesRegex(ValueError, "too large"):
+                install.load_config(ROOT / "config.example.toml")
+        loaded = self.optional_config(["segment"], "s3")
+        self.assertEqual(loaded["source"]["segment"], "MY_DATABASE.OVERTURE_SEMANTIC_V1.RAW_SEGMENT")
+
+    def test_optional_s3_load_is_clipped(self) -> None:
+        config = self.optional_config(["building"], "s3")
+        client = unittest.mock.Mock()
+        files = [{"NAME": f"release/2026-08-19.0/theme=x/type={theme}/part-00000.parquet"}
+                 for theme in install.THEMES + ("building",)]
+        quality = [{"ROW_COUNT": "10", "INVALID": "0", "NULL_IDS": "0", "IDS": "10"}]
+        client.query.side_effect = [[], [], files] + [[], quality] * 5 + [
+            [{"ORPHAN_COUNT": "0"}], [], [], [], [], [], []]
+        with patch.object(install, "ensure_namespace"), patch.object(install, "check_owned_objects"), \
+                patch.object(install, "fetch_published_release", return_value="2026-08-19.0"):
+            install.load_s3(config, client)
+        building = next(call.args[0] for call in client.query.call_args_list
+                        if "theme=buildings/type=building" in call.args[0])
+        self.assertIn("$1:bbox:xmin::float <=", building)
+        self.assertIn("$1:bbox::variant as BBOX", building)
 
     def test_source_independence(self) -> None:
         updated = deepcopy(self.config)
@@ -83,12 +170,16 @@ class InstallerTests(unittest.TestCase):
 
     def test_prompt_contract(self) -> None:
         prompts = json.loads((ROOT / "examples/prompts.json").read_text())
-        self.assertEqual(len(prompts), 6)
+        self.assertEqual(len(prompts), 9)
         for prompt in prompts:
             self.assertTrue(prompt["reference_sql"].startswith("select "))
             self.assertIn("limit ", prompt["reference_sql"])
-            self.assertIn(prompt["layer"], {"latlon", "h3", "geojson"})
+            self.assertIn(prompt["layer"], {"latlon", "h3", "geojson", "lines"})
             self.assertTrue(prompt["caveat"])
+            self.assertTrue(set(prompt["requires"]) <= set(install.ALL_THEMES))
+            if set(prompt["requires"]) & set(install.OPTIONAL_THEMES):
+                for column in ("bbox_xmin", "bbox_xmax", "bbox_ymin", "bbox_ymax"):
+                    self.assertIn(column, prompt["reference_sql"])
         self.assertIn("ai_verified_queries", install.verified_queries(self.config))
 
     def test_agent_json_roundtrip(self) -> None:
@@ -172,7 +263,8 @@ class InstallerTests(unittest.TestCase):
                  for theme in install.THEMES]
         client.query.side_effect = [[], [], files, [],
             [{"ROW_COUNT": "10", "INVALID": "1", "NULL_IDS": "0", "IDS": "10"}]]
-        with patch.object(install, "ensure_namespace"), patch.object(install, "check_owned_objects"):
+        with patch.object(install, "ensure_namespace"), patch.object(install, "check_owned_objects"), \
+                patch.object(install, "fetch_published_release", return_value="2026-08-19.0"):
             with self.assertRaises(ValueError):
                 install.load_s3(config, client)
         statements = " ".join(call.args[0] for call in client.query.call_args_list)
@@ -188,9 +280,12 @@ class InstallerTests(unittest.TestCase):
         quality = [{"ROW_COUNT": "10", "INVALID": "0", "NULL_IDS": "0", "IDS": "10"}]
         client.query.side_effect = [[], [], files] + [[], quality] * 4 + [
             [{"ORPHAN_COUNT": "0"}], [], [], [], [], []]
-        with patch.object(install, "ensure_namespace"), patch.object(install, "check_owned_objects"):
+        with patch.object(install, "ensure_namespace"), patch.object(install, "check_owned_objects"), \
+                patch.object(install, "fetch_published_release", return_value="2026-08-19.0"):
             install.load_s3(config, client)
         statements = [call.args[0] for call in client.query.call_args_list]
+        self.assertIn("list @", statements[2])
+        self.assertIn("/2026-08-19.0/", statements[2])
         validation_end = next(index for index, sql in enumerate(statements) if "orphan_count" in sql)
         rename_start = next(index for index, sql in enumerate(statements) if "rename to" in sql)
         self.assertLess(validation_end, rename_start)

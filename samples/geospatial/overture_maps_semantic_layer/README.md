@@ -44,7 +44,7 @@ agent workflow does not require a separately configured Snowflake CLI connection
 ```text
 Install Overture Maps Semantic Layer in my connected Snowflake account.
 Read and follow the installation skill at:
-https://github.com/Snowflake-Labs/sf-samples/blob/overture-maps-semantic-layer/samples/geospatial/overture_maps_semantic_layer/.cortex/skills/install-overture-maps/SKILL.md
+https://github.com/Snowflake-Labs/sf-samples/blob/main/samples/geospatial/overture_maps_semantic_layer/.cortex/skills/install-overture-maps/SKILL.md
 
 Retrieve the sample and its referenced files from the same commit, or use my
 existing checkout without overwriting local changes. Discover and reuse compatible
@@ -55,11 +55,9 @@ me edit configuration files or run setup commands. Finish with the installed
 agent, supported example questions, and a clear report of what was verified.
 ```
 
-The link targets the feature branch while this change is under review. It becomes
-usable remotely when that branch includes the skill. For a local checkout, ask:
-**"Read `.cortex/skills/install-overture-maps/SKILL.md` in the Overture sample and
-install Overture Maps Semantic Layer in my connected account."** After merge,
-the published prompt should use the corresponding `main` URL.
+For a local checkout, ask: **"Read `.cortex/skills/install-overture-maps/SKILL.md`
+in the Overture sample and install Overture Maps Semantic Layer in my connected
+account."**
 
 ### What happens next
 
@@ -104,6 +102,7 @@ Existing Overture tables / Marketplace shares / approved S3 load
 | Object | Purpose |
 | --- | --- |
 | `PLACE`, `DIVISION`, `DIVISION_AREA`, `DIVISION_BOUNDARY` | Consistent local views over the chosen Overture sources. |
+| `ADDRESS`, `SEGMENT`, `BUILDING` | Optional views over the addresses, transportation and buildings themes, added only when listed in `source.optional_themes`. |
 | `OVERTURE_MAPS_SV` | Entity definitions, geographic metrics and reference-query examples for Cortex Analyst. |
 | `CATEGORY_VOCAB`, `CATEGORY_SEARCH` | Category lookup so the agent can resolve place types to actual tags. |
 | `OVERTURE_MAPS_AGENT` | Agent displayed as **Overture Maps**. |
@@ -111,9 +110,13 @@ Existing Overture tables / Marketplace shares / approved S3 load
 | `RAW_*`, `OVERTURE_S3`, `OVERTURE_PARQUET` | Optional S3-loaded data, stage and file format. |
 
 Objects live in an approved dedicated schema. Existing source tables and shares
-are not overwritten. All four Overture themes above are required; buildings,
-roads and address datasets are outside this sample. See the
-[source contract](docs/source-contract.md).
+are not overwritten. The four places and divisions themes above are required.
+Addresses, road segments and buildings are opt-in because they are global tables
+with hundreds of millions to billions of rows. When enabled, they join the same
+semantic view, and their views expose `BBOX_*` columns that the model and agent
+treat as mandatory filters. A bbox filter on buildings scanned 15 GB in under two
+seconds where the same box as a geometry predicate scanned 644 GB in 14.5
+minutes. See the [source contract](docs/source-contract.md).
 
 ## Questions to try
 
@@ -175,6 +178,12 @@ You can adapt locations and categories within your data coverage. Specify countr
 region, units and desired output. Follow up with "Return a table instead" or
 "Limit this to the 10 nearest results", then inspect the generated query's scope.
 
+With the optional themes installed, the agent also offers the downtown San
+Francisco examples in [prompts.json](examples/prompts.json): Market Street
+address points, major road segments with their length, and the ten tallest
+building footprints. Each names a small coordinate box, and the agent asks for
+one when a question about those themes gives no area.
+
 ## Prerequisites and costs
 
 Use an authenticated Cortex Code session with permission to create the sample
@@ -192,6 +201,11 @@ not silently create those resources. See the full
   category vocabulary scans place categories and stores the resulting vocabulary.
 - S3 loading incurs scan, warehouse and storage costs, and possibly transfer costs.
   Geographic clipping may reduce stored rows without reducing source scan cost.
+  Optional themes loaded from S3 are always clipped to `place_bbox`, but the
+  buildings and transportation scans are still much larger than places.
+- The S3 loader takes "latest" from the published Overture STAC catalog, not
+  from the newest directory in the bucket, and stops if the catalog is
+  unreachable rather than guessing. Pin `s3.release` to avoid the lookup.
 - Cortex Search indexing/serving, Cortex Analyst and agent inference incur costs.
   Search can continue costing money between demos.
 - Timeouts and suggested map-row limits are not an account spending cap or a hard

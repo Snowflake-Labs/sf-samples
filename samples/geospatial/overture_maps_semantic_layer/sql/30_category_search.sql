@@ -1,7 +1,7 @@
 create table if not exists $ns.CATEGORY_VOCAB
 change_tracking = true data_retention_time_in_days = 1 comment = $owner_comment as
 select category, count(*) as place_count,
-       replace(category, '_', ' ') || ' (Overture primary category: ' || category || ')'
+       replace(category, '_', ' ') || ' (Overture taxonomy primary tag: ' || category || ')'
            as search_text
 from $ns.PLACE
 where category is not null

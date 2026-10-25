@@ -23,7 +23,8 @@ class AgentInstallerTests(unittest.TestCase):
         marker = install.marker(self.config)
         return {"command": command, "marker": marker, "identity": self.identity,
                 "current_identity": deepcopy(self.identity), "history": [],
-                "approved_marker": marker if approved else None, "load_id": "AB123456"}
+                "approved_marker": marker if approved else None, "load_id": "AB123456",
+                "release": "2026-08-19.0"}
 
     def candidate(self, label: str = "Loaded data") -> dict:
         return {"label": label,
@@ -113,7 +114,7 @@ class AgentInstallerTests(unittest.TestCase):
             agent.next_statement("preflight", self.config, receipt)
 
     def test_mutation_requires_approval(self) -> None:
-        def workflow(command, config, client, load_id=None):
+        def workflow(command, config, client, load_id=None, release=None):
             client.query("create schema TEST.SAMPLE")
         with patch.object(install, "execute_workflow", workflow):
             result = agent.next_statement("install", self.config, self.receipt("install"))
@@ -158,7 +159,7 @@ class AgentInstallerTests(unittest.TestCase):
             elif "as invalid" in sql:
                 rows = [{"INVALID": 0}]
             elif "as names_type" in sql:
-                rows = [{"NAMES_TYPE": "OBJECT", "CATEGORIES_TYPE": "OBJECT", "ADDRESSES_TYPE": "ARRAY"}]
+                rows = [{"NAMES_TYPE": "OBJECT", "TAXONOMY_TYPE": "OBJECT", "ADDRESSES_TYPE": "ARRAY"}]
             elif sql.startswith("select release"):
                 rows = [{"RELEASE": "unknown", "COVERAGE": "unknown"}]
             elif sql.startswith("select * from semantic_view"):
@@ -180,6 +181,25 @@ class AgentInstallerTests(unittest.TestCase):
                                    "rows": [{"COMMENT": "someone else's schema"}]})
         with self.assertRaisesRegex(ValueError, "not owned"):
             agent.next_statement("load-s3", self.config, receipt)
+
+    def test_s3_replay_requires_pinned_release(self) -> None:
+        self.config["source"]["mode"] = "s3"
+        receipt = self.receipt("load-s3", True)
+        receipt.pop("release")
+        with self.assertRaisesRegex(ValueError, "release action"):
+            agent.next_statement("load-s3", self.config, receipt)
+        receipt["release"] = "latest"
+        with self.assertRaisesRegex(ValueError, "release action"):
+            agent.next_statement("load-s3", self.config, receipt)
+
+    def test_optional_sources_selected(self) -> None:
+        candidate = self.candidate()
+        candidate["sources"]["building"] = "CUSTOM_DB.MY_DATA.BUILDING"
+        result = agent.select_sources([candidate])
+        self.assertEqual(result["candidates"][0]["optional_themes"], ["building"])
+        candidate["columns"]["building"][0]["type"] = "BINARY"
+        self.assertEqual(agent.select_sources([candidate])["status"], "missing")
+        self.assertIn("'BUILDING'", agent.discovery_sql("my_db"))
 
     def test_scenario_fixture_has_failure_cases(self) -> None:
         scenarios = json.loads((ROOT / "tests/installation_scenarios.json").read_text())
