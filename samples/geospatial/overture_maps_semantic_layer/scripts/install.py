@@ -20,6 +20,8 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "1.1.0"
 MARKER_PREFIX = "overture-maps-semantic-layer:"
+# Name Snowsight gives the account's single CoWork object.
+COWORK_OBJECT = "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"
 THEMES = ("place", "division", "division_area", "division_boundary")
 # Opt-in themes. Each is too large for an unbounded scan (buildings: a bbox
 # filter scanned 15 GB in 1.8 s; the same box as a geometry predicate scanned
@@ -557,7 +559,7 @@ def agent_sql(config: dict[str, Any], dataset: dict[str, Any]) -> str:
             f"from specification {literal(json.dumps(spec))};")
 
 
-def grant_sql(config: dict[str, Any]) -> str:
+def grant_sql(config: dict[str, Any], cowork: str | None = None) -> str:
     if config["role"].upper() == config["viewer_role"].upper():
         return ""
     ns = namespace(config)
@@ -571,7 +573,48 @@ def grant_sql(config: dict[str, Any]) -> str:
     statements += [f"grant select on semantic view {ns}.OVERTURE_MAPS_SV to role {role}",
                    f"grant usage on agent {ns}.OVERTURE_MAPS_AGENT to role {role}",
                    f"grant usage on cortex search service {ns}.CATEGORY_SEARCH to role {role}"]
+    # Without USAGE on the CoWork object the viewer sees an empty agent list.
+    statements.append(f"grant usage on snowflake intelligence {cowork or identifier(COWORK_OBJECT)} "
+                      f"to role {role}")
     return ";\n".join(statements) + ";"
+
+
+def cowork_object(client: Any, create: bool = False) -> str | None:
+    """Return the account's single CoWork object, creating the default one if asked."""
+    rows = client.query("show snowflake intelligences")
+    if rows:
+        return identifier(rows[0]["NAME"])
+    if not create:
+        return None
+    client.query(f"create snowflake intelligence if not exists {identifier(COWORK_OBJECT)}")
+    return identifier(COWORK_OBJECT)
+
+
+def cowork_listed(config: dict[str, Any], client: Any, cowork: str) -> bool:
+    return any(row.get("DATABASE_NAME") == config["database"].upper()
+               and row.get("SCHEMA_NAME") == config["schema"].upper()
+               and row.get("NAME") == "OVERTURE_MAPS_AGENT"
+               for row in client.query(f"show agents in snowflake intelligence {cowork}"))
+
+
+def register_cowork(config: dict[str, Any], client: Any) -> str:
+    """Add the agent to CoWork; rerun after every agent replace.
+
+    When an account has a CoWork object, only agents added to it appear in
+    CoWork. ADD AGENT fails if the agent is already present, so check first
+    instead of catching errors (the agent path cannot run scripting blocks).
+    """
+    try:
+        cowork = cowork_object(client, create=True)
+        if not cowork_listed(config, client, cowork):
+            client.query(f"alter snowflake intelligence {cowork} add agent "
+                         f"{namespace(config)}.OVERTURE_MAPS_AGENT")
+    except subprocess.CalledProcessError as error:
+        raise ValueError(
+            "Could not add the agent to Snowflake CoWork. The installer role needs "
+            "CREATE SNOWFLAKE INTELLIGENCE ON ACCOUNT (if no CoWork object exists) or "
+            f"MODIFY on the CoWork object. {error.stderr or ''}".strip()) from error
+    return cowork
 
 
 def verify(config: dict[str, Any], client: SnowCLI) -> None:
@@ -596,7 +639,13 @@ def verify(config: dict[str, Any], client: SnowCLI) -> None:
     search = client.query(f"describe cortex search service {ns}.CATEGORY_SEARCH")[0]
     if search.get("SERVING_STATE") != "ACTIVE" or search.get("INDEXING_ERROR"):
         raise ValueError(f"Search service is not ready: {search}")
+    cowork = cowork_object(client)
+    if cowork is None or not cowork_listed(config, client, cowork):
+        raise ValueError("The agent is not registered in Snowflake CoWork, so users "
+                         "cannot see it there. Rerun install with a role that has "
+                         "MODIFY on the CoWork object.")
     print(f"Data/model/search checks passed. Agent: {ns}.OVERTURE_MAPS_AGENT")
+    print(f"CoWork: agent registered in {cowork}.")
     print("Agent responses and native maps: NOT TESTED. Run examples in CoWork as the viewer.")
 
 
@@ -734,6 +783,9 @@ def run(command: str, config: dict[str, Any], execute: bool) -> None:
         for name in files:
             print(render_file(name, config))
         print(agent_sql(config, dataset))
+        print(f"-- Then add the agent to the account's Snowflake CoWork object if it is not listed:\n"
+              f"alter snowflake intelligence {identifier(COWORK_OBJECT)} add agent "
+              f"{namespace(config)}.OVERTURE_MAPS_AGENT;")
         print(grant_sql(config))
         return
     if command in {"install", "load-s3", "cleanup"} and not execute:
@@ -769,7 +821,8 @@ def execute_workflow(command: str, config: dict[str, Any], client: Any,
         for name in files:
             client.query(render_file(name, config))
         client.query(agent_sql(config, dataset))
-        grants = grant_sql(config)
+        cowork = register_cowork(config, client)
+        grants = grant_sql(config, cowork)
         if grants:
             client.query(grants)
         verify(config, client)
@@ -781,6 +834,10 @@ def execute_workflow(command: str, config: dict[str, Any], client: Any,
         ensure_namespace(config, client)
         check_owned_objects(config, client, allow_candidates=True)
         ns = namespace(config)
+        # Remove only this agent from CoWork; the CoWork object is account-wide.
+        cowork = cowork_object(client)
+        if cowork and cowork_listed(config, client, cowork):
+            client.query(f"alter snowflake intelligence {cowork} drop agent {ns}.OVERTURE_MAPS_AGENT")
         for kind in ("AGENT", "CORTEX SEARCH SERVICE", "SEMANTIC VIEW", "VIEW", "TABLE",
                      "STAGE", "FILE FORMAT"):
             for name in OBJECTS[kind]:

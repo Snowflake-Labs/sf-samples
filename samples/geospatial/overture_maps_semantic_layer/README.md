@@ -105,7 +105,7 @@ Existing Overture tables / Marketplace shares / approved S3 load
 | `ADDRESS`, `SEGMENT`, `BUILDING` | Optional views over the addresses, transportation and buildings themes, added only when listed in `source.optional_themes`. |
 | `OVERTURE_MAPS_SV` | Entity definitions, geographic metrics and reference-query examples for Cortex Analyst. |
 | `CATEGORY_VOCAB`, `CATEGORY_SEARCH` | Category lookup so the agent can resolve place types to actual tags. |
-| `OVERTURE_MAPS_AGENT` | Agent displayed as **Overture Maps**. |
+| `OVERTURE_MAPS_AGENT` | Agent displayed as **Overture Maps**, added to the account's Snowflake CoWork object so it is listed in CoWork. |
 | `DATASET_INFO` | Recorded release and source coverage. |
 | `RAW_*`, `OVERTURE_S3`, `OVERTURE_PARQUET` | Optional S3-loaded data, stage and file format. |
 
@@ -236,7 +236,7 @@ and is never automatic error recovery.
 | Situation | What it means |
 | --- | --- |
 | SQL works, but no map appears | Check native map availability, agent selection, registration and geographic result columns. |
-| The agent is not selectable | Check CoWork registration and viewer permissions in your account. |
+| The agent is not selectable | Rerun install. It adds the agent to the CoWork object and fails with the missing privilege if it cannot; viewers also need a default role and warehouse. |
 | No compatible sources found | Confirm access and the source contract; approve acquisition or loading before proceeding. |
 | Several compatible sources found | Choose the intended release/coverage; the agent must not combine unrelated datasets silently. |
 | An example returns no rows | Check coverage, category and release. Empty data is not a passed coverage test. |

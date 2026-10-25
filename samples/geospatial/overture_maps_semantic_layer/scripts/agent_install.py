@@ -194,7 +194,9 @@ def next_statement(command: str, config: dict[str, Any], receipt: dict[str, Any]
     return {"status": "complete", "command": command, "statements": client.index,
             "output": logs.getvalue().strip(),
             "agent_execution": "not tested", "viewer_access": "not tested",
-            "cowork_registration": "not tested", "native_maps": "not tested"}
+            # install and verify fail unless the agent is listed in the CoWork object.
+            "cowork_registration": "passed" if command in {"install", "verify"} else "not tested",
+            "native_maps": "not tested"}
 
 
 def main() -> None:

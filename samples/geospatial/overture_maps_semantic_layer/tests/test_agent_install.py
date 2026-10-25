@@ -138,11 +138,14 @@ class AgentInstallerTests(unittest.TestCase):
     def test_existing_installation_replay(self) -> None:
         receipt = self.receipt("install", True)
         seen_mutations = []
+        registered = False
         for _ in range(100):
             result = agent.next_statement("install", self.config, receipt)
             if result["status"] == "complete":
                 self.assertEqual(result["native_maps"], "not tested")
                 self.assertEqual(result["agent_execution"], "not tested")
+                self.assertEqual(result["cowork_registration"], "passed")
+                self.assertEqual(sum("add agent" in sql for sql in seen_mutations), 1)
                 self.assertTrue(any("create or replace agent" in sql for sql in seen_mutations))
                 self.assertFalse(any("if not exists" in sql for sql in seen_mutations))
                 break
@@ -166,6 +169,13 @@ class AgentInstallerTests(unittest.TestCase):
                 rows = [{"PLACE_ID": "demo-id"}]
             elif sql.startswith("describe cortex search"):
                 rows = [{"SERVING_STATE": "ACTIVE"}]
+            elif sql == "show snowflake intelligences":
+                rows = [{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}]
+            elif sql.startswith("show agents in snowflake intelligence"):
+                rows = [{"NAME": "OVERTURE_MAPS_AGENT", "DATABASE_NAME": "MY_DATABASE",
+                         "SCHEMA_NAME": "OVERTURE_SEMANTIC"}] if registered else []
+            if "add agent" in sql:
+                registered = True
             if result["mutates"]:
                 seen_mutations.append(sql)
             receipt["history"].append({"sql": sql, "ok": True, "rows": rows})

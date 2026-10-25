@@ -17,6 +17,71 @@ SPEC.loader.exec_module(install)
 class InstallerTests(unittest.TestCase):
     def setUp(self) -> None:
         self.config = install.load_config(ROOT / "config.example.toml")
+        self.cowork_row = {"NAME": "OVERTURE_MAPS_AGENT", "DATABASE_NAME": "MY_DATABASE",
+                           "SCHEMA_NAME": "OVERTURE_SEMANTIC"}
+
+    def cowork_client(self, objects, agents):
+        statements = []
+        def query(sql):
+            statements.append(sql)
+            if sql == "show snowflake intelligences":
+                return objects
+            if sql.startswith("show agents in snowflake intelligence"):
+                return agents
+            return []
+        return unittest.mock.Mock(query=query), statements
+
+    def test_cowork_registration_adds_only_when_absent(self) -> None:
+        client, statements = self.cowork_client([{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}], [])
+        self.assertEqual(install.register_cowork(self.config, client),
+                         '"SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"')
+        self.assertIn('alter snowflake intelligence "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT" add agent '
+                      '"MY_DATABASE"."OVERTURE_SEMANTIC".OVERTURE_MAPS_AGENT', statements)
+        self.assertFalse(any(sql.startswith("create snowflake intelligence") for sql in statements))
+        client, statements = self.cowork_client([{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}],
+                                                [self.cowork_row])
+        install.register_cowork(self.config, client)
+        self.assertFalse(any("add agent" in sql for sql in statements))
+        other = dict(self.cowork_row, SCHEMA_NAME="ELSEWHERE")
+        client, statements = self.cowork_client([{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}], [other])
+        install.register_cowork(self.config, client)
+        self.assertTrue(any("add agent" in sql for sql in statements))
+
+    def test_cowork_object_created_only_when_missing(self) -> None:
+        client, statements = self.cowork_client([], [])
+        install.register_cowork(self.config, client)
+        self.assertIn('create snowflake intelligence if not exists "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"',
+                      statements)
+        client, statements = self.cowork_client([{"NAME": "COMPANY_AI"}], [])
+        self.assertEqual(install.register_cowork(self.config, client), '"COMPANY_AI"')
+        self.assertFalse(any(sql.startswith("create snowflake intelligence") for sql in statements))
+        self.assertIn('grant usage on snowflake intelligence "COMPANY_AI" to role "MY_VIEWER_ROLE"',
+                      install.grant_sql(self.config, '"COMPANY_AI"'))
+
+    def test_cowork_privilege_error_names_grant(self) -> None:
+        error = install.subprocess.CalledProcessError(1, "snow", stderr="Insufficient privileges")
+        client = unittest.mock.Mock()
+        client.query.side_effect = error
+        with self.assertRaisesRegex(ValueError, "MODIFY on the CoWork object"):
+            install.register_cowork(self.config, client)
+
+    def test_verify_requires_cowork_listing(self) -> None:
+        for objects, agents in (([], []), ([{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}], [])):
+            client = unittest.mock.Mock()
+            client.query.side_effect = [[{"ID": "p"}]] * 4 + [
+                [{"PLACE_ID": "p"}], [], [{"SERVING_STATE": "ACTIVE"}], objects, agents]
+            with patch("builtins.print"), self.assertRaisesRegex(ValueError, "not registered"):
+                install.verify(self.config, client)
+
+    def test_cleanup_removes_agent_from_cowork_only(self) -> None:
+        client, statements = self.cowork_client([{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}],
+                                                [self.cowork_row])
+        with patch.object(install, "ensure_namespace"), patch.object(install, "check_owned_objects"):
+            install.execute_workflow("cleanup", self.config, client)
+        drop_cowork = next(i for i, sql in enumerate(statements) if "drop agent" in sql)
+        drop_agent = next(i for i, sql in enumerate(statements) if sql.startswith("drop AGENT"))
+        self.assertLess(drop_cowork, drop_agent)
+        self.assertFalse(any(sql.startswith("drop snowflake intelligence") for sql in statements))
 
     def test_identifier_quoting(self) -> None:
         self.assertEqual(install.identifier("my_db.carto.place", 3), '"MY_DB"."CARTO"."PLACE"')
@@ -384,7 +449,8 @@ class InstallerTests(unittest.TestCase):
     def test_verify_filters_semantic_smoke_query(self) -> None:
         client = unittest.mock.Mock()
         client.query.side_effect = [[{"ID": "test-place"}]] * 4 + [
-            [{"PLACE_ID": "test-place"}], [], [{"SERVING_STATE": "ACTIVE"}]]
+            [{"PLACE_ID": "test-place"}], [], [{"SERVING_STATE": "ACTIVE"}],
+            [{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}], [self.cowork_row]]
         with patch("builtins.print"):
             install.verify(self.config, client)
         semantic_sql = client.query.call_args_list[4].args[0]

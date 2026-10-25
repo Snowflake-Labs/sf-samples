@@ -124,8 +124,12 @@ unknown-coverage installation should be checked, not assigned global coverage.
 
 Use supported agent tooling to run a sample question and compare it to reference
 SQL. Test viewer access with that role only if authorized. Preserve the installation
-configuration; use a separate check context for another role. Registration and
-native point/H3/GeoJSON maps require checks in CoWork. Respect browser-origin
+configuration; use a separate check context for another role. Install adds the
+agent to the account's Snowflake CoWork object and its verification fails unless
+the agent is listed there, so installation is not finished until it appears in
+CoWork. If that step fails, report the missing privilege it names (MODIFY on the
+CoWork object, or CREATE SNOWFLAKE INTELLIGENCE ON ACCOUNT) rather than declaring
+success. Native point/H3/GeoJSON maps still require checks in CoWork. Respect browser-origin
 permission rules. Do not manufacture links or claim an API result proves rendering.
 
 Conclude with the agent FQN, a verified link if available, applicable demo questions,

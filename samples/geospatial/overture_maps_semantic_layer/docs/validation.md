@@ -81,6 +81,19 @@ generated SQL with all four bbox filters.
 The suite has 75 passing offline tests, including upgrade over an older marker,
 refusal of foreign schemas and objects, and pruning of removed theme views.
 
+## CoWork registration (2026-10-25)
+
+The agent had been created but never added to the account's Snowflake CoWork
+object, so it appeared in Agent Studio and not in CoWork. Install now adds it to
+that object after every agent replace, grants the viewer USAGE on the object,
+and fails verification unless the agent is listed. On tib85385, two consecutive
+installs both completed. Afterwards `SHOW AGENTS IN SNOWFLAKE INTELLIGENCE
+SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT` listed
+`OVERTURE_MAPS.OVERTURE_SEMANTIC.OVERTURE_MAPS_AGENT` exactly once, and the four
+agents already registered there were unchanged. All nine reference queries
+passed again. The suite has 80 passing offline tests. Whether the agent appears
+and answers in the CoWork UI was not checked from this session.
+
 ## Isolated live smoke test
 
 On 2026-09-24, an explicitly approved isolated installation reused the existing

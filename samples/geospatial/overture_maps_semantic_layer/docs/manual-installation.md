@@ -151,8 +151,13 @@ Counts and available categories depend on the installed release and coverage.
   it does not create a database, warehouse, role or user.
 - The installation role needs CREATE SCHEMA on the target database, source data
   access, warehouse USAGE and the ability to create views, tables, a semantic view,
-  Cortex Search service and agent in the new schema. For S3 it also creates a
+  Cortex Search service and agent in the schema. For S3 it also creates a
   file format and external stage. Managed-access schemas are not used by this sample.
+- To make the agent appear in CoWork, the installation role needs MODIFY on the
+  account's Snowflake CoWork object, or CREATE SNOWFLAKE INTELLIGENCE ON ACCOUNT
+  if none exists yet. ACCOUNTADMIN has both by default. Install fails if it cannot
+  add the agent, because an agent left out of that object is visible only in
+  Snowsight and by direct link.
 - A security administrator must provision appropriate Cortex database roles for
   the installer and viewers. See [agent access control](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents)
   and [search creation privileges](https://docs.snowflake.com/en/sql-reference/sql/create-cortex-search).
@@ -313,14 +318,18 @@ Do not run concurrent installers against the same target schema.
 
 ## Using the agent
 
-After installation, locate `<database>.<schema>.OVERTURE_MAPS_AGENT` in Snowsight
-and use your account's supported CoWork agent-selection or registration controls
-to expose it to users. Select **Overture Maps** explicitly for the first tests.
-UI availability and registration permissions may differ by account.
+After installation, open CoWork and select **Overture Maps**. Install adds
+`<database>.<schema>.OVERTURE_MAPS_AGENT` to the account's Snowflake CoWork object
+(`SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT`, created if the account has none) and
+grants the viewer role USAGE on it. When an account has that object, an agent is
+listed in CoWork only after it is added; install does this on every run, because
+replacing the agent creates a new object. Install fails rather than finishing
+if the agent is not listed.
 
 1. Sign in as a user with the configured viewer role and required Cortex access.
-2. Open CoWork and select **Overture Maps**. If it is not listed, confirm agent
-   registration and permissions with your account administrator.
+   CoWork starts sessions with the user's default role and warehouse, so set both.
+2. Open CoWork and select **Overture Maps**. If it is not listed, rerun install
+   and read its error; it names the missing privilege.
 3. Start with the hospital or California county prompt above. Both fit the default
    S3 coverage: San Francisco places plus global administrative divisions.
 4. Inspect the result table and generated SQL alongside the answer. Check the
@@ -377,7 +386,7 @@ development and the remaining installation/rendering acceptance tests.
 | Preflight rejects a column or geometry | Compare your source with the [source contract](source-contract.md). The adapter requires native GEOGRAPHY and the supported Overture nested layout. |
 | Berlin returns no results | The default S3 load contains only San Francisco places. Use a Berlin bounding box or global places in a new installation. |
 | SQL works but no map appears | Confirm native map availability, the selected agent and the result's geographic columns. A successful API response is not a renderer test. |
-| The agent is not visible in CoWork | Check viewer access and the account's agent registration/selection controls. Creating an agent object alone may not make it selectable. |
+| The agent is not visible in CoWork | Install adds it to the CoWork object and fails if it cannot. The installer role needs MODIFY on the CoWork object, or CREATE SNOWFLAKE INTELLIGENCE ON ACCOUNT when none exists. The viewer role needs USAGE on that object, which install grants. |
 | The schema exists but was not created by this sample | Choose another schema. The installer only replaces objects whose comment carries the `overture-maps-semantic-layer:` marker. |
 | S3 loading stops before completion | Inspect retained candidate tables and the error, then run cleanup before retrying. |
 | Category search is not ready | Inspect the service in Snowsight and resolve its indexing, warehouse or privilege error before retrying verification. |
