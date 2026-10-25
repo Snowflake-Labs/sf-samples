@@ -52,7 +52,9 @@ Prefer an existing usable database and warehouse in the current context. If
 ambiguous, ask one consolidated question. Default the viewer role to the current
 role for a personal demo; that role may already include other users. Explain the
 audience rather than calling it private. Never choose PUBLIC or elevated roles
-automatically. Propose a fresh dedicated schema, not an unrelated existing schema.
+automatically. Propose one dedicated schema for the sample. If it already holds
+an installation of this sample, installing upgrades it in place; never create a
+second, versioned schema beside it.
 
 If no usable source exists, explain acquisition options. Consult Marketplace
 discovery tooling for current listings. Obtain explicit legal/acquisition consent
@@ -105,10 +107,12 @@ Start a fresh history for each command. An empty result is not proof of coverage
 Respect timeouts and wait for long-running queries rather than starting duplicate
 loads. Resolve newly required privileges or costs before continuing.
 
-On failure, report the command, statement and error. Do not auto-cleanup, replace
-agents, alter source tables or retry expensive loads. For a resumed conversation,
-discard replay history and recheck live ownership, sources and object state by
-starting `install` again. IF NOT EXISTS steps can reuse matching objects. A partial
+On failure, report the command, statement and error. Do not auto-cleanup, alter
+source tables or retry expensive loads. For a resumed conversation, discard
+replay history and recheck live ownership, sources and object state by starting
+`install` again. Install replaces the sample's views, semantic view, search and
+agent in place, so tell the user that open CoWork threads on the agent may need
+restarting. A partial
 S3 load requires inspection and an explicitly approved recovery, not blind replay.
 The receipt is bookkeeping, never proof that live objects still exist.
 

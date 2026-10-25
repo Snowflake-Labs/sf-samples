@@ -81,7 +81,8 @@ class InstallerTests(unittest.TestCase):
         for file in ("sql/10_sources.sql", "semantic/overture.sql", "sql/30_category_search.sql"):
             rendered = install.render_file(file, self.config)
             self.assertNotIn("$ns", rendered)
-            self.assertNotIn("create or replace", rendered.lower())
+            self.assertNotIn("if not exists", rendered.lower())
+            self.assertIn("create or replace", rendered.lower())
         rendered = install.render_file("sql/06_load_table.sql", self.config,
             candidate='"DB"."SCHEMA".LOAD_PLACE_12345678',
             projection=install.projection("place"), release="2026-08-19.0",
@@ -107,12 +108,14 @@ class InstallerTests(unittest.TestCase):
                          "must filter bbox_xmin"):
             self.assertIn(expected, sql)
         self.assertNotIn("$extra", sql)
+        self.assertNotIn("$ns", sql)
+        self.assertIn('"OVERTURE_SEMANTIC".BUILDING primary key', sql)
         self.assertEqual(install.install_files(config)[1:4],
                          [f"sql/themes/{theme}.sql" for theme in install.OPTIONAL_THEMES])
         for name in install.install_files(config):
             rendered = install.render_file(name, config)
             self.assertNotIn("--", rendered)
-            self.assertNotIn("create or replace", rendered.lower())
+            self.assertNotIn("if not exists", rendered.lower())
 
     def test_optional_prompts_follow_installed_themes(self) -> None:
         ids = {prompt["id"] for prompt in install.available_prompts(self.optional_config(["building"]))}
@@ -120,7 +123,7 @@ class InstallerTests(unittest.TestCase):
         self.assertNotIn("market_street_addresses", ids)
         self.assertNotIn("tallest_buildings", {p["id"] for p in install.available_prompts(self.config)})
         grants = install.grant_sql(self.optional_config(["building"])).lower()
-        self.assertIn('view "my_database"."overture_semantic_v1".building', grants.replace('"building"', "building"))
+        self.assertIn('view "my_database"."overture_semantic".building', grants.replace('"building"', "building"))
         self.assertNotIn("address", install.grant_sql(self.config).lower())
 
     def test_optional_theme_configuration(self) -> None:
@@ -134,7 +137,7 @@ class InstallerTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "too large"):
                 install.load_config(ROOT / "config.example.toml")
         loaded = self.optional_config(["segment"], "s3")
-        self.assertEqual(loaded["source"]["segment"], "MY_DATABASE.OVERTURE_SEMANTIC_V1.RAW_SEGMENT")
+        self.assertEqual(loaded["source"]["segment"], "MY_DATABASE.OVERTURE_SEMANTIC.RAW_SEGMENT")
 
     def test_optional_s3_load_is_clipped(self) -> None:
         config = self.optional_config(["building"], "s3")
@@ -247,7 +250,7 @@ class InstallerTests(unittest.TestCase):
         config["source"]["mode"] = "s3"
         with patch.object(install.tomllib, "loads", return_value=config):
             result = install.load_config(ROOT / "config.example.toml")
-        self.assertEqual(result["source"]["place"], "MY_DATABASE.OVERTURE_SEMANTIC_V1.RAW_PLACE")
+        self.assertEqual(result["source"]["place"], "MY_DATABASE.OVERTURE_SEMANTIC.RAW_PLACE")
 
     def test_modified_object_blocks_cleanup(self) -> None:
         client = unittest.mock.Mock()
@@ -293,10 +296,72 @@ class InstallerTests(unittest.TestCase):
 
     def test_existing_source_inside_target_rejected(self) -> None:
         config = deepcopy(self.config)
-        config["source"]["place"] = "MY_DATABASE.OVERTURE_SEMANTIC_V1.PLACE"
+        config["source"]["place"] = "MY_DATABASE.OVERTURE_SEMANTIC.PLACE"
         with patch.object(install.tomllib, "loads", return_value=config):
             with self.assertRaises(ValueError):
                 install.load_config(ROOT / "config.example.toml")
+
+    def test_older_sample_schema_is_upgraded_in_place(self) -> None:
+        client = unittest.mock.Mock()
+        client.query.return_value = [{"SCHEMA_NAME": self.config["schema"],
+                                      "COMMENT": "overture-maps-semantic-layer:1.0.0:e401a0fe112a9d5a"}]
+        install.ensure_namespace(self.config, client, create=True)
+        update = client.query.call_args_list[-1].args[0]
+        self.assertTrue(update.startswith("alter schema"))
+        self.assertIn(install.marker(self.config), update)
+        client.reset_mock()
+        install.ensure_namespace(self.config, client)
+        self.assertEqual(client.query.call_count, 1)
+
+    def test_older_sample_objects_accepted_foreign_rejected(self) -> None:
+        client = unittest.mock.Mock()
+        views = lambda row: (lambda sql: [row] if sql.startswith("show VIEWS") else [])
+        client.query.side_effect = views({"NAME": "PLACE", "COMMENT": "overture-maps-semantic-layer:0.9:x"})
+        install.check_owned_objects(self.config, client)
+        for row in ({"NAME": "PLACE", "COMMENT": "my overture view"},
+                    {"NAME": "MY_VIEW", "COMMENT": install.marker(self.config)}):
+            client.query.side_effect = views(row)
+            with self.assertRaises(ValueError):
+                install.check_owned_objects(self.config, client)
+        self.assertFalse(install.owned(None))
+        self.assertFalse(install.owned("xoverture-maps-semantic-layer:"))
+
+    def test_removed_theme_view_dropped_before_model(self) -> None:
+        client = unittest.mock.Mock()
+        client.query.return_value = [
+            {"NAME": "BUILDING", "COMMENT": "overture-maps-semantic-layer:1.1.0:old"},
+            {"NAME": "SEGMENT", "COMMENT": "someone else"},
+            {"NAME": "PLACE", "COMMENT": "overture-maps-semantic-layer:1.1.0:old"}]
+        install.drop_unused_theme_views(self.config, client)
+        drops = [call.args[0] for call in client.query.call_args_list if call.args[0].startswith("drop")]
+        self.assertEqual(drops, ['drop view "MY_DATABASE"."OVERTURE_SEMANTIC"."BUILDING"'])
+        client.reset_mock()
+        install.drop_unused_theme_views(self.optional_config(["building"]), client)
+        self.assertEqual(client.query.call_count, 1)
+
+    def test_install_prunes_before_replacing_model(self) -> None:
+        statements = []
+        def query(sql):
+            statements.append(sql)
+            if sql.startswith("select release"):
+                return [{"RELEASE": "r", "COVERAGE": "c"}]
+            return []
+        client = unittest.mock.Mock(query=query)
+        with patch.object(install, "preflight"), patch.object(install, "ensure_namespace"), \
+                patch.object(install, "check_owned_objects"), patch.object(install, "verify"):
+            install.execute_workflow("install", self.config, client)
+        prune = next(i for i, sql in enumerate(statements) if sql.startswith("show views"))
+        model = next(i for i, sql in enumerate(statements) if "semantic view" in sql)
+        self.assertLess(prune, model)
+
+    def test_load_into_loaded_schema_points_to_cleanup(self) -> None:
+        config = deepcopy(self.config)
+        config["source"]["mode"] = "s3"
+        client = unittest.mock.Mock()
+        client.query.return_value = [{"NAME": "RAW_PLACE"}]
+        with patch.object(install, "ensure_namespace"), patch.object(install, "check_owned_objects"):
+            with self.assertRaisesRegex(ValueError, "run cleanup first"):
+                install.load_s3(config, client)
 
     def test_matching_namespace_does_not_recreate(self) -> None:
         client = unittest.mock.Mock()

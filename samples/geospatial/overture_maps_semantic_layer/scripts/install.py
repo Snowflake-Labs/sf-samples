@@ -19,6 +19,7 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "1.1.0"
+MARKER_PREFIX = "overture-maps-semantic-layer:"
 THEMES = ("place", "division", "division_area", "division_boundary")
 # Opt-in themes. Each is too large for an unbounded scan (buildings: a bbox
 # filter scanned 15 GB in 1.8 s; the same box as a geometry predicate scanned
@@ -170,7 +171,12 @@ def marker(config: dict[str, Any]) -> str:
                 digest_builder.update(path.relative_to(ROOT).as_posix().encode())
                 digest_builder.update(path.read_bytes())
     digest = digest_builder.hexdigest()[:16]
-    return f"overture-maps-semantic-layer:{VERSION}:{digest}"
+    return f"{MARKER_PREFIX}{VERSION}:{digest}"
+
+
+def owned(comment: Any) -> bool:
+    """Any version of this sample owns the object; the full marker only records which."""
+    return isinstance(comment, str) and comment.startswith(MARKER_PREFIX)
 
 
 def context(config: dict[str, Any]) -> dict[str, str]:
@@ -209,7 +215,8 @@ def semantic_extras(config: dict[str, Any]) -> dict[str, str]:
     extras = {f"extra_{name}": "" for name in ("tables", "facts", "dimensions", "metrics")}
     for theme in optional:
         for name, body in theme_sections(theme).items():
-            extras[f"extra_{name}"] += ",\n" + body
+            # Fragments are inserted as values, so render their own placeholders first.
+            extras[f"extra_{name}"] += ",\n" + Template(body).substitute(context(config))
     extras["extra_guidance"] = (
         BBOX_GUIDANCE.format(tables=", ".join(theme.upper() for theme in optional))
         if optional else "")
@@ -310,8 +317,11 @@ def ensure_namespace(config: dict[str, Any], client: SnowCLI, create: bool = Fal
         if not create:
             raise ValueError("Sample schema not found")
         client.query(f"create schema {namespace(config)} comment = {literal(marker(config))}")
-    elif rows[0].get("COMMENT") != marker(config):
-        raise ValueError("Schema is not owned by this configuration/version; choose a new schema")
+    elif not owned(rows[0].get("COMMENT")):
+        raise ValueError("Schema exists but was not created by this sample; choose another schema")
+    elif create and rows[0]["COMMENT"] != marker(config):
+        # Upgrade in place: the one schema keeps its name and records the new build.
+        client.query(f"alter schema {namespace(config)} set comment = {literal(marker(config))}")
 
 
 def check_owned_objects(config: dict[str, Any], client: SnowCLI,
@@ -325,7 +335,7 @@ def check_owned_objects(config: dict[str, Any], client: SnowCLI,
             candidate = (allow_candidates and kind == "TABLE"
                          and re.fullmatch(r"LOAD_(" + "|".join(t.upper() for t in ALL_THEMES)
                                           + r")_[A-F0-9]{8}", name))
-            if (name not in OBJECTS[kind] and not candidate) or row.get("COMMENT") != marker(config):
+            if (name not in OBJECTS[kind] and not candidate) or not owned(row.get("COMMENT")):
                 raise ValueError(f"Unrecognized or modified {kind} {name}; refusing to mutate schema")
 
 
@@ -415,7 +425,8 @@ def load_s3(config: dict[str, Any], client: SnowCLI, load_id: str | None = None,
     ns = namespace(config)
     existing = client.query(f"show tables in schema {ns}")
     if any(row["NAME"].startswith("RAW_") or row["NAME"] == "DATASET_INFO" for row in existing):
-        raise ValueError("Load already started or completed. Use a new schema for a new load.")
+        raise ValueError("S3 data is already loaded in this schema. Install reuses it; "
+                         "to load a different release or area, run cleanup first.")
     integration = config.get("s3", {}).get("storage_integration", "")
     client.query(render_file("sql/05_s3_setup.sql", config,
                             integration=f"storage_integration = {identifier(integration)}"
@@ -483,7 +494,7 @@ def create_dataset_info(config: dict[str, Any], client: SnowCLI,
 
 def dataset_sql(config: dict[str, Any], release: str, coverage: str) -> str:
     return (
-        f"create table if not exists {namespace(config)}.DATASET_INFO "
+        f"create or replace table {namespace(config)}.DATASET_INFO "
         f"comment = {literal(marker(config))} as select {literal(release)} as release, "
         f"{literal(coverage)} as coverage, {literal(config['source']['mode'])} as source_mode, "
         "current_timestamp() as recorded_at;"
@@ -540,7 +551,7 @@ def agent_sql(config: dict[str, Any], dataset: dict[str, Any]) -> str:
                                     "id_column": "CATEGORY"},
         },
     }
-    return (f"create agent if not exists {ns}.OVERTURE_MAPS_AGENT "
+    return (f"create or replace agent {ns}.OVERTURE_MAPS_AGENT "
             f"comment = {literal(marker(config))} "
             "profile = '{\"display_name\": \"Overture Maps\"}' "
             f"from specification {literal(json.dumps(spec))};")
@@ -730,6 +741,15 @@ def run(command: str, config: dict[str, Any], execute: bool) -> None:
     execute_workflow(command, config, SnowCLI(config))
 
 
+def drop_unused_theme_views(config: dict[str, Any], client: Any) -> None:
+    """Remove views for optional themes no longer configured, before the model is replaced."""
+    unused = {theme.upper() for theme in OPTIONAL_THEMES} - {
+        theme.upper() for theme in active_themes(config)}
+    for row in client.query(f"show views in schema {namespace(config)}"):
+        if row["NAME"] in unused and owned(row.get("COMMENT")):
+            client.query(f"drop view {namespace(config)}.{identifier(row['NAME'])}")
+
+
 def execute_workflow(command: str, config: dict[str, Any], client: Any,
                      load_id: str | None = None, release: str | None = None) -> None:
     files = install_files(config)
@@ -745,6 +765,7 @@ def execute_workflow(command: str, config: dict[str, Any], client: Any,
         if config["source"]["mode"] == "existing":
             create_dataset_info(config, client, dataset["RELEASE"], dataset["COVERAGE"])
         dataset = client.query(f"select release, coverage from {namespace(config)}.DATASET_INFO")[0]
+        drop_unused_theme_views(config, client)
         for name in files:
             client.query(render_file(name, config))
         client.query(agent_sql(config, dataset))
@@ -765,7 +786,7 @@ def execute_workflow(command: str, config: dict[str, Any], client: Any,
             for name in OBJECTS[kind]:
                 client.query(f"drop {kind} if exists {ns}.{identifier(name)}")
         for row in client.query(f"show tables in schema {ns}"):
-            if row["NAME"].startswith("LOAD_") and row.get("COMMENT") == marker(config):
+            if row["NAME"].startswith("LOAD_") and owned(row.get("COMMENT")):
                 client.query(f"drop table {ns}.{identifier(row['NAME'])}")
         client.query(f"drop schema {ns} restrict")
 

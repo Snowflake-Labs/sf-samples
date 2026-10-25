@@ -143,8 +143,8 @@ class AgentInstallerTests(unittest.TestCase):
             if result["status"] == "complete":
                 self.assertEqual(result["native_maps"], "not tested")
                 self.assertEqual(result["agent_execution"], "not tested")
-                self.assertTrue(any("create agent" in sql for sql in seen_mutations))
-                self.assertFalse(any("create or replace" in sql for sql in seen_mutations))
+                self.assertTrue(any("create or replace agent" in sql for sql in seen_mutations))
+                self.assertFalse(any("if not exists" in sql for sql in seen_mutations))
                 break
             self.assertEqual(result["status"], "next")
             sql = result["sql"]
@@ -179,7 +179,7 @@ class AgentInstallerTests(unittest.TestCase):
         result = agent.next_statement("load-s3", self.config, receipt)
         receipt["history"].append({"sql": result["sql"], "ok": True,
                                    "rows": [{"COMMENT": "someone else's schema"}]})
-        with self.assertRaisesRegex(ValueError, "not owned"):
+        with self.assertRaisesRegex(ValueError, "not created by this sample"):
             agent.next_statement("load-s3", self.config, receipt)
 
     def test_s3_replay_requires_pinned_release(self) -> None:

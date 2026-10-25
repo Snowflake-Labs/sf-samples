@@ -2,7 +2,7 @@ connection = "my_connection"
 role = "MY_INSTALLER_ROLE"
 warehouse = "MY_WAREHOUSE"
 database = "MY_DATABASE"
-schema = "OVERTURE_SEMANTIC_V1"
+schema = "OVERTURE_SEMANTIC"
 viewer_role = "MY_VIEWER_ROLE"
 
 [source]

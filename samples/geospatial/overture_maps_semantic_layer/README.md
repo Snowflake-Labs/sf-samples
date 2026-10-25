@@ -224,10 +224,12 @@ state before proceeding. A partial S3 load needs inspection and approved recover
 it is not automatically discarded or reloaded. Do not run concurrent installers
 against the same schema.
 
-Unchanged installations reuse their objects. Changed configuration or deployment
-code requires a new schema under the current installer design. Existing agents
-are not automatically replaced, preserving their evaluation history. Cleanup is
-an explicit destructive operation and is never automatic error recovery.
+There is one installation per schema. Rerunning install, with an unchanged or a
+newer configuration or sample, upgrades it in place: views, semantic view,
+category search and agent are replaced, and views for removed optional themes are
+dropped. Only objects carrying the sample's marker are touched; a foreign object
+in the schema stops the installer. Cleanup is an explicit destructive operation
+and is never automatic error recovery.
 
 ## Limits and troubleshooting
 

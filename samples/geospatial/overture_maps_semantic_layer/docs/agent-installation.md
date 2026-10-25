@@ -165,14 +165,14 @@ conversation or maps.
 
 Replay history is only valid within an uninterrupted command. On reconnect,
 conversation restart or external changes, re-observe identity and start a new
-history. For an existing-data installation, rerun `install`: it checks the live
-schema and object markers and reuses unchanged objects with IF NOT EXISTS. Keep
-the originally approved configuration/code revision. Changed scope needs approval.
+history. For an existing-data installation, rerun `install`: it checks that the
+schema and its objects carry the sample's marker, then replaces them in place.
+A newer sample version upgrades the same schema. Changed scope needs approval.
 
 Do not blindly restart `load-s3`: it can rescan large public datasets. Inspect
 candidate tables, RAW_* tables and DATASET_INFO first. Partial loads remain blocked
-until the user approves cleanup/reload or a new destination. Never silently delete
-candidate data or replace an existing agent. Cleanup is deliberately absent from
+until the user approves cleanup and reload. Never silently delete candidate or
+RAW_* data. Cleanup is deliberately absent from
 the agent helper's commands.
 
 ## Completion evidence

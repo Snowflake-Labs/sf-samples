@@ -69,7 +69,7 @@ def propose_settings(identity: dict[str, Any]) -> dict[str, Any]:
             "role": None if elevated else role,
             "viewer_role": None if elevated else role,
             "database": identity.get("DATABASE"), "warehouse": identity.get("WAREHOUSE"),
-            "schema": "OVERTURE_SEMANTIC_V1",
+            "schema": "OVERTURE_SEMANTIC",
             "approval_required": True,
             "note": "Proposed from current context only. Verify privileges and schema availability. "
                     "Current role may be shared by other users; ask before broadening the audience."}

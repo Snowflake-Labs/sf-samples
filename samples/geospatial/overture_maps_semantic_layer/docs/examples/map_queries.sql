@@ -72,7 +72,7 @@ order by areas.area_id;
 
 -- Overture examples: ../../examples/prompts.json holds the reference queries.
 -- Replace $ns there with your quoted installation database/schema, for example
--- "MY_DATABASE"."OVERTURE_SEMANTIC_V1". Do not run the JSON as SQL.
+-- "MY_DATABASE"."OVERTURE_SEMANTIC". Do not run the JSON as SQL.
 -- Keep the queries' coverage filters, stable IDs and limits. The address, road
 -- and building examples also keep their four BBOX_* filters: without them a
 -- geometry predicate scans the whole global table.

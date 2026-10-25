@@ -1,4 +1,4 @@
-create view if not exists $ns.BUILDING comment = $owner_comment as
+create or replace view $ns.BUILDING comment = $owner_comment as
 select id::varchar as id, geometry as geom,
        names:primary::varchar as name,
        subtype::varchar as subtype, class::varchar as class,

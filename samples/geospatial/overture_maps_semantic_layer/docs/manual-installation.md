@@ -207,14 +207,15 @@ connection = "my_connection"
 role = "MY_INSTALLER_ROLE"
 warehouse = "MY_WAREHOUSE"
 database = "MY_DATABASE"
-schema = "OVERTURE_SEMANTIC_V1"
+schema = "OVERTURE_SEMANTIC"
 viewer_role = "MY_VIEWER_ROLE"
 ```
 
 `role` runs the installation; `viewer_role` receives access to use the installed
 objects. The database, warehouse and both roles must already exist.
-Use a new schema such as `OVERTURE_SEMANTIC_V1`. Do not use a shared application
-schema. Names must be ordinary unquoted Snowflake identifiers; the runner quotes
+Use a dedicated schema such as `OVERTURE_SEMANTIC`. Do not use a shared application
+schema: reruns replace the sample's objects there. Names must be ordinary unquoted
+Snowflake identifiers; the runner quotes
 and uppercases each component. Quoted mixed-case identifiers are not supported.
 Credentials stay in your Snowflake CLI configuration, never in this file.
 
@@ -307,7 +308,7 @@ Loading uses `BINARY_AS_TEXT = FALSE` and `TRY_TO_GEOGRAPHY` for WKB. Each candi
 table must be non-empty and have valid geometry and unique, non-null IDs before
 any candidate is renamed to `RAW_*`. A failed or interrupted load retains its
 candidate tables for inspection. It does not publish semantic objects. Resume by
-cleaning up this disposable installation and reloading, or use a new schema.
+cleaning up this disposable installation and reloading.
 Do not run concurrent installers against the same target schema.
 
 ## Using the agent
@@ -377,8 +378,8 @@ development and the remaining installation/rendering acceptance tests.
 | Berlin returns no results | The default S3 load contains only San Francisco places. Use a Berlin bounding box or global places in a new installation. |
 | SQL works but no map appears | Confirm native map availability, the selected agent and the result's geographic columns. A successful API response is not a renderer test. |
 | The agent is not visible in CoWork | Check viewer access and the account's agent registration/selection controls. Creating an agent object alone may not make it selectable. |
-| The schema is not owned by this configuration/version | Use the original configuration and sample files, or choose a new schema. Do not overwrite another installation's marker. |
-| S3 loading stops before completion | Inspect retained candidate tables and the error. Clean up the disposable installation with its original configuration before retrying, or choose a new schema. |
+| The schema exists but was not created by this sample | Choose another schema. The installer only replaces objects whose comment carries the `overture-maps-semantic-layer:` marker. |
+| S3 loading stops before completion | Inspect retained candidate tables and the error, then run cleanup before retrying. |
 | Category search is not ready | Inspect the service in Snowsight and resolve its indexing, warehouse or privilege error before retrying verification. |
 
 Preflight checks source metadata and samples. It does not establish all deployment
@@ -399,18 +400,23 @@ privileges or validate every source row; a later creation or grant can still fai
   agent, not an enforceable query or payload-size limit.
 - The category vocabulary is an installation-time snapshot. Existing-source views
   can see newer provider data while that vocabulary and recorded release metadata
-  stay unchanged. Reinstall into a new schema to refresh the whole sample together.
+  stay unchanged. Rerun `install` to refresh the whole sample together.
 
 ## Upgrade and cleanup
 
-The installer uses `IF NOT EXISTS` and a schema/object marker derived from the
-configuration and shipped files. Rerunning unchanged installation does not replace
-the agent or erase its evaluation history. A changed configuration or sample
-version requires a **new schema**. Test that installation, then update users'
-agent selection. Keep the old installation until its history is no longer needed.
+There is one installation per schema. Rerunning `install`, with the same or a
+newer configuration or sample version, replaces the views, semantic view,
+category vocabulary and search service, and agent in that schema, and drops views
+for optional themes you removed from the configuration. The schema comment then
+records the new build. Objects carrying any `overture-maps-semantic-layer:`
+marker count as the sample's own; anything else in the schema stops the
+installer. S3-loaded `RAW_*` data is reused, never replaced: to load another
+release or area, run cleanup and load again.
 
-To delete one disposable installation, use its original configuration and sample
-version:
+Replacing the agent starts it fresh, so restart open CoWork conversations with
+it after an upgrade. Grants to the viewer role are reapplied on every install.
+
+To delete the installation:
 
 ```bash
 python3 scripts/install.py cleanup --config config.toml --execute

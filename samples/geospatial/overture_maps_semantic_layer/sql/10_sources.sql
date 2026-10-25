@@ -1,4 +1,4 @@
-create view if not exists $ns.PLACE comment = $owner_comment as
+create or replace view $ns.PLACE comment = $owner_comment as
 select id::varchar as id, geometry as geom,
        names:primary::varchar as name,
        coalesce(taxonomy:primary::varchar, basic_category::varchar) as category,
@@ -10,13 +10,13 @@ select id::varchar as id, geometry as geom,
        h3_point_to_cell_string(geometry, 8) as h3_cell
 from $source_place;
 
-create view if not exists $ns.DIVISION comment = $owner_comment as
+create or replace view $ns.DIVISION comment = $owner_comment as
 select id::varchar as id, geometry as geom, names:primary::varchar as name,
        country::varchar as country, region::varchar as region,
        subtype::varchar as subtype, population::number as population
 from $source_division;
 
-create view if not exists $ns.DIVISION_AREA comment = $owner_comment as
+create or replace view $ns.DIVISION_AREA comment = $owner_comment as
 select id::varchar as id, division_id::varchar as division_id, geometry as geom,
        names:primary::varchar as name, country::varchar as country,
        region::varchar as region, subtype::varchar as subtype, class::varchar as class,
@@ -24,7 +24,7 @@ select id::varchar as id, division_id::varchar as division_id, geometry as geom,
        st_asgeojson(st_simplify(geometry, 100))::varchar as geojson
 from $source_division_area;
 
-create view if not exists $ns.DIVISION_BOUNDARY comment = $owner_comment as
+create or replace view $ns.DIVISION_BOUNDARY comment = $owner_comment as
 select id::varchar as id, geometry as geom, country::varchar as country,
        region::varchar as region, subtype::varchar as subtype,
        class::varchar as class, is_land::boolean as is_land,

@@ -1,4 +1,4 @@
-create semantic view if not exists $ns.OVERTURE_MAPS_SV
+create or replace semantic view $ns.OVERTURE_MAPS_SV
 tables (
     places as $ns.PLACE primary key (ID)
         comment = 'Overture POIs. One point per ID. Coverage is recorded in DATASET_INFO.',

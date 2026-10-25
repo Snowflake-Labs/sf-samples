@@ -58,9 +58,28 @@ bbox clipping of optional S3 loads, `allow_invalid` geometry conversion, STAC
 release parsing and its offline failure, the pinned release in agent replays,
 fail-closed source choice and LineString map validation.
 
-Not verified: creating the semantic view with optional themes, an S3 load of any
-optional theme, agent answers that keep the bbox filters, and native line and
-footprint rendering in CoWork.
+Not verified: an S3 load of any optional theme, agent answers that keep the bbox
+filters, and native line and footprint rendering in CoWork.
+
+## Single installation, upgraded in place (2026-10-25)
+
+In tib85385 the older installation schemas and the TAXONOMY-to-CATEGORIES
+compatibility view were dropped, and the sample was installed fresh into
+`OVERTURE_MAPS.OVERTURE_SEMANTIC` from the Marketplace shares with all three
+optional themes, as in a new account. The first live run found that the optional
+theme fragments kept an unsubstituted schema placeholder; that is fixed and
+covered by a test.
+
+Install was then rerun over that schema, built by an earlier revision, without
+dropping it. The schema and all nine of its tables and views moved to the new
+marker in place, one semantic view and one agent remained in the account, and
+all nine reference queries passed: 156 hospitals, 368 SF and 500 Berlin cells,
+58 counties, 20 cafes, 1 containing county, 500 Market Street addresses, 113
+major road segments and 10 tallest buildings. In an earlier install of the same
+model, Cortex Analyst, asked for the tallest buildings in a downtown box,
+generated SQL with all four bbox filters.
+The suite has 75 passing offline tests, including upgrade over an older marker,
+refusal of foreign schemas and objects, and pruning of removed theme views.
 
 ## Isolated live smoke test
 
@@ -159,9 +178,8 @@ SQL, multi-turn recovery, subagent handoff and native rendering still require
 tests in an approved isolated installation and enabled CoWork session.
 
 Unlike the earlier documentation-only update, these instruction, prompt and
-installer changes alter the deployment fingerprint. Use an approved fresh schema
-for testing; do not overwrite existing ownership markers or replace a live agent.
-The earlier smoke test does not verify this revision.
+installer changes alter the deployment fingerprint. Rerunning install upgrades the
+same schema in place. The earlier smoke test does not verify this revision.
 
 ## Acceptance still required
 
@@ -176,8 +194,7 @@ The earlier smoke test does not verify this revision.
 - Synthetic point, line, polygon and H3 rendering in Workspaces and Dashboards;
   confirm current native dashboard schema and save/reopen/refresh behavior before
   shipping a `.dash` example. Arbitrary projected GEOMETRY rendering is unverified.
-- Cleanup without affecting source objects; upgrade to a new schema without losing
-  the old agent's history.
+- Cleanup without affecting source objects.
 
 Do not label the sample end-to-end verified until these checks have passed in the
 intended customer environment. A successful SQL query is not a rendering test.

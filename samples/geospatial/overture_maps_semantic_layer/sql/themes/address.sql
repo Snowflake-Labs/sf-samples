@@ -1,4 +1,4 @@
-create view if not exists $ns.ADDRESS comment = $owner_comment as
+create or replace view $ns.ADDRESS comment = $owner_comment as
 select id::varchar as id, geometry as geom,
        street::varchar as street, number::varchar as house_number,
        postcode::varchar as postcode,
