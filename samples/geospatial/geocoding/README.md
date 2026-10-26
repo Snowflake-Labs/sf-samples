@@ -73,12 +73,15 @@ bash .cortex/skills/install-geocoding/scripts/install_geocoding.sh \
 
 # optional: European forward geocoding (libpostal service + EU index tables)
 bash .cortex/skills/install-geocoding/scripts/install_geocoding.sh \
-  --connection <your-snow-connection> --eu [--eu-warehouse <large-wh>]
+  --connection <your-snow-connection> --eu --eu-warehouse GEOCODING_BUILD_WH
 ```
 
 `--eu` does everything `--intl` does, then calls `BUILD_EU_INDEX`, which builds
 the European candidate tables once. The first build reads about 140M addresses
-and runs a spatial join, so pass an X-Large warehouse with `--eu-warehouse`.
+and runs a spatial join, so pass an X-Large warehouse with `--eu-warehouse`. If
+you have none, create one first: `CREATE WAREHOUSE IF NOT EXISTS
+GEOCODING_BUILD_WH WAREHOUSE_SIZE = XLARGE AUTO_SUSPEND = 60
+INITIALLY_SUSPENDED = TRUE COMMENT = 'oss-geocoding';`
 Later runs find the tables and skip the build. Both flags need a running Docker
 daemon or Podman machine to build the linux/amd64 libpostal image.
 

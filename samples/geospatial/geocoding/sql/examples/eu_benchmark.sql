@@ -5,8 +5,10 @@
 -- renders them in local format (no added noise), geocodes each country as one
 -- batch and reports runtime per pipeline step plus accuracy.
 --
--- Run with the warehouse you want to measure, e.g.
---   snow sql -c <conn> --warehouse XSMALL -f sql/examples/eu_benchmark.sql
+-- Run with the warehouse you want to measure (README timings are X-Small), e.g.
+--   snow sql -c <conn> --warehouse GEOCODING_XS_WH -f sql/examples/eu_benchmark.sql
+-- To create it: CREATE WAREHOUSE IF NOT EXISTS GEOCODING_XS_WH
+--   WAREHOUSE_SIZE = XSMALL AUTO_SUSPEND = 60 COMMENT = 'oss-geocoding';
 -- ============================================================================
 
 CREATE OR REPLACE TABLE GEOCODING.PUBLIC.TEST_EU_10K COMMENT = 'oss-geocoding' AS

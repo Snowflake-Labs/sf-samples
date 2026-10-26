@@ -134,9 +134,19 @@ Macs. See `references/libpostal-spcs.md`.
 **MANDATORY STOPPING POINT**: same container cost as `--intl`, plus a one-time
 index build of about 18.7 GB of storage. Confirm with the user first.
 
+The index build wants an X-Large warehouse. If you do not have one, create
+a dedicated one that suspends after a minute (warehouses are account-level
+objects, so it lives outside `GEOCODING.PUBLIC`):
+
+```bash
+snow sql -c <connection> -q "CREATE WAREHOUSE IF NOT EXISTS GEOCODING_BUILD_WH
+  WAREHOUSE_SIZE = XLARGE AUTO_SUSPEND = 60 INITIALLY_SUSPENDED = TRUE
+  COMMENT = 'oss-geocoding';"
+```
+
 ```bash
 bash .cortex/skills/install-geocoding/scripts/install_geocoding.sh \
-  --connection <connection> --eu --eu-warehouse <x-large-wh>
+  --connection <connection> --eu --eu-warehouse GEOCODING_BUILD_WH
 ```
 
 This does everything `--intl` does, then calls `BUILD_EU_INDEX(FALSE)`, which
@@ -156,8 +166,12 @@ snow sql -c <connection> -f sql/examples/reverse_geocode.sql
 snow sql -c <connection> -f sql/examples/eu_test_set.sql
 snow sql -c <connection> -f sql/examples/eu_forward_geocode.sql
 snow sql -c <connection> -f sql/examples/eu_reverse_geocode.sql
-snow sql -c <connection> --warehouse <wh> -f sql/examples/eu_benchmark.sql
+snow sql -c <connection> --warehouse GEOCODING_XS_WH -f sql/examples/eu_benchmark.sql
 ```
+
+The benchmark timings in the README are for X-Small. Create one if needed:
+`CREATE WAREHOUSE IF NOT EXISTS GEOCODING_XS_WH WAREHOUSE_SIZE = XSMALL
+AUTO_SUSPEND = 60 INITIALLY_SUSPENDED = TRUE COMMENT = 'oss-geocoding';`
 
 Confirm the smoke tests return matches. The first `PARSE_ADDRESS` call is slow
 (~30 s) while the PyPI package installs; later calls are fast.
