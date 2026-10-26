@@ -15,6 +15,7 @@ INSERT INTO _demo_eu VALUES
     (3, 'Karl-Marx-Allee 90, Berlin');
 CALL GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(
     '_demo_eu', 'address', 'id', '_demo_eu_geocoded', 'DE');
+ALTER TABLE _demo_eu_geocoded SET COMMENT = 'oss-geocoding';
 SELECT input_id, raw_address, result_street, result_number, result_zip,
        match_level, match_score, result_geog
 FROM _demo_eu_geocoded ORDER BY input_id;
@@ -29,6 +30,7 @@ INSERT INTO _demo_mixed VALUES
     (4, '10 Downing St, London SW1A 2AA',             'GB');
 CALL GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(
     '_demo_mixed', 'address', 'id', '_demo_mixed_geocoded', 'US', 'cc');
+ALTER TABLE _demo_mixed_geocoded SET COMMENT = 'oss-geocoding';
 SELECT input_id, result_country, raw_address, result_street, result_number,
        match_level, match_score
 FROM _demo_mixed_geocoded ORDER BY input_id;
@@ -37,6 +39,7 @@ FROM _demo_mixed_geocoded ORDER BY input_id;
 CALL GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(
     'GEOCODING.PUBLIC.TEST_EU_INPUT', 'ADDRESS', 'TEST_ID',
     'GEOCODING.PUBLIC.TEST_EU_RESULT', 'US', 'COUNTRY');
+ALTER TABLE GEOCODING.PUBLIC.TEST_EU_RESULT SET COMMENT = 'oss-geocoding';
 
 CREATE OR REPLACE TABLE GEOCODING.PUBLIC.TEST_EU_EVAL COMMENT = 'oss-geocoding' AS
 SELECT t.test_id, t.country, t.noise, r.match_level, r.match_score,

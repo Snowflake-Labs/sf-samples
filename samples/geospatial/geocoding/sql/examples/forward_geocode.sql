@@ -75,6 +75,7 @@ INSERT INTO _demo_addresses VALUES
 
 CALL FORWARD_GEOCODE_TABLE(
     '_demo_addresses', 'address', 'id', '_demo_addresses_geocoded');
+ALTER TABLE _demo_addresses_geocoded SET COMMENT = 'oss-geocoding';
 
 -- result_geog is a GEOGRAPHY point; ST_X/ST_Y recover lon/lat for display.
 SELECT

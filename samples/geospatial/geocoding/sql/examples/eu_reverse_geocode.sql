@@ -21,6 +21,7 @@ QUALIFY ROW_NUMBER() OVER (PARTITION BY country ORDER BY HASH(id)) <= 30;
 CALL GEOCODING.PUBLIC.REVERSE_GEOCODE_TABLE(
     'GEOCODING.PUBLIC.TEST_EU_REV_INPUT', 'LAT', 'LON', 'ID', 200,
     'GEOCODING.PUBLIC.TEST_EU_REV_OUT');
+ALTER TABLE GEOCODING.PUBLIC.TEST_EU_REV_OUT SET COMMENT = 'oss-geocoding';
 
 -- Per country: how many returned the source address exactly, how many are
 -- at least as close as the source address, and field coverage.
