@@ -181,6 +181,13 @@ fi
 # ----------------------------------------------------------------------------
 if [[ "$EU" -eq 1 ]]; then
   echo "==> European forward geocoding index (BUILD_EU_INDEX)"
+  # The locality polygons come from the free Overture Maps "Divisions" listing
+  # (Carto). Acquire it the same way 00_setup.sql acquires Addresses.
+  echo "    ensuring the Overture Maps Divisions listing (GZT0Z4CM1E9M9)"
+  snow sql -c "$CONN" --silent --format csv -q "
+    CALL SYSTEM\$ACCEPT_LEGAL_TERMS('DATA_EXCHANGE_LISTING', 'GZT0Z4CM1E9M9');
+    CREATE DATABASE IF NOT EXISTS OVERTURE_MAPS__DIVISIONS FROM LISTING GZT0Z4CM1E9M9;" >/dev/null \
+    || { echo "ERROR: could not acquire the Overture Maps - Divisions listing. Get it from the Marketplace as OVERTURE_MAPS__DIVISIONS and re-run." >&2; exit 1; }
   EU_WH="${EU_WAREHOUSE:-$WAREHOUSE}"
   snow sql -c "$CONN" -q "ALTER SESSION SET QUERY_TAG='oss-geocoding';
     $( [[ -n "$EU_WH" ]] && echo "USE WAREHOUSE ${EU_WH};" )
