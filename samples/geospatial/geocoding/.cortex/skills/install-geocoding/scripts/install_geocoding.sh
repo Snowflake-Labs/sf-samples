@@ -60,7 +60,8 @@ export SNOWFLAKE_CLI_NO_UPDATE_CHECK="${SNOWFLAKE_CLI_NO_UPDATE_CHECK:-true}"
 
 echo "==> Preflight"
 command -v snow >/dev/null 2>&1 || { echo "ERROR: Snowflake CLI (snow) not found." >&2; exit 1; }
-snow sql -c "$CONN" -q "SELECT CURRENT_ACCOUNT() AS account, CURRENT_ROLE() AS role;" \
+snow sql -c "$CONN" --silent --format csv -q "SELECT 'connected: ' || CURRENT_ACCOUNT() || ' as ' || CURRENT_ROLE() AS c;" \
+  | tail -n +2 | sed 's/^/    /' \
   || { echo "ERROR: connection '$CONN' is not usable." >&2; exit 1; }
 
 # ----------------------------------------------------------------------------
@@ -95,8 +96,17 @@ trap cleanup EXIT
   done
 } > "$TMP_SQL"
 
-echo "==> Deploying core geocoding objects (GEOCODING.PUBLIC)"
-snow sql -c "$CONN" -f "$TMP_SQL"
+echo "==> Deploying core geocoding objects (GEOCODING.PUBLIC, ${#MODULES[@]} modules)"
+# --silent drops the statement echo (about 1,500 lines of SQL source). The
+# output is shown in full only when something fails.
+if ! CORE_OUT="$(snow sql -c "$CONN" --silent --format csv -f "$TMP_SQL" 2>&1)"; then
+  echo "$CORE_OUT" >&2
+  echo "ERROR: core install failed (output above)." >&2
+  exit 1
+fi
+# Report only the setup messages (listing, share resolution, row count).
+echo "$CORE_OUT" | grep -E '^"?(Overture |Could not|OVERTURE_ADDRESS view|ERROR)' \
+  | tr -d '"' | sed 's/^/    /'
 
 # ----------------------------------------------------------------------------
 # Optional international path — libpostal on SPCS.
@@ -159,9 +169,15 @@ fi
 # ----------------------------------------------------------------------------
 echo
 echo "==> Done. Deployed objects (COMMENT tag: oss-geocoding):"
-snow sql -c "$CONN" -q "
-  SHOW OBJECTS LIKE '%' IN SCHEMA GEOCODING.PUBLIC;
-  SELECT \"name\", \"kind\" FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())) ORDER BY \"kind\", \"name\";" || true
+snow sql -c "$CONN" --silent --format csv -q "
+  SHOW OBJECTS IN SCHEMA GEOCODING.PUBLIC
+  ->> SELECT \"kind\" || ': ' || LISTAGG(\"name\", ', ') WITHIN GROUP (ORDER BY \"name\") AS objects
+      FROM \$1 GROUP BY \"kind\" ORDER BY \"kind\";
+  SHOW USER FUNCTIONS IN SCHEMA GEOCODING.PUBLIC
+  ->> SELECT 'FUNCTION: ' || LISTAGG(DISTINCT \"name\", ', ') WITHIN GROUP (ORDER BY \"name\") AS objects FROM \$1;
+  SHOW USER PROCEDURES IN SCHEMA GEOCODING.PUBLIC
+  ->> SELECT 'PROCEDURE: ' || LISTAGG(DISTINCT \"name\", ', ') WITHIN GROUP (ORDER BY \"name\") AS objects FROM \$1;" \
+  | grep -v -e '^OBJECTS$' -e '^[[:space:]]*$' | tr -d '"' | sed 's/^/    /' || true
 
 cat <<EOF
 

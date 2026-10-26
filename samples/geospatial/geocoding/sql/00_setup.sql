@@ -106,7 +106,6 @@ END;
 $$;
 
 -- Sanity check: confirm the resolved share is reachable through the view.
-SELECT COUNT(*) AS overture_us_addresses
+SELECT 'Overture US addresses: ' || COUNT(*) AS overture_us_addresses
 FROM GEOCODING.PUBLIC.OVERTURE_ADDRESS
-WHERE COUNTRY = 'US'
-LIMIT 1;
+WHERE COUNTRY = 'US';
