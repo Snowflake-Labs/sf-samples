@@ -65,6 +65,11 @@ LIMIT 5;
 -- ---------------------------------------------------------------------------
 -- 4. Batch forward geocode via the stored procedure
 -- ---------------------------------------------------------------------------
+-- Expect 3 of 5 matches. Rows 3 and 4 show the two common US misses, and
+-- unmatched rows are left out of the output table:
+--   3  Overture has no 8601 W Cross Dr in 80123 (coverage gap).
+--   4  Overture stores the street as "5 AVE"; the input standardizes to
+--      "5Th Avenue", so the street comparison fails.
 CREATE OR REPLACE TEMPORARY TABLE _demo_addresses (id INT, address STRING);
 INSERT INTO _demo_addresses VALUES
     (1, '175 E 400 S, Salt Lake City, UT 84111'),
