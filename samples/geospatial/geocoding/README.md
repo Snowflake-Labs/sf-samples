@@ -214,7 +214,7 @@ is what an input without a postcode is matched through.
 |---|---|---|---|---|---|---|---|
 | IT | 26.8M | 100% | 0.8% | 0% | 100% | 100% | locality |
 | FR | 26.0M | 0% | 0% | 0% | 100% | 97.1% | postcode, locality |
-| DE | 19.3M | 79.3% | 0% | 0% | 100% | 95.8% | locality, postcode where present |
+| DE | 19.3M | 79.3% | 0% | 0% | 100% | 100% | locality, postcode where present |
 | ES | 15.6M | 0% | 0.3% | 0% | 100% | 100% | postcode, locality |
 | NL | 10.0M | 4.0% | 0% | 0% | 100% | 100% | postcode, locality |
 | PL | 8.6M | 0% | 0% | 35.8% | 100% | 100% | postcode, locality |
@@ -274,30 +274,31 @@ lower-cased. Distances are measured to the source Overture point.
 
 | Country | Rows | Hit rate | Within 100 m | Within 500 m | Avg deviation | ADDRESS | STREET | POSTCODE | LOCALITY | NONE |
 |---|---|---|---|---|---|---|---|---|---|---|
-| DE | 60 | 95.0% | 94.7% | 96.5% | 493 m | 54 | 1 | 2 | 0 | 3 |
-| ES | 60 | 100% | 96.7% | 96.7% | 78 m | 60 | 0 | 0 | 0 | 0 |
-| FR | 60 | 100% | 100% | 100% | 0 m | 60 | 0 | 0 | 0 | 0 |
-| IT | 60 | 100% | 98.3% | 98.3% | 84 m | 58 | 1 | 0 | 1 | 0 |
-| NL | 60 | 100% | 100% | 100% | 3 m | 59 | 0 | 1 | 0 | 0 |
-| PL | 60 | 100% | 90.0% | 90.0% | 321 m | 58 | 0 | 2 | 0 | 0 |
-| All | 360 | 99.2% | 96.6% | 96.9% | 161 m | 349 | 2 | 5 | 1 | 3 |
+| DE | 60 | 96.7% | 96.6% | 96.6% | 95 m | 57 | 0 | 0 | 1 | 2 |
+| ES | 60 | 100% | 96.7% | 98.3% | 18 m | 55 | 3 | 2 | 0 | 0 |
+| FR | 60 | 100% | 100% | 100% | 1 m | 59 | 1 | 0 | 0 | 0 |
+| IT | 60 | 100% | 100% | 100% | 2 m | 59 | 1 | 0 | 0 | 0 |
+| NL | 60 | 100% | 98.3% | 98.3% | 31 m | 59 | 1 | 0 | 0 | 0 |
+| PL | 60 | 100% | 93.3% | 93.3% | 469 m | 59 | 0 | 1 | 0 | 0 |
+| All | 360 | 99.4% | 97.5% | 97.8% | 103 m | 348 | 6 | 3 | 1 | 2 |
 
 Within-distance percentages and averages are over matched rows. By match level,
-`ADDRESS` results are 98.3% within 100 m (avg 60 m), `STREET` 50% within 100 m
-and 100% within 500 m, and `POSTCODE` and `LOCALITY` results are area centroids,
-kilometres off by nature. By noise type, lower-case input scored 100% within
-100 m, abbreviations and missing postcodes 96.7%, clean 95.0% and typos 90.0%.
+`ADDRESS` results are 98.9% within 100 m (avg 91 m), `STREET` 83.3% within
+100 m, and `POSTCODE` and `LOCALITY` results are area centroids, hundreds of
+metres to kilometres off by nature. By noise type, clean input and local
+abbreviations scored 100% within 100 m, missing postcodes and abbreviated
+lower-case 98.3%, lower-case 96.7% and typos 88.3%.
 
-The three German misses have no postcode and no town in the text, because the
-source address has no postcode in Overture and lies outside every locality
-polygon. The three far Polish `ADDRESS` results are real ambiguity: the same
-number, street, postcode and locality polygon exist in a neighbouring village a
-few kilometres away, and Overture holds no village name to separate them.
+The two German misses have no postcode and no town in the text ("Kiewe Straße
+2", "heidesheimer straße 5"), so there is nothing to search in. Most far
+results come from typos in the street or town name. The worst one,
+"Okrężna 7, Chojnice" (no postcode), is real ambiguity: Overture has at least
+eight "Okrężna 7" within 14 km of Chojnice and two localities named Chojnice,
+so without a postcode there is nothing to pick the right one.
 
 On larger clean batches (`sql/examples/eu_benchmark.sql`, 10,000 rows each), DE
-has a 96.7% hit rate with 95.6% within 100 m, and FR has 99.8% with 98.8%
-within 100 m. All 329 German misses are street-and-number-only renderings, for
-the reason above.
+has a 100% hit rate with 98.8% within 100 m, and FR has 99.7% with 98.6%
+within 100 m.
 
 ### Cost
 
@@ -305,8 +306,8 @@ the reason above.
 
 | Country | X-Small | Medium |
 |---|---|---|
-| DE | 40 s | 34 s |
-| FR | 36 s | 30 s |
+| DE | 37 s | 34 s |
+| FR | 31 s | 30 s |
 
 Libpostal parsing and expansion take about 3 s per batch. The candidate join
 is the largest step on X-Small (8-10 s) and drops to about 4.5 s on Medium; the

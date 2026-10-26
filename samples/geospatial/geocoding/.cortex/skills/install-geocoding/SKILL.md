@@ -219,10 +219,10 @@ coverage gaps exist. For routing-grade accuracy use a partner solution
 (Carto / ESRI / Mapbox).
 
 European forward geocoding on the 360-row noisy test set (60 each for DE, FR,
-IT, NL, ES, PL) has a 99.2% hit rate, with 96.6% of results within 100 m.
-`ADDRESS`-level results are 98.3% within 100 m. FR and NL are exact; PL is the
-weakest at 90% within 100 m, because one postcode often covers several villages
-that reuse street names. A 10,000-row batch takes 30-40 s on X-Small or Medium.
+IT, NL, ES, PL) has a 99.4% hit rate, with 97.5% of results within 100 m.
+`ADDRESS`-level results are 98.9% within 100 m. FR and IT are exact; PL is the
+weakest at 93.3% within 100 m, because the same street and number often repeat
+in neighbouring villages. A 10,000-row batch takes 30-40 s on X-Small or Medium.
 The full tables, cost and limitations (UK none, CZ and PL street gaps; PT, FI and
 CH house-number gaps) are in the README section "European forward geocoding".
 
