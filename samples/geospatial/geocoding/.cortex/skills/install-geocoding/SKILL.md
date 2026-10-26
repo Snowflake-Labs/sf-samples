@@ -17,9 +17,14 @@ re-running detects-and-reuses existing objects.
 
 | Capability | Coverage | How |
 |---|---|---|
-| **Forward** (free-text address -> lat/lon) | US | `usaddress` parse + street standardization + Overture JOIN |
+| **Forward** (free-text address -> GEOGRAPHY) | US | `usaddress` parse + street standardization + Overture JOIN |
+| **Forward, Europe** (optional, `--eu`) | FR ES PL BE DK CH AT NL NO FI PT DE IT CZ | libpostal parse + expansion, postcode or locality-polygon candidates, street ranking |
 | **Reverse** (lat/lon -> nearest address) | worldwide | `ST_DWITHIN` + `ST_DISTANCE` nearest match |
-| **International forward** (optional, `--intl`) | worldwide | libpostal on Snowpark Container Services |
+| **International parsing** (optional, `--intl`) | worldwide | libpostal on Snowpark Container Services |
+
+The UK, Ireland and Sweden have no addresses in this Overture share. Forward
+rows for GB, UK or IE return `MATCH_LEVEL = 'NONE'`; UK support needs another
+dataset.
 
 ## What gets created (`GEOCODING.PUBLIC`)
 
@@ -28,9 +33,13 @@ re-running detects-and-reuses existing objects.
 | `OVERTURE_ADDRESS` | View | stable view over the resolved Overture share |
 | `PARSE_ADDRESS` | Python UDF | `(VARCHAR) -> OBJECT` |
 | `STANDARDIZE_STREET` | Python UDF | `(VARCHAR) -> VARCHAR` |
-| `FORWARD_GEOCODE_TABLE` | SQL proc | `(SOURCE_TABLE, ADDRESS_COLUMN, ID_COLUMN, OUTPUT_TABLE)` |
+| `NORMALIZE_STREET_EU`, `NORMALIZE_NAME_EU` | Python UDF | `(VARCHAR, VARCHAR) -> VARCHAR`, `(VARCHAR) -> VARCHAR` |
+| `FORWARD_GEOCODE_TABLE` | SQL proc | `(SOURCE_TABLE, ADDRESS_COLUMN, ID_COLUMN, OUTPUT_TABLE, [COUNTRY='US'], [COUNTRY_COLUMN])` |
 | `REVERSE_GEOCODE_TABLE` | SQL proc | `(SOURCE_TABLE, LAT_COLUMN, LON_COLUMN, ID_COLUMN, RADIUS_METERS, OUTPUT_TABLE, [COUNTRY])` |
-| `IMAGE_REPOSITORY`, `GEOCODING_LIBPOSTAL_POOL`, `LIBPOSTAL_SVC`, `PARSE_ADDRESS_INTL`, `EXPAND_STREET_INTL` | SPCS (only with `--intl`) | international parsing |
+| `EVALUATE_GEOCODE` | SQL proc | `(RESULT_TABLE, ACTUAL_GEOG, GEOCODED_GEOG, [THRESHOLD])`, grouped overload `(..., THRESHOLD, GROUP_COLUMN)` |
+| `BUILD_EU_INDEX` | SQL proc | `([REBUILD=FALSE])` |
+| `EU_LOCALITY`, `EU_LOCALITY_ALIAS`, `OVERTURE_ADDRESS_EU`, `OVERTURE_ADDRESS_EU_LOC` | Tables (only with `--eu`) | European candidate index, about 18.7 GB |
+| `IMAGE_REPOSITORY`, `GEOCODING_LIBPOSTAL_POOL`, `LIBPOSTAL_SVC`, `PARSE_ADDRESS_INTL`, `EXPAND_STREET_INTL` | SPCS (only with `--intl` / `--eu`) | international parsing |
 
 Every object carries `COMMENT = 'oss-geocoding'` and installs under
 `QUERY_TAG = 'oss-geocoding'` so it can be discovered and cleaned up later.
@@ -44,8 +53,10 @@ Every object carries `COMMENT = 'oss-geocoding'` and installs under
   **auto-acquires** it (free, listing `GZT0Z4CM1E9NQ`) and reuses an existing
   copy under either `OVERTURE_MAPS__ADDRESSES` or `DS_OVERTURE_MAPS__ADDRESSES`.
   See `references/overture-share.md`.
-- **Only for `--intl`:** Docker or Podman (amd64 image build) plus privileges to
-  create an image repository, compute pool, and service. See `references/libpostal-spcs.md`.
+- **Only for `--intl` / `--eu`:** a running Docker daemon or Podman machine
+  (amd64 image build) plus privileges to create an image repository, compute
+  pool, and service. See `references/libpostal-spcs.md`. Podman machines with
+  2 GiB of memory tend to fail this build; prefer Docker.
 
 ## External access integrations
 
@@ -118,11 +129,34 @@ Macs. See `references/libpostal-spcs.md`.
 
 **Output:** international parsing functions available once the service is `READY`.
 
+### Step 3b (optional): European forward geocoding with `--eu`
+
+**MANDATORY STOPPING POINT**: same container cost as `--intl`, plus a one-time
+index build of about 18.7 GB of storage. Confirm with the user first.
+
+```bash
+bash .cortex/skills/install-geocoding/scripts/install_geocoding.sh \
+  --connection <connection> --eu --eu-warehouse <x-large-wh>
+```
+
+This does everything `--intl` does, then calls `BUILD_EU_INDEX(FALSE)`, which
+builds only the European tables that do not exist yet. A re-run reports "EU
+index already present" and rebuilds nothing. Re-running also re-applies the
+service spec, so a rebuilt libpostal image is picked up.
+
+**Output:** `FORWARD_GEOCODE_TABLE` accepts European rows via its `COUNTRY` or
+`COUNTRY_COLUMN` argument.
+
 ### Step 4: Verify
 
 ```bash
 snow sql -c <connection> -f sql/examples/forward_geocode.sql
 snow sql -c <connection> -f sql/examples/reverse_geocode.sql
+# after --eu:
+snow sql -c <connection> -f sql/examples/eu_test_set.sql
+snow sql -c <connection> -f sql/examples/eu_forward_geocode.sql
+snow sql -c <connection> -f sql/examples/eu_reverse_geocode.sql
+snow sql -c <connection> --warehouse <wh> -f sql/examples/eu_benchmark.sql
 ```
 
 Confirm the smoke tests return matches. The first `PARSE_ADDRESS` call is slow
@@ -135,10 +169,12 @@ Confirm the smoke tests return matches. The first `PARSE_ADDRESS` call is slow
 | `--connection` | (required) | Snow CLI connection name |
 | `--warehouse` | session default | Warehouse to `USE` (MEDIUM recommended for batch jobs) |
 | `--intl` | off | Also build/push libpostal image + deploy the SPCS intl service |
+| `--eu` | off | `--intl` plus the European forward index (`BUILD_EU_INDEX`) |
+| `--eu-warehouse` | `--warehouse` | Warehouse for the one-time EU index build (X-Large recommended) |
 
 ## Stopping Points
 
-- ✋ Before Step 3 (`--intl`) — heavy image build + always-warm service cost.
+- ✋ Before Step 3 (`--intl`) or Step 3b (`--eu`): heavy image build + always-warm service cost; `--eu` also adds about 18.7 GB of storage.
 - ✋ If the Overture listing cannot be auto-acquired in your region — acquire it
   manually from the Marketplace, then re-run.
 
@@ -154,14 +190,27 @@ CALL GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(
 CALL GEOCODING.PUBLIC.REVERSE_GEOCODE_TABLE(
     'MY_DB.PUBLIC.PINGS', 'LAT', 'LON', 'DEVICE_ID', 200,
     'MY_DB.PUBLIC.PINGS_ADDRESSED', 'US');   -- omit country / pass NULL for worldwide
+
+-- Forward (Europe, after --eu): one country for all rows, or a per-row column
+CALL GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(
+    'MY_DB.PUBLIC.CUSTOMERS', 'ADDRESS', 'ID',
+    'MY_DB.PUBLIC.CUSTOMERS_GEOCODED', 'US', 'COUNTRY_CODE');
+-- adds result_country, MATCH_LEVEL (ADDRESS|STREET|POSTCODE|LOCALITY|NONE), MATCH_SCORE
 ```
 
 ## Accuracy & limits
 
 US forward geocoding is **approximate** (~500-900 m), ~98% hit rate on clean data;
 coverage gaps exist. For routing-grade accuracy use a partner solution
-(Carto / ESRI / Mapbox). Non-US forward matching via libpostal is fuzzier — see
-`references/snowflake-sql-gotchas.md`.
+(Carto / ESRI / Mapbox).
+
+European forward geocoding on the 360-row noisy test set (60 each for DE, FR,
+IT, NL, ES, PL) has a 99.2% hit rate, with 96.6% of results within 100 m.
+`ADDRESS`-level results are 98.3% within 100 m. FR and NL are exact; PL is the
+weakest at 90% within 100 m, because one postcode often covers several villages
+that reuse street names. A 10,000-row batch takes 30-40 s on X-Small or Medium.
+The full tables, cost and limitations (UK none, CZ and PL street gaps; PT, FI and
+CH house-number gaps) are in the README section "European forward geocoding".
 
 ## Troubleshooting
 
@@ -172,7 +221,10 @@ coverage gaps exist. For routing-grade accuracy use a partner solution
 - **`PARSE_ADDRESS` first call slow / times out:** the shared PyPI `usaddress`
   package is installing; retry once it warms.
 - **`--intl` build fails on ARM Mac:** ensure `--platform linux/amd64`; Podman may
-  OOM — prefer Docker or raise the Podman machine memory.
+  OOM, so prefer Docker or raise the Podman machine memory. The installer uses
+  whichever runtime actually answers (`docker info` / `podman info`).
+- **European rows return "need the libpostal service":** run the installer with
+  `--eu`, and check the service is `READY` (it may be suspended).
 - **Service never `READY`:** `SELECT SYSTEM$GET_SERVICE_STATUS('GEOCODING.PUBLIC.LIBPOSTAL_SVC');`
   and check logs via `SYSTEM$GET_SERVICE_LOGS(...)`.
 

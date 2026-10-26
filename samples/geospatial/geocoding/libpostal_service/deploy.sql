@@ -4,8 +4,10 @@
 -- Provisions the infrastructure to run libpostal (worldwide address parsing)
 -- inside Snowpark Container Services and exposes it to SQL as service functions.
 --
--- STATUS: template. The container image must be built & pushed before the
--- service will start (see this folder's README.md, Build & push section).
+-- Run by the installer's --intl / --eu flags after the image is built and
+-- pushed (see this folder's README.md, Build & push section, to do it by hand).
+-- Safe to re-run: existing objects are kept and the service is moved to the
+-- current :latest image.
 --
 -- Prerequisites: ACCOUNTADMIN (or a role with CREATE COMPUTE POOL / SERVICE /
 -- IMAGE REPOSITORY), and the GEOCODING database from ../sql/00_setup.sql.
@@ -17,7 +19,8 @@ USE SCHEMA   PUBLIC;
 -- ---------------------------------------------------------------------------
 -- 1. Image repository (push the built image here)
 -- ---------------------------------------------------------------------------
-CREATE IMAGE REPOSITORY IF NOT EXISTS GEOCODING.PUBLIC.IMAGE_REPOSITORY;
+CREATE IMAGE REPOSITORY IF NOT EXISTS GEOCODING.PUBLIC.IMAGE_REPOSITORY
+  COMMENT = 'oss-geocoding';
 -- Get the repo URL for `docker push`:
 SHOW IMAGE REPOSITORIES IN SCHEMA GEOCODING.PUBLIC;
 
@@ -29,7 +32,8 @@ CREATE COMPUTE POOL IF NOT EXISTS GEOCODING_LIBPOSTAL_POOL
   MIN_NODES = 1
   MAX_NODES = 1
   INSTANCE_FAMILY = CPU_X64_S
-  AUTO_SUSPEND_SECS = 600;
+  AUTO_SUSPEND_SECS = 600
+  COMMENT = 'oss-geocoding';
 
 -- ---------------------------------------------------------------------------
 -- 3. Service (internal endpoint only; spec in ./service-spec.yaml)
@@ -40,7 +44,32 @@ CREATE SERVICE IF NOT EXISTS GEOCODING.PUBLIC.LIBPOSTAL_SVC
   IN COMPUTE POOL GEOCODING_LIBPOSTAL_POOL
   MIN_INSTANCES = 1
   MAX_INSTANCES = 1
+  COMMENT = 'oss-geocoding'
   FROM SPECIFICATION $$
+spec:
+  containers:
+    - name: libpostal
+      image: /GEOCODING/PUBLIC/IMAGE_REPOSITORY/libpostal:latest
+      readinessProbe:
+        port: 8080
+        path: /healthcheck
+      resources:
+        requests:
+          memory: 2Gi
+          cpu: 1000m
+        limits:
+          memory: 4Gi
+          cpu: 2000m
+  endpoints:
+    - name: api
+      port: 8080
+      public: false
+$$;
+
+-- Re-running the installer rebuilds and pushes :latest. CREATE ... IF NOT EXISTS
+-- leaves an existing service on the old image, so re-apply the spec, which
+-- makes SPCS pull the current :latest. Harmless on a first install.
+ALTER SERVICE GEOCODING.PUBLIC.LIBPOSTAL_SVC FROM SPECIFICATION $$
 spec:
   containers:
     - name: libpostal
@@ -72,12 +101,16 @@ CREATE OR REPLACE FUNCTION GEOCODING.PUBLIC.PARSE_ADDRESS_INTL(addr VARCHAR)
   RETURNS OBJECT
   SERVICE  = GEOCODING.PUBLIC.LIBPOSTAL_SVC
   ENDPOINT = 'api'
+  MAX_BATCH_ROWS = 500
+  COMMENT = 'oss-geocoding'
   AS '/parse';
 
 CREATE OR REPLACE FUNCTION GEOCODING.PUBLIC.EXPAND_STREET_INTL(addr VARCHAR)
   RETURNS ARRAY
   SERVICE  = GEOCODING.PUBLIC.LIBPOSTAL_SVC
   ENDPOINT = 'api'
+  MAX_BATCH_ROWS = 500
+  COMMENT = 'oss-geocoding'
   AS '/expand';
 
 -- Smoke test (multi-country):

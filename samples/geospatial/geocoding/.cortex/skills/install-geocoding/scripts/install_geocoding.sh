@@ -11,19 +11,26 @@
 # sets QUERY_TAG = 'oss-geocoding', so a future cleanup can discover them.
 #
 # Usage:
-#   bash install_geocoding.sh --connection <conn> [--warehouse <wh>] [--intl]
+#   bash install_geocoding.sh --connection <conn> [--warehouse <wh>] [--intl | --eu]
 #
 #   --connection   (required) Snowflake CLI connection name (`snow connection list`)
 #   --warehouse    (optional) warehouse to USE for the session (MEDIUM recommended)
 #   --intl         (optional) also build+push the libpostal image to THIS account's
 #                  own image repository and deploy the SPCS intl service. Heavy:
 #                  requires Docker or Podman and an amd64 image build (slow on ARM).
+#   --eu           (optional) everything --intl does, plus European forward
+#                  geocoding: builds the EU candidate tables (BUILD_EU_INDEX,
+#                  ~19 GB, one-time; use an X-Large warehouse via --eu-warehouse).
+#   --eu-warehouse (optional) warehouse for the one-time EU index build
+#                  (defaults to --warehouse / session default).
 # ============================================================================
 set -euo pipefail
 
 CONN=""
 WAREHOUSE=""
 INTL=0
+EU=0
+EU_WAREHOUSE=""
 
 usage() { grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
@@ -32,6 +39,8 @@ while [[ $# -gt 0 ]]; do
     --connection|-c) CONN="${2:-}"; shift 2 ;;
     --warehouse|-w)  WAREHOUSE="${2:-}"; shift 2 ;;
     --intl)          INTL=1; shift ;;
+    --eu)            INTL=1; EU=1; shift ;;
+    --eu-warehouse)  EU_WAREHOUSE="${2:-}"; shift 2 ;;
     -h|--help)       usage 0 ;;
     *) echo "Unknown argument: $1" >&2; usage 1 ;;
   esac
@@ -61,6 +70,8 @@ MODULES=(
   "$SQL_DIR/00_setup.sql"
   "$SQL_DIR/udfs/parse_address.sql"
   "$SQL_DIR/udfs/standardize_street.sql"
+  "$SQL_DIR/udfs/normalize_street_eu.sql"
+  "$SQL_DIR/eu/eu_index.sql"
   "$SQL_DIR/procedures/forward_geocode_table.sql"
   "$SQL_DIR/procedures/reverse_geocode_table.sql"
   "$SQL_DIR/procedures/evaluate_geocode.sql"
@@ -93,10 +104,12 @@ snow sql -c "$CONN" -f "$TMP_SQL"
 if [[ "$INTL" -eq 1 ]]; then
   echo "==> International (libpostal SPCS) path"
   CONTAINER_CMD=""
-  if command -v docker >/dev/null 2>&1; then CONTAINER_CMD="docker"
-  elif command -v podman >/dev/null 2>&1; then CONTAINER_CMD="podman"
+  # Use the first runtime whose daemon / VM actually answers, not just the
+  # first binary on PATH.
+  if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then CONTAINER_CMD="docker"
+  elif command -v podman >/dev/null 2>&1 && podman info >/dev/null 2>&1; then CONTAINER_CMD="podman"
   else
-    echo "ERROR: --intl needs Docker or Podman to build the libpostal image." >&2
+    echo "ERROR: --intl needs a running Docker daemon or Podman machine to build the libpostal image." >&2
     exit 1
   fi
   echo "    using container runtime: $CONTAINER_CMD"
@@ -126,6 +139,19 @@ if [[ "$INTL" -eq 1 ]]; then
   snow sql -c "$CONN" -f "$LIBPOSTAL_DIR/deploy.sql"
 
   echo "    NOTE: poll SYSTEM\$GET_SERVICE_STATUS('GEOCODING.PUBLIC.LIBPOSTAL_SVC') until READY."
+fi
+
+# ----------------------------------------------------------------------------
+# Optional European forward geocoding — one-time candidate index build.
+# Idempotent: BUILD_EU_INDEX(FALSE) only builds tables that do not exist yet.
+# ----------------------------------------------------------------------------
+if [[ "$EU" -eq 1 ]]; then
+  echo "==> European forward geocoding index (BUILD_EU_INDEX)"
+  EU_WH="${EU_WAREHOUSE:-$WAREHOUSE}"
+  snow sql -c "$CONN" -q "ALTER SESSION SET QUERY_TAG='oss-geocoding';
+    $( [[ -n "$EU_WH" ]] && echo "USE WAREHOUSE ${EU_WH};" )
+    ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS = 14400;
+    CALL GEOCODING.PUBLIC.BUILD_EU_INDEX(FALSE);"
 fi
 
 # ----------------------------------------------------------------------------
