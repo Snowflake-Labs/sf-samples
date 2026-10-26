@@ -65,7 +65,7 @@ SELECT query_tag, warehouse_size,
             WHEN query_text ILIKE '%_FGC_EU_RES%'         THEN '5 ranking + fallbacks'
             ELSE '6 staging + output' END AS step,
        ROUND(SUM(total_elapsed_time) / 1000, 1) AS seconds
-FROM TABLE(INFORMATION_SCHEMA.QUERY_HISTORY_BY_SESSION(RESULT_LIMIT => 1000))
+FROM TABLE(GEOCODING.INFORMATION_SCHEMA.QUERY_HISTORY_BY_SESSION(RESULT_LIMIT => 1000))
 WHERE query_tag LIKE 'oss-geocoding-bench-%'
 GROUP BY 1, 2, 3
 ORDER BY 1, 3;
