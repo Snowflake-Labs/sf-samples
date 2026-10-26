@@ -4,6 +4,8 @@
 -- Needs the --eu install (libpostal service READY + BUILD_EU_INDEX tables) and
 -- the test set from eu_test_set.sql.
 -- ============================================================================
+USE DATABASE GEOCODING;
+USE SCHEMA   PUBLIC;
 
 -- 1. Single-country call (COUNTRY parameter)
 CREATE OR REPLACE TEMPORARY TABLE _demo_eu (id INT, address STRING);
