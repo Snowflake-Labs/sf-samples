@@ -74,7 +74,29 @@ BEGIN
             FROM OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION_AREA a
             LEFT JOIN OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION d ON d.ID = a.DIVISION_ID
             WHERE a.SUBTYPE = ''locality''
-              AND a.COUNTRY IN (' || countries || ')';
+              AND a.COUNTRY IN (' || countries || ')
+            UNION ALL
+            -- Many large cities (Berlin, Hamburg, Wien, Praha, most German
+            -- kreisfreie Staedte) are locality divisions without a locality
+            -- polygon; their area is stored as the same-named localadmin,
+            -- county or region. Use the smallest such area that contains the
+            -- locality point, skipping state-sized ones.
+            SELECT d.ID::VARCHAR, d.COUNTRY::VARCHAR, d.REGION::VARCHAR,
+                   d.NAMES:primary::VARCHAR,
+                   GEOCODING.PUBLIC.NORMALIZE_NAME_EU(d.NAMES:primary::VARCHAR),
+                   a.GEOMETRY, ST_CENTROID(a.GEOMETRY), NULLIF(d.CLASS::VARCHAR, '''')
+            FROM OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION d
+            JOIN OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION_AREA a
+              ON a.COUNTRY = d.COUNTRY
+             AND a.NAMES:primary::VARCHAR = d.NAMES:primary::VARCHAR
+             AND a.SUBTYPE IN (''localadmin'', ''county'', ''region'')
+             AND ST_CONTAINS(a.GEOMETRY, d.GEOMETRY)
+            WHERE d.SUBTYPE = ''locality''
+              AND d.COUNTRY IN (' || countries || ')
+              AND ST_AREA(a.GEOMETRY) <= 1.5e9
+              AND NOT EXISTS (SELECT 1 FROM OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION_AREA x
+                              WHERE x.DIVISION_ID = d.ID)
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY d.ID ORDER BY ST_AREA(a.GEOMETRY)) = 1';
         built := built || 'EU_LOCALITY ';
     END IF;
 

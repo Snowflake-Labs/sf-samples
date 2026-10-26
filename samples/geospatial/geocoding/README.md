@@ -314,10 +314,13 @@ rest is many short statements, so a bigger warehouse helps little. The query
 profile shows only hash equi-joins, no cartesian join, and join-filter pruning
 that reads at most 101 of 527 partitions of the index tables.
 
-The European index uses about 18.7 GB of storage: `OVERTURE_ADDRESS_EU` (139M
+The European index uses about 19.7 GB of storage: `OVERTURE_ADDRESS_EU` (139M
 rows, 8.1 GB, clustered by country and postcode), `OVERTURE_ADDRESS_EU_LOC`
-(148M rows, 8.4 GB, clustered by country and locality), `EU_LOCALITY` (121K
-polygons, 2.2 GB) and `EU_LOCALITY_ALIAS` (under 0.01 GB). Rebuild it with
+(163M rows, 9.3 GB, clustered by country and locality), `EU_LOCALITY` (130K
+polygons, 2.4 GB) and `EU_LOCALITY_ALIAS` (under 0.01 GB). About 8K localities,
+Berlin, Hamburg, Wien and Praha among them, have no locality polygon in
+Overture; they use the smallest same-named localadmin, county or region area
+(up to 1,500 km2) that contains them. Rebuild it with
 `CALL GEOCODING.PUBLIC.BUILD_EU_INDEX(TRUE)` after the Overture share refreshes.
 The libpostal service runs on one `CPU_X64_S` compute pool node, billed while
 the pool is active. Suspend it when you are not geocoding:

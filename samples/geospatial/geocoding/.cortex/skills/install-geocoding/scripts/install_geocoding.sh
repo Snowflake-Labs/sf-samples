@@ -20,7 +20,7 @@
 #                  requires Docker or Podman and an amd64 image build (slow on ARM).
 #   --eu           (optional) everything --intl does, plus European forward
 #                  geocoding: builds the EU candidate tables (BUILD_EU_INDEX,
-#                  ~19 GB, one-time; use an X-Large warehouse via --eu-warehouse).
+#                  ~20 GB, one-time; use an X-Large warehouse via --eu-warehouse).
 #   --eu-warehouse (optional) warehouse for the one-time EU index build
 #                  (defaults to --warehouse / session default).
 # ============================================================================

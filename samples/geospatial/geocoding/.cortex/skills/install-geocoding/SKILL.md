@@ -38,7 +38,7 @@ dataset.
 | `REVERSE_GEOCODE_TABLE` | SQL proc | `(SOURCE_TABLE, LAT_COLUMN, LON_COLUMN, ID_COLUMN, RADIUS_METERS, OUTPUT_TABLE, [COUNTRY])` |
 | `EVALUATE_GEOCODE` | SQL proc | `(RESULT_TABLE, ACTUAL_GEOG, GEOCODED_GEOG, [THRESHOLD])`, grouped overload `(..., THRESHOLD, GROUP_COLUMN)` |
 | `BUILD_EU_INDEX` | SQL proc | `([REBUILD=FALSE])` |
-| `EU_LOCALITY`, `EU_LOCALITY_ALIAS`, `OVERTURE_ADDRESS_EU`, `OVERTURE_ADDRESS_EU_LOC` | Tables (only with `--eu`) | European candidate index, about 18.7 GB |
+| `EU_LOCALITY`, `EU_LOCALITY_ALIAS`, `OVERTURE_ADDRESS_EU`, `OVERTURE_ADDRESS_EU_LOC` | Tables (only with `--eu`) | European candidate index, about 19.7 GB |
 | `IMAGE_REPOSITORY`, `GEOCODING_LIBPOSTAL_POOL`, `LIBPOSTAL_SVC`, `PARSE_ADDRESS_INTL`, `EXPAND_STREET_INTL` | SPCS (only with `--intl` / `--eu`) | international parsing |
 
 Every object carries `COMMENT = 'oss-geocoding'` and installs under
@@ -132,7 +132,7 @@ Macs. See `references/libpostal-spcs.md`.
 ### Step 3b (optional): European forward geocoding with `--eu`
 
 **MANDATORY STOPPING POINT**: same container cost as `--intl`, plus a one-time
-index build of about 18.7 GB of storage. Confirm with the user first.
+index build of about 19.7 GB of storage. Confirm with the user first.
 
 The index build wants an X-Large warehouse. If you do not have one, create
 a dedicated one that suspends after a minute (warehouses are account-level
@@ -188,7 +188,7 @@ Confirm the smoke tests return matches. The first `PARSE_ADDRESS` call is slow
 
 ## Stopping Points
 
-- ✋ Before Step 3 (`--intl`) or Step 3b (`--eu`): heavy image build + always-warm service cost; `--eu` also adds about 18.7 GB of storage.
+- ✋ Before Step 3 (`--intl`) or Step 3b (`--eu`): heavy image build + always-warm service cost; `--eu` also adds about 19.7 GB of storage.
 - ✋ If the Overture listing cannot be auto-acquired in your region — acquire it
   manually from the Marketplace, then re-run.
 
