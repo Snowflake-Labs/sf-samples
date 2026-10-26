@@ -33,27 +33,27 @@ FROM (SELECT * FROM VALUES
 -- ---------------------------------------------------------------------------
 -- 3. Ad-hoc single-address forward geocode (inline, no procedure)
 -- ---------------------------------------------------------------------------
-WITH parsed AS (
-    SELECT
-        '175 E 400 S, Salt Lake City, UT 84111' AS raw_address,
-        PARSE_ADDRESS('175 E 400 S, Salt Lake City, UT 84111') AS addr
-),
-fields AS (
-    SELECT
-        raw_address,
-        addr:number::STRING AS number,
-        STANDARDIZE_STREET(addr:street::STRING) AS street_std,
-        addr:city::STRING AS city,
-        addr:zip::STRING  AS zip
-    FROM parsed
-)
+-- Parse into a table first. Inside a CTE the Python UDFs get inlined into the
+-- join and run against every Overture row (minutes instead of seconds).
+CREATE OR REPLACE TEMPORARY TABLE _demo_one_address AS
+SELECT
+    raw_address,
+    addr:number::STRING AS number,
+    STANDARDIZE_STREET(addr:street::STRING) AS street_std,
+    addr:city::STRING AS city,
+    addr:zip::STRING  AS zip
+FROM (
+    SELECT '175 E 400 S, Salt Lake City, UT 84111' AS raw_address,
+           PARSE_ADDRESS('175 E 400 S, Salt Lake City, UT 84111') AS addr
+);
+
 SELECT
     f.raw_address, f.street_std AS input_street_standardized,
     a.NUMBER AS result_number, a.STREET AS result_street,
     a.POSTAL_CITY AS result_city, a.POSTCODE AS result_zip,
     a.GEOMETRY AS result_geog, ST_ASWKT(a.GEOMETRY) AS result_wkt,
     EDITDISTANCE(UPPER(a.STREET), UPPER(f.street_std)) AS edit_dist
-FROM fields f
+FROM _demo_one_address f
 JOIN GEOCODING.PUBLIC.OVERTURE_ADDRESS a
   ON a.COUNTRY = 'US'
  AND a.NUMBER = f.number
