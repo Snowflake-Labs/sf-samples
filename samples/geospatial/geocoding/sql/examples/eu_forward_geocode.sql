@@ -24,7 +24,7 @@ FROM _demo_eu_geocoded ORDER BY input_id;
 --    Overture addresses and returns MATCH_LEVEL = 'NONE').
 CREATE OR REPLACE TEMPORARY TABLE _demo_mixed (id INT, address STRING, cc STRING);
 INSERT INTO _demo_mixed VALUES
-    (1, '350 5th Ave, New York, NY 10118',            'US'),
+    (1, '1600 Pennsylvania Ave NW, Washington, DC 20500', 'US'),
     (2, '8 Rue de la Poste, 80430 Liomer',            'FR'),
     (3, 'Via Silvio Pellico 8, Milano',               'IT'),
     (4, '10 Downing St, London SW1A 2AA',             'GB');
