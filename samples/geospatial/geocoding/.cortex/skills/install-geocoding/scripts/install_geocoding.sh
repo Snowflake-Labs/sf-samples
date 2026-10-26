@@ -169,10 +169,38 @@ if [[ "$INTL" -eq 1 ]]; then
   echo "    image pushed"
 
   echo "    deploying SPCS service + intl functions"
-  snow sql -c "$CONN" -q "ALTER SESSION SET QUERY_TAG='oss-geocoding';"
-  snow sql -c "$CONN" -f "$LIBPOSTAL_DIR/deploy.sql"
+  # A re-run may find the pool / service suspended (e.g. after cost control).
+  # RESUME errors when already running; that is fine.
+  snow sql -c "$CONN" --silent -q "ALTER COMPUTE POOL IF EXISTS GEOCODING_LIBPOSTAL_POOL RESUME;" >/dev/null 2>&1 || true
+  snow sql -c "$CONN" --silent -q "ALTER SERVICE IF EXISTS GEOCODING.PUBLIC.LIBPOSTAL_SVC RESUME;" >/dev/null 2>&1 || true
+  # One session, so the QUERY_TAG applies to the deploy statements.
+  { echo "ALTER SESSION SET QUERY_TAG = 'oss-geocoding';"; cat "$LIBPOSTAL_DIR/deploy.sql"; } > "$TMP_SQL"
+  if ! DEPLOY_OUT="$(snow sql -c "$CONN" --silent --format csv -f "$TMP_SQL" 2>&1)"; then
+    echo "$DEPLOY_OUT" >&2
+    echo "ERROR: SPCS deploy failed (output above)." >&2
+    exit 1
+  fi
 
-  echo "    NOTE: poll SYSTEM\$GET_SERVICE_STATUS('GEOCODING.PUBLIC.LIBPOSTAL_SVC') until READY."
+  echo "    waiting for LIBPOSTAL_SVC to be READY (usually 2-8 min)"
+  T0=$SECONDS
+  SVC_STATUS=""
+  while (( SECONDS - T0 < 1200 )); do
+    SVC_STATUS="$(snow sql -c "$CONN" --silent --format csv -q \
+      "SELECT PARSE_JSON(SYSTEM\$GET_SERVICE_STATUS('GEOCODING.PUBLIC.LIBPOSTAL_SVC'))[0]:status::STRING AS s;" \
+      2>/dev/null | tail -1 | tr -d '"[:space:]')"
+    [[ "$SVC_STATUS" == "READY" ]] && break
+    echo "      ${SVC_STATUS:-PENDING} ($(( (SECONDS - T0) / 60 )) min)"
+    sleep 30
+  done
+  if [[ "$SVC_STATUS" != "READY" ]]; then
+    echo "ERROR: LIBPOSTAL_SVC not READY after 20 min (status: ${SVC_STATUS:-unknown}). Logs:" >&2
+    snow sql -c "$CONN" -q "SELECT SYSTEM\$GET_SERVICE_LOGS('GEOCODING.PUBLIC.LIBPOSTAL_SVC', 0, 'libpostal', 50);" >&2 || true
+    exit 1
+  fi
+  echo "    LIBPOSTAL_SVC is READY"
+  snow sql -c "$CONN" --silent --format csv -q \
+    "SELECT 'smoke test: ' || GEOCODING.PUBLIC.PARSE_ADDRESS_INTL('Rue de Rivoli 10, 75001 Paris'):road::STRING AS t;" \
+    | tail -1 | sed 's/^/    /'
 fi
 
 # ----------------------------------------------------------------------------
