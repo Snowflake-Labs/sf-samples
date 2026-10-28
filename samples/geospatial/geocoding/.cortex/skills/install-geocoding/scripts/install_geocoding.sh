@@ -141,30 +141,44 @@ if [[ "$INTL" -eq 1 ]]; then
   echo "    logging in to the SPCS image registry"
   snow spcs image-registry login -c "$CONN"
 
-  # The image is about 3.5 GB (libpostal models). Uploads of the large layers
-  # often end with "timeout awaiting response headers"; a retry skips layers
-  # the registry already has, so a few attempts converge. Print a heartbeat,
-  # since a non-TTY push is silent for many minutes.
-  IMAGE="${REPO_URL}/libpostal:latest"
+  # The image is about 3.5 GB (libpostal models). A push uploads several layers
+  # in parallel, and on a slow uplink a large upload often ends with "timeout
+  # awaiting response headers". The Dockerfile therefore cuts the models into
+  # 200 MB parts, one build stage each; pushing the stages in order uploads a
+  # single new layer per push. A retry skips layers the registry already has.
+  # A non-TTY push prints nothing for minutes, so print a heartbeat.
   PUSH_LOG="$(mktemp -t install_geocoding_push.XXXXXX)"
-  PUSHED=0
-  for attempt in 1 2 3 4 5; do
-    echo "    pushing image, attempt ${attempt}/5 (the first push can take 10-45 min)"
-    "$CONTAINER_CMD" push "$IMAGE" > "$PUSH_LOG" 2>&1 &
-    PUSH_PID=$!
-    T0=$SECONDS
-    while kill -0 "$PUSH_PID" 2>/dev/null; do
-      sleep 60
-      kill -0 "$PUSH_PID" 2>/dev/null && echo "      still pushing ($(( (SECONDS - T0) / 60 )) min)"
+  push_with_retry() {
+    local image="$1" attempt
+    for attempt in 1 2 3 4 5 6 7 8; do
+      "$CONTAINER_CMD" push "$image" > "$PUSH_LOG" 2>&1 &
+      local pid=$! t0=$SECONDS
+      while kill -0 "$pid" 2>/dev/null; do
+        sleep 60
+        kill -0 "$pid" 2>/dev/null && echo "        still pushing ${image##*:} ($(( (SECONDS - t0) / 60 )) min)"
+      done
+      wait "$pid" && return 0
+      echo "        attempt ${attempt}/8 failed: $(grep -oE 'timeout[^"]*|denied[^"]*|unauthorized[^"]*' "$PUSH_LOG" | tail -1)"
     done
-    if wait "$PUSH_PID"; then PUSHED=1; break; fi
-    echo "      attempt ${attempt} failed: $(grep -oE 'timeout[^"]*|denied[^"]*|unauthorized[^"]*' "$PUSH_LOG" | tail -1)"
+    cat "$PUSH_LOG" >&2
+    return 1
+  }
+  STAGES=(part-base part-0 part-1 part-2 part-3 part-4 part-5 part-6 part-7)
+  N=$(( ${#STAGES[@]} + 1 ))
+  i=0
+  for stage in "${STAGES[@]}" latest; do
+    i=$(( i + 1 ))
+    if [[ "$stage" != latest ]]; then
+      "$CONTAINER_CMD" build -q --platform linux/amd64 --target "$stage" \
+        -t "${REPO_URL}/libpostal:${stage}" "$LIBPOSTAL_DIR" >/dev/null
+    fi
+    echo "    pushing image layer ${i}/${N} (${stage}); about 200 MB each, minutes on a slow uplink"
+    push_with_retry "${REPO_URL}/libpostal:${stage}" || {
+      rm -f "$PUSH_LOG"
+      echo "ERROR: image push failed (log above). Re-run the installer to resume; uploaded layers are kept." >&2
+      exit 1
+    }
   done
-  if [[ "$PUSHED" -ne 1 ]]; then
-    cat "$PUSH_LOG" >&2; rm -f "$PUSH_LOG"
-    echo "ERROR: image push failed 5 times (log above). Re-run the installer to resume." >&2
-    exit 1
-  fi
   rm -f "$PUSH_LOG"
   echo "    image pushed"
 
