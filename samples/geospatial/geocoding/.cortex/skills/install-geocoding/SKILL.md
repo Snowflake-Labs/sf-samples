@@ -240,9 +240,9 @@ CH house-number gaps) are in the README section "European forward geocoding".
 - **European rows return "need the libpostal service":** run the installer with
   `--eu`, and check the service is `READY` (it may be suspended).
 - **Image push slow or "timeout awaiting response headers":** the first push
-  uploads about 2.5 GB in ten layers of up to about 300 MB, one at a time with
-  retries. On a 0.25 MB/s uplink that takes hours; on a few MB/s, minutes.
-  If it still fails, re-run the installer: uploaded layers are kept.
+  uploads about 2.5 GB in ten steps (the model parts are 200 MB each), one step
+  at a time with retries. On a 0.25 MB/s uplink that takes hours; on a few MB/s,
+  minutes. If it still fails, re-run the installer: uploaded layers are kept.
 - **Service never `READY`:** `SELECT SYSTEM$GET_SERVICE_STATUS('GEOCODING.PUBLIC.LIBPOSTAL_SVC');`
   and check logs via `SYSTEM$GET_SERVICE_LOGS(...)`.
 

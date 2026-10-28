@@ -171,7 +171,7 @@ if [[ "$INTL" -eq 1 ]]; then
       "$CONTAINER_CMD" build -q --platform linux/amd64 --target "$stage" \
         -t "${REPO_URL}/libpostal:${stage}" "$LIBPOSTAL_DIR" >/dev/null
     fi
-    echo "    pushing image layer ${i}/${N} (${stage}); about 200 MB each, minutes on a slow uplink"
+    echo "    pushing image, step ${i}/${N} (${stage})"
     push_with_retry "${REPO_URL}/libpostal:${stage}" || {
       rm -f "$PUSH_LOG"
       echo "ERROR: image push failed (log above). Re-run the installer to resume; uploaded layers are kept." >&2
