@@ -136,6 +136,11 @@ class AgentInstallerTests(unittest.TestCase):
         self.assertEqual(len(agent.split_statements(install.agent_sql(self.config, {"COVERAGE": "a;b"}))), 1)
 
     def test_existing_installation_replay(self) -> None:
+        for has_cowork in (True, False):
+            with self.subTest(has_cowork=has_cowork):
+                self.replay_install(has_cowork)
+
+    def replay_install(self, has_cowork: bool) -> None:
         receipt = self.receipt("install", True)
         seen_mutations = []
         registered = False
@@ -144,8 +149,11 @@ class AgentInstallerTests(unittest.TestCase):
             if result["status"] == "complete":
                 self.assertEqual(result["native_maps"], "not tested")
                 self.assertEqual(result["agent_execution"], "not tested")
-                self.assertEqual(result["cowork_registration"], "passed")
-                self.assertEqual(sum("add agent" in sql for sql in seen_mutations), 1)
+                self.assertEqual(result["cowork_registration"],
+                                 "passed" if has_cowork else "not required")
+                self.assertEqual(sum("add agent" in sql for sql in seen_mutations), int(has_cowork))
+                self.assertFalse(any("snowflake intelligence" in sql and "create" in sql
+                                     for sql in seen_mutations))
                 self.assertTrue(any("create or replace agent" in sql for sql in seen_mutations))
                 self.assertFalse(any("if not exists" in sql for sql in seen_mutations))
                 break
@@ -170,7 +178,7 @@ class AgentInstallerTests(unittest.TestCase):
             elif sql.startswith("describe cortex search"):
                 rows = [{"SERVING_STATE": "ACTIVE"}]
             elif sql == "show snowflake intelligences":
-                rows = [{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}]
+                rows = [{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}] if has_cowork else []
             elif sql.startswith("show agents in snowflake intelligence"):
                 rows = [{"NAME": "OVERTURE_MAPS_AGENT", "DATABASE_NAME": "MY_DATABASE",
                          "SCHEMA_NAME": "OVERTURE_SEMANTIC"}] if registered else []

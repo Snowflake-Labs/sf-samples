@@ -172,8 +172,9 @@ def next_statement(command: str, config: dict[str, Any], receipt: dict[str, Any]
     logs = io.StringIO()
     try:
         with redirect_stdout(logs), redirect_stderr(logs):
-            install.execute_workflow(command, config, client, load_id=receipt.get("load_id"),
-                                     release=release if command == "load-s3" else None)
+            cowork_status = install.execute_workflow(
+                command, config, client, load_id=receipt.get("load_id"),
+                release=release if command == "load-s3" else None)
     except NextStatement as pending:
         mutation = mutates(pending.sql)
         approved = receipt.get("approved_marker") == marker
@@ -194,8 +195,9 @@ def next_statement(command: str, config: dict[str, Any], receipt: dict[str, Any]
     return {"status": "complete", "command": command, "statements": client.index,
             "output": logs.getvalue().strip(),
             "agent_execution": "not tested", "viewer_access": "not tested",
-            # install and verify fail unless the agent is listed in the CoWork object.
-            "cowork_registration": "passed" if command in {"install", "verify"} else "not tested",
+            # install/verify return "passed" (listed in the CoWork object) or
+            # "not required" (the account has no CoWork object).
+            "cowork_registration": cowork_status or "not tested",
             "native_maps": "not tested"}
 
 

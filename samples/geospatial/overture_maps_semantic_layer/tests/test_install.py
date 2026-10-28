@@ -47,16 +47,37 @@ class InstallerTests(unittest.TestCase):
         install.register_cowork(self.config, client)
         self.assertTrue(any("add agent" in sql for sql in statements))
 
-    def test_cowork_object_created_only_when_missing(self) -> None:
+    def test_no_cowork_object_registers_nothing(self) -> None:
+        # Creating a CoWork object would hide every other agent from every user.
         client, statements = self.cowork_client([], [])
-        install.register_cowork(self.config, client)
-        self.assertIn('create snowflake intelligence if not exists "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"',
-                      statements)
+        self.assertIsNone(install.register_cowork(self.config, client))
+        self.assertEqual(statements, ["show snowflake intelligences"])
+        self.assertNotIn("snowflake intelligence", install.grant_sql(self.config, None))
         client, statements = self.cowork_client([{"NAME": "COMPANY_AI"}], [])
         self.assertEqual(install.register_cowork(self.config, client), '"COMPANY_AI"')
-        self.assertFalse(any(sql.startswith("create snowflake intelligence") for sql in statements))
+        self.assertIn('alter snowflake intelligence "COMPANY_AI" add agent '
+                      '"MY_DATABASE"."OVERTURE_SEMANTIC".OVERTURE_MAPS_AGENT', statements)
         self.assertIn('grant usage on snowflake intelligence "COMPANY_AI" to role "MY_VIEWER_ROLE"',
                       install.grant_sql(self.config, '"COMPANY_AI"'))
+
+    def test_install_and_render_never_create_cowork_object(self) -> None:
+        for objects in ([], [{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}]):
+            client, statements = self.cowork_client(objects, [])
+            with patch.object(install, "preflight"), patch.object(install, "ensure_namespace"), \
+                    patch.object(install, "check_owned_objects"), \
+                    patch.object(install, "create_dataset_info"), patch.object(install, "verify"):
+                original = client.query
+                client.query = lambda sql: ([{"RELEASE": "r", "COVERAGE": "c"}]
+                                            if sql.startswith("select release") else original(sql))
+                install.execute_workflow("install", self.config, client)
+            self.assertFalse(any(sql.lower().startswith("create snowflake intelligence")
+                                 for sql in statements))
+            self.assertEqual(any("add agent" in sql for sql in statements), bool(objects))
+        with patch("builtins.print") as printed:
+            install.run("render", self.config, execute=False)
+        rendered = "\n".join(str(call.args[0]) for call in printed.call_args_list if call.args)
+        executable = [line for line in rendered.splitlines() if not line.lstrip().startswith("--")]
+        self.assertFalse(any("snowflake intelligence" in line.lower() for line in executable))
 
     def test_cowork_privilege_error_names_grant(self) -> None:
         error = install.subprocess.CalledProcessError(1, "snow", stderr="Insufficient privileges")
@@ -65,13 +86,19 @@ class InstallerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "MODIFY on the CoWork object"):
             install.register_cowork(self.config, client)
 
-    def test_verify_requires_cowork_listing(self) -> None:
-        for objects, agents in (([], []), ([{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}], [])):
-            client = unittest.mock.Mock()
-            client.query.side_effect = [[{"ID": "p"}]] * 4 + [
-                [{"PLACE_ID": "p"}], [], [{"SERVING_STATE": "ACTIVE"}], objects, agents]
-            with patch("builtins.print"), self.assertRaisesRegex(ValueError, "not registered"):
-                install.verify(self.config, client)
+    def test_verify_requires_cowork_listing_only_with_object(self) -> None:
+        checks = [[{"ID": "p"}]] * 4 + [[{"PLACE_ID": "p"}], [], [{"SERVING_STATE": "ACTIVE"}]]
+        client = unittest.mock.Mock()
+        client.query.side_effect = checks + [[{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}], []]
+        with patch("builtins.print"), self.assertRaisesRegex(ValueError, "not added to the CoWork object"):
+            install.verify(self.config, client)
+        client.query.side_effect = checks + [[{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}],
+                                             [self.cowork_row]]
+        with patch("builtins.print"):
+            self.assertEqual(install.verify(self.config, client), "passed")
+        client.query.side_effect = checks + [[]]
+        with patch("builtins.print"):
+            self.assertEqual(install.verify(self.config, client), "not required")
 
     def test_cleanup_removes_agent_from_cowork_only(self) -> None:
         client, statements = self.cowork_client([{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}],
