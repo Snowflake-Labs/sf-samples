@@ -14,8 +14,11 @@
 CREATE OR REPLACE TABLE GEOCODING.PUBLIC.TEST_EU_10K COMMENT = 'oss-geocoding' AS
 WITH s AS (
     SELECT a.*
-    FROM GEOCODING.PUBLIC.OVERTURE_ADDRESS_EU a SAMPLE BERNOULLI (0.2) SEED (7)
-    WHERE a.country IN ('DE', 'FR')
+    -- Hash of the stable Overture ID (not SAMPLE) keeps the batch identical
+    -- across index rebuilds.
+    FROM GEOCODING.PUBLIC.OVERTURE_ADDRESS_EU a
+    WHERE MOD(ABS(HASH(a.id, 7)), 500) = 0
+      AND a.country IN ('DE', 'FR')
       AND a.number IS NOT NULL AND a.street IS NOT NULL
     QUALIFY ROW_NUMBER() OVER (PARTITION BY a.country ORDER BY HASH(a.id)) <= 10000
 ),

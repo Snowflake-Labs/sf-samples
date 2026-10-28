@@ -270,44 +270,46 @@ The test set (`sql/examples/eu_test_set.sql`) has 60 real Overture addresses
 per country. Each is rendered in local format and then noised: one sixth each
 is left clean, given local abbreviations (Str., r., V., C/, ul.), stripped of
 the postcode, given a one-letter typo, lower-cased, or abbreviated and
-lower-cased. Distances are measured to the source Overture point.
+lower-cased. Distances are measured to the source Overture point. The rows are
+picked by a hash of the Overture ID, so a rebuilt index gives the same set; it
+changes only with a new Overture release.
 
 | Country | Rows | Hit rate | Within 100 m | Within 500 m | Avg deviation | ADDRESS | STREET | POSTCODE | LOCALITY | NONE |
 |---|---|---|---|---|---|---|---|---|---|---|
-| DE | 60 | 96.7% | 96.6% | 96.6% | 95 m | 57 | 0 | 0 | 1 | 2 |
-| ES | 60 | 100% | 96.7% | 98.3% | 18 m | 55 | 3 | 2 | 0 | 0 |
-| FR | 60 | 100% | 100% | 100% | 1 m | 59 | 1 | 0 | 0 | 0 |
-| IT | 60 | 100% | 100% | 100% | 2 m | 59 | 1 | 0 | 0 | 0 |
-| NL | 60 | 100% | 98.3% | 98.3% | 31 m | 59 | 1 | 0 | 0 | 0 |
-| PL | 60 | 100% | 93.3% | 93.3% | 469 m | 59 | 0 | 1 | 0 | 0 |
-| All | 360 | 99.4% | 97.5% | 97.8% | 103 m | 348 | 6 | 3 | 1 | 2 |
+| DE | 60 | 100% | 98.3% | 98.3% | 21 m | 60 | 0 | 0 | 0 | 0 |
+| ES | 60 | 100% | 93.3% | 95.0% | 101 m | 60 | 0 | 0 | 0 | 0 |
+| FR | 60 | 100% | 100% | 100% | 0 m | 60 | 0 | 0 | 0 | 0 |
+| IT | 60 | 100% | 100% | 100% | 3 m | 60 | 0 | 0 | 0 | 0 |
+| NL | 60 | 100% | 100% | 100% | 1 m | 60 | 0 | 0 | 0 | 0 |
+| PL | 60 | 100% | 96.7% | 96.7% | 152 m | 60 | 0 | 0 | 0 | 0 |
+| All | 360 | 100% | 98.1% | 98.3% | 46 m | 360 | 0 | 0 | 0 | 0 |
 
-Within-distance percentages and averages are over matched rows. By match level,
-`ADDRESS` results are 98.9% within 100 m (avg 91 m), `STREET` 83.3% within
-100 m, and `POSTCODE` and `LOCALITY` results are area centroids, hundreds of
-metres to kilometres off by nature. By noise type, clean input and local
-abbreviations scored 100% within 100 m, missing postcodes and abbreviated
-lower-case 98.3%, lower-case 96.7% and typos 88.3%.
+Within-distance percentages and averages are over matched rows. Every row
+matches at `ADDRESS` level. By noise type, clean input and missing postcodes
+scored 100% within 100 m, abbreviated lower-case 98.3%, and local
+abbreviations, lower-case and typos 96.7%.
 
-The two German misses have no postcode and no town in the text ("Kiewe Straße
-2", "heidesheimer straße 5"), so there is nothing to search in. Most far
-results come from typos in the street or town name. The worst one,
-"Okrężna 7, Chojnice" (no postcode), is real ambiguity: Overture has at least
-eight "Okrężna 7" within 14 km of Chojnice and two localities named Chojnice,
-so without a postcode there is nothing to pick the right one.
+Seven results are more than 100 m off. Four Spanish ones have a typo or a
+short abbreviation in the street ("c/ fuente 3" in Fuentepinilla, "CALLE DEL
+ALMOGAVERS 123" in Barcelona), and
+one German lower-case input lands 1.1 km off. The two Polish ones are repeated
+addresses: Overture holds "Ogrodowa 1" twice in postcode 55-311, 6.7 km apart,
+and "Południowa 8" four times in 05-505, so without a village name in the text
+there is nothing to pick the right one.
 
 On larger clean batches (`sql/examples/eu_benchmark.sql`, 10,000 rows each), DE
-has a 100% hit rate with 98.8% within 100 m, and FR has 99.7% with 98.6%
+has a 100% hit rate with 99.0% within 100 m, and FR has 99.7% with 99.4%
 within 100 m.
 
 ### Cost
 
-10,000-row batch, end to end, libpostal service already running:
+10,000-row batch, end to end, libpostal service already running (X-Small is
+the range over four runs):
 
 | Country | X-Small | Medium |
 |---|---|---|
-| DE | 37 s | 34 s |
-| FR | 31 s | 30 s |
+| DE | 37-43 s | 34 s |
+| FR | 31-39 s | 30 s |
 
 Libpostal parsing and expansion take about 3 s per batch. The candidate join
 is the largest step on X-Small (8-10 s) and drops to about 4.5 s on Medium; the
