@@ -263,13 +263,19 @@ BEGIN
            IFF(road IS NULL, NULL, GEOCODING.PUBLIC.EXPAND_STREET_INTL(road)) AS expansions
     FROM f;
 
-    -- 2. Street comparison keys: the raw road plus every libpostal expansion.
+    -- 2. Street comparison keys: the raw road plus every libpostal expansion,
+    --    plus the first comma segment minus the house number. libpostal reads
+    --    French lieu-dits without a street type ("5 La Maçonnais") as a city
+    --    and abbreviations such as "r. saint brice" as road "r.", so the raw
+    --    segment is the only usable street text for those.
     CREATE OR REPLACE TEMPORARY TABLE GEOCODING.PUBLIC._FGC_EU_KEYS AS
     SELECT DISTINCT p.country, p.raw_address,
            GEOCODING.PUBLIC.NORMALIZE_STREET_EU(v.value::STRING, p.country) AS street_key
     FROM GEOCODING.PUBLIC._FGC_EU_PARSED p,
          LATERAL FLATTEN(input => ARRAY_CAT(COALESCE(p.expansions, ARRAY_CONSTRUCT()),
-                                            ARRAY_CONSTRUCT_COMPACT(p.road))) v
+                                            ARRAY_CONSTRUCT_COMPACT(p.road,
+                                                NULLIF(TRIM(REGEXP_REPLACE(REGEXP_SUBSTR(p.raw_address, '^[^,]+'),
+                                                       '(^[0-9]+[A-Za-z]?\\b|\\b[0-9]+[A-Za-z]?$)', '')), '')))) v
     WHERE v.value IS NOT NULL;
     DELETE FROM GEOCODING.PUBLIC._FGC_EU_KEYS WHERE street_key IS NULL;
 
