@@ -105,7 +105,7 @@ Existing Overture tables / Marketplace shares / approved S3 load
 | `ADDRESS`, `SEGMENT`, `BUILDING` | Optional views over the addresses, transportation and buildings themes, added only when listed in `source.optional_themes`. |
 | `OVERTURE_MAPS_SV` | Entity definitions, geographic metrics and reference-query examples for Cortex Analyst. |
 | `CATEGORY_VOCAB`, `CATEGORY_SEARCH` | Category lookup so the agent can resolve place types to actual tags. |
-| `OVERTURE_MAPS_AGENT` | Agent displayed as **Overture Maps**, added to the account's Snowflake CoWork object so it is listed in CoWork. |
+| `OVERTURE_MAPS_AGENT` | Agent displayed as **Overture Maps**. Added to the account's Snowflake CoWork object only if one already exists. |
 | `DATASET_INFO` | Recorded release and source coverage. |
 | `RAW_*`, `OVERTURE_S3`, `OVERTURE_PARQUET` | Optional S3-loaded data, stage and file format. |
 
@@ -197,6 +197,14 @@ require an explicitly approved bootstrap or administrator action. The skill does
 not silently create those resources. See the full
 [privilege checklist](docs/manual-installation.md#prerequisites).
 
+CoWork registration depends on the account. If it has a Snowflake CoWork object
+(`SHOW SNOWFLAKE INTELLIGENCES` returns a row), CoWork lists only the agents added
+to it, so install adds this agent to that object. That changes the curated list
+every CoWork user sees, and the installer role needs MODIFY on the object. If the
+account has no CoWork object, install registers nothing and never creates one,
+because creating it would hide every other agent; users with USAGE on the agent
+already see it.
+
 - Existing-source installation does not copy the source dataset. Building the
   category vocabulary scans place categories and stores the resulting vocabulary.
 - S3 loading incurs scan, warehouse and storage costs, and possibly transfer costs.
@@ -236,7 +244,7 @@ and is never automatic error recovery.
 | Situation | What it means |
 | --- | --- |
 | SQL works, but no map appears | Check native map availability, agent selection, registration and geographic result columns. |
-| The agent is not selectable | Rerun install. It adds the agent to the CoWork object and fails with the missing privilege if it cannot; viewers also need a default role and warehouse. |
+| The agent is not selectable | If the account has a CoWork object, rerun install with a role that has MODIFY on it; install fails with that privilege named if it cannot add the agent. Without a CoWork object, check the viewer's USAGE on the agent. Viewers also need a default role and warehouse. |
 | No compatible sources found | Confirm access and the source contract; approve acquisition or loading before proceeding. |
 | Several compatible sources found | Choose the intended release/coverage; the agent must not combine unrelated datasets silently. |
 | An example returns no rows | Check coverage, category and release. Empty data is not a passed coverage test. |

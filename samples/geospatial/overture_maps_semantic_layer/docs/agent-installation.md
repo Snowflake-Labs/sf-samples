@@ -184,9 +184,10 @@ derive location prompts from bounded actual data and validate them before offeri
 them; do not invent counts or assume all examples apply.
 
 Use separate status entries for source data, semantic layer, search, agent execution,
-viewer access, CoWork registration and native map rendering. CoWork registration
-is passed when `install` or `verify` completes, since both fail unless the agent
-is listed in the account's CoWork object. Only a real agent
+viewer access, CoWork registration and native map rendering. The helper reports
+CoWork registration as `passed` when the account has a CoWork object and the
+agent is listed in it (`install` and `verify` fail otherwise), and as
+`not required` when the account has none; install never creates one. Only a real agent
 invocation verifies an answer; only the client rendering verifies a map. Run
 viewer tests in an authorized viewer context, keeping the installer configuration
 unchanged. If tooling/permissions prevent these tests, report blocked or not tested.

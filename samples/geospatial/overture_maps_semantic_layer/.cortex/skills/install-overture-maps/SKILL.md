@@ -72,7 +72,10 @@ before requesting final approval when data exists.
 
 Present account, role, warehouse, destination, source mappings, coverage, audience,
 objects to create, and costs (warehouse, category index/serving, AI; plus S3 costs
-if applicable). Explain native map enablement is a platform prerequisite.
+if applicable). Run `SHOW SNOWFLAKE INTELLIGENCES` and name the result: if the
+account has a CoWork object, adding the agent changes the curated list every
+CoWork user sees and needs MODIFY on that object; if it has none, nothing is
+registered and none is created. Explain native map enablement is a platform prerequisite.
 Ask for approval of this concrete proposal, not every individual object.
 If no database/warehouse is usable, stop with the smallest required administrator
 action or request approval for a separately scoped bootstrap. Do not auto-create
@@ -124,12 +127,13 @@ unknown-coverage installation should be checked, not assigned global coverage.
 
 Use supported agent tooling to run a sample question and compare it to reference
 SQL. Test viewer access with that role only if authorized. Preserve the installation
-configuration; use a separate check context for another role. Install adds the
-agent to the account's Snowflake CoWork object and its verification fails unless
-the agent is listed there, so installation is not finished until it appears in
-CoWork. If that step fails, report the missing privilege it names (MODIFY on the
-CoWork object, or CREATE SNOWFLAKE INTELLIGENCE ON ACCOUNT) rather than declaring
-success. Native point/H3/GeoJSON maps still require checks in CoWork. Respect browser-origin
+configuration; use a separate check context for another role. If the account has a
+CoWork object, install adds the agent to it and verification fails unless the agent
+is listed there. If that step fails, report the missing privilege it names (MODIFY
+on the CoWork object) rather than declaring success. Never create a CoWork object:
+once one exists, CoWork lists only the agents added to it, so every other agent would
+disappear. Without one, report CoWork registration as not required. Native
+point/H3/GeoJSON maps still require checks in CoWork. Respect browser-origin
 permission rules. Do not manufacture links or claim an API result proves rendering.
 
 Conclude with the agent FQN, a verified link if available, applicable demo questions,
