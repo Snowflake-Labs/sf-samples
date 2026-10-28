@@ -48,9 +48,11 @@ DECLARE
     has_cls   INTEGER;
     has_alias INTEGER;
 BEGIN
-    SELECT COUNT_IF(TABLE_NAME = 'EU_LOCALITY'),
-           COUNT_IF(TABLE_NAME = 'OVERTURE_ADDRESS_EU'),
-           COUNT_IF(TABLE_NAME = 'OVERTURE_ADDRESS_EU_LOC')
+    -- Empty tables count as missing, so a build that read an empty source
+    -- (for example during a Marketplace share refresh) is redone on re-run.
+    SELECT COUNT_IF(TABLE_NAME = 'EU_LOCALITY' AND ROW_COUNT > 0),
+           COUNT_IF(TABLE_NAME = 'OVERTURE_ADDRESS_EU' AND ROW_COUNT > 0),
+           COUNT_IF(TABLE_NAME = 'OVERTURE_ADDRESS_EU_LOC' AND ROW_COUNT > 0)
       INTO :has_loc, :has_addr, :has_link
       FROM GEOCODING.INFORMATION_SCHEMA.TABLES
      WHERE TABLE_SCHEMA = 'PUBLIC';
@@ -122,7 +124,7 @@ BEGIN
     -- ---------------------------------------------------------------------
     SELECT COUNT(*) INTO :has_alias
       FROM GEOCODING.INFORMATION_SCHEMA.TABLES
-     WHERE TABLE_SCHEMA = 'PUBLIC' AND TABLE_NAME = 'EU_LOCALITY_ALIAS';
+     WHERE TABLE_SCHEMA = 'PUBLIC' AND TABLE_NAME = 'EU_LOCALITY_ALIAS' AND ROW_COUNT > 0;
     IF (REBUILD OR has_alias = 0 OR CONTAINS(built, 'EU_LOCALITY ')) THEN
         CREATE OR REPLACE TABLE GEOCODING.PUBLIC.EU_LOCALITY_ALIAS
           CLUSTER BY (country, alias_key)
@@ -200,6 +202,18 @@ BEGIN
              AND ST_INTERSECTS(l.geog, a.geog)
             ORDER BY a.country, l.locality_id';
         built := built || 'OVERTURE_ADDRESS_EU_LOC ';
+    END IF;
+
+    -- Never report success over an empty index.
+    SELECT COUNT_IF(ROW_COUNT > 0) INTO :has_loc
+      FROM GEOCODING.INFORMATION_SCHEMA.TABLES
+     WHERE TABLE_SCHEMA = 'PUBLIC'
+       AND TABLE_NAME IN ('EU_LOCALITY', 'EU_LOCALITY_ALIAS',
+                          'OVERTURE_ADDRESS_EU', 'OVERTURE_ADDRESS_EU_LOC');
+    IF (has_loc < 4) THEN
+        RETURN 'ERROR: EU index has empty tables. The Overture shares returned no '
+            || 'European rows (a share refresh may be in progress). Re-run in a few '
+            || 'minutes; empty tables are rebuilt.';
     END IF;
 
     RETURN IFF(built = '', 'EU index already present (pass TRUE to rebuild).',

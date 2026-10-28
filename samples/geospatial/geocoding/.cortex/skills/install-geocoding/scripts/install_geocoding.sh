@@ -231,10 +231,12 @@ if [[ "$EU" -eq 1 ]]; then
     || { echo "ERROR: could not acquire the Overture Maps - Divisions listing. Get it from the Marketplace as OVERTURE_MAPS__DIVISIONS and re-run." >&2; exit 1; }
   EU_WH="${EU_WAREHOUSE:-$WAREHOUSE}"
   echo "    building the index if missing (first build about 2-5 min on X-Large)"
-  snow sql -c "$CONN" --silent --format csv -q "ALTER SESSION SET QUERY_TAG='oss-geocoding';
+  EU_OUT="$(snow sql -c "$CONN" --silent --format csv -q "ALTER SESSION SET QUERY_TAG='oss-geocoding';
     $( [[ -n "$EU_WH" ]] && echo "USE WAREHOUSE ${EU_WH};" )
     ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS = 14400;
-    CALL GEOCODING.PUBLIC.BUILD_EU_INDEX(FALSE);" | grep -E '^"?EU index' | tr -d '"' | sed 's/^/    /'
+    CALL GEOCODING.PUBLIC.BUILD_EU_INDEX(FALSE);" | grep -E '^"?(EU index|ERROR)' | tr -d '"')"
+  echo "    $EU_OUT"
+  if [[ "$EU_OUT" == ERROR* ]]; then exit 1; fi
 fi
 
 # ----------------------------------------------------------------------------
