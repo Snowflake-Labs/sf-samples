@@ -94,6 +94,43 @@ agents already registered there were unchanged. All nine reference queries
 passed again. The suite has 80 passing offline tests. Whether the agent appears
 and answers in the CoWork UI was not checked from this session.
 
+## CoWork object never created; live install, rerun, resume and cleanup (2026-10-28)
+
+Review found that the previous revision created `SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT`
+when an account had none. Once that object exists CoWork lists only the agents
+added to it, so every other agent in such an account would disappear for every
+user. Install now adds the agent only to an existing CoWork object and otherwise
+registers nothing; `verify` and the agent receipt report `passed` or
+`not required`. The suite has 81 passing offline tests. Against the previous
+`install.py`, four of the new or rewritten tests fail and one errors, so they
+detect the regression.
+
+On tib85385 (ACCOUNTADMIN, MEDIUM, Marketplace shares with all three optional
+themes), in two new schemas and leaving `OVERTURE_SEMANTIC` untouched. The
+account's CoWork object was created on 2026-08-31, before this sample, and held
+five agents throughout as a baseline.
+
+- Install into `OVERTURE_SEMANTIC_E2E` with `install.py`: completed. The CoWork
+  list went from five to six agents; the new agent appeared once and the other
+  five were unchanged. All nine reference queries passed (156, 368, 500, 58, 20,
+  1, 500, 113 and 10 rows).
+- Rerun over the same schema: completed. One schema, one semantic view and one
+  agent remained; the replaced agent was listed in CoWork once.
+- Interrupted install through the agent helper into `OVERTURE_SEMANTIC_E2R`. A
+  driver executed each emitted statement with the sample's own CLI client and
+  saved the receipt after each one, then stopped after six mutations (schema,
+  `DATASET_INFO` and four views). A new process resumed from the receipt at
+  statement 39 and completed all 61 statements with `cowork_registration:
+  "passed"`. All nine reference queries passed on the result.
+- Cleanup of both schemas: completed. Both schemas and their search services were
+  dropped, the CoWork list returned to the original five agents, and the CoWork
+  object and `OVERTURE_SEMANTIC` were unchanged.
+
+Not verified live: the no-object branch, which needs an account without a CoWork
+object (tib85385 has one and it was not dropped), so it is covered offline only.
+Also not verified: a separate viewer role (viewer equalled installer, so no
+grants ran), an S3 load, agent answers and native map rendering in CoWork.
+
 ## Isolated live smoke test
 
 On 2026-09-24, an explicitly approved isolated installation reused the existing
@@ -196,18 +233,21 @@ same schema in place. The earlier smoke test does not verify this revision.
 
 ## Acceptance still required
 
-- Complete exact-template installation and unchanged rerun using the receipt
-  protocol in a clean session, including the original semantic metadata comments.
+- Complete exact-template installation and unchanged rerun from a single prompt
+  in a clean session, including the original semantic metadata comments. The receipt protocol, including resume after interruption,
+  passed on 2026-10-28 through a scripted driver, not a recorded agent session.
 - S3 stage/load execution, invalid geometry rejection, interrupted-load recovery
   and cleanup. The presence-based release resolver needs an upstream completeness check.
-- Actual Marketplace-backed installation and viewer access through local views.
+- CoWork registration in an account without a CoWork object (offline only).
 - Separate viewer-role access without accidental secondary-role privileges.
 - Agent category lookup, generated SQL and answer equivalence for all gallery prompts.
 - Native point, H3 and GeoJSON rendering in CoWork, including correct coordinates.
 - Synthetic point, line, polygon and H3 rendering in Workspaces and Dashboards;
   confirm current native dashboard schema and save/reopen/refresh behavior before
   shipping a `.dash` example. Arbitrary projected GEOMETRY rendering is unverified.
-- Cleanup without affecting source objects.
+
+Cleanup of an existing-source installation without affecting source objects or
+other CoWork agents passed on 2026-10-28; cleanup after an S3 load is still open.
 
 Do not label the sample end-to-end verified until these checks have passed in the
 intended customer environment. A successful SQL query is not a rendering test.
