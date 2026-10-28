@@ -125,8 +125,7 @@ if [[ "$INTL" -eq 1 ]]; then
   echo "    using container runtime: $CONTAINER_CMD"
 
   echo "    ensuring image repository exists"
-  snow sql -c "$CONN" -q "USE DATABASE GEOCODING; USE SCHEMA PUBLIC;
-    CREATE IMAGE REPOSITORY IF NOT EXISTS GEOCODING.PUBLIC.IMAGE_REPOSITORY COMMENT='oss-geocoding';"
+  snow sql -c "$CONN" --silent -q "CREATE IMAGE REPOSITORY IF NOT EXISTS GEOCODING.PUBLIC.IMAGE_REPOSITORY COMMENT='oss-geocoding';" >/dev/null
 
   REPO_URL="$(snow spcs image-repository url GEOCODING.PUBLIC.IMAGE_REPOSITORY -c "$CONN" 2>/dev/null | tr -d '[:space:]')"
   if [[ -z "$REPO_URL" ]]; then
@@ -231,10 +230,11 @@ if [[ "$EU" -eq 1 ]]; then
     CREATE DATABASE IF NOT EXISTS OVERTURE_MAPS__DIVISIONS FROM LISTING GZT0Z4CM1E9M9;" >/dev/null \
     || { echo "ERROR: could not acquire the Overture Maps - Divisions listing. Get it from the Marketplace as OVERTURE_MAPS__DIVISIONS and re-run." >&2; exit 1; }
   EU_WH="${EU_WAREHOUSE:-$WAREHOUSE}"
-  snow sql -c "$CONN" -q "ALTER SESSION SET QUERY_TAG='oss-geocoding';
+  echo "    building the index if missing (first build about 2-5 min on X-Large)"
+  snow sql -c "$CONN" --silent --format csv -q "ALTER SESSION SET QUERY_TAG='oss-geocoding';
     $( [[ -n "$EU_WH" ]] && echo "USE WAREHOUSE ${EU_WH};" )
     ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS = 14400;
-    CALL GEOCODING.PUBLIC.BUILD_EU_INDEX(FALSE);"
+    CALL GEOCODING.PUBLIC.BUILD_EU_INDEX(FALSE);" | grep -E '^"?EU index' | tr -d '"' | sed 's/^/    /'
 fi
 
 # ----------------------------------------------------------------------------
