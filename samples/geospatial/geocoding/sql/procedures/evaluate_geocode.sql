@@ -47,7 +47,18 @@ AS
 $$
 DECLARE
     res RESULTSET;
+    bad_arg EXCEPTION (-20001, 'Invalid argument: table/column names must be plain or double-quoted identifiers; country must be a 2-letter code.');
 BEGIN
+    IF (NOT REGEXP_LIKE(RESULT_TABLE, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")([.]([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")){0,2}$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(ACTUAL_GEOG_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(GEOCODED_GEOG_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+
     res := (EXECUTE IMMEDIATE '
         WITH base AS (
             SELECT
@@ -109,7 +120,21 @@ AS
 $$
 DECLARE
     res RESULTSET;
+    bad_arg EXCEPTION (-20001, 'Invalid argument: table/column names must be plain or double-quoted identifiers; country must be a 2-letter code.');
 BEGIN
+    IF (NOT REGEXP_LIKE(RESULT_TABLE, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")([.]([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")){0,2}$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(ACTUAL_GEOG_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(GEOCODED_GEOG_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(GROUP_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+
     res := (EXECUTE IMMEDIATE '
         WITH base AS (
             SELECT ' || GROUP_COLUMN || '::VARCHAR AS grp,

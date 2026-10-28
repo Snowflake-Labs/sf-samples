@@ -86,7 +86,27 @@ DECLARE
     country_expr VARCHAR;
     us_src       VARCHAR;
     us_sql       VARCHAR;
+    bad_arg EXCEPTION (-20001, 'Invalid argument: table/column names must be plain or double-quoted identifiers; country must be a 2-letter code.');
 BEGIN
+    IF (NOT REGEXP_LIKE(SOURCE_TABLE, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")([.]([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")){0,2}$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(OUTPUT_TABLE, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")([.]([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")){0,2}$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(ADDRESS_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(ID_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (COUNTRY_COLUMN IS NOT NULL AND TRIM(COUNTRY_COLUMN) <> '' AND NOT REGEXP_LIKE(COUNTRY_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (COUNTRY IS NOT NULL AND NOT REGEXP_LIKE(TRIM(COUNTRY), '^[A-Za-z]{2}$')) THEN
+        RAISE bad_arg;
+    END IF;
+
     country_expr := '''' || UPPER(TRIM(COALESCE(COUNTRY, 'US'))) || '''';
     IF (COUNTRY_COLUMN IS NOT NULL AND TRIM(COUNTRY_COLUMN) <> '') THEN
         country_expr := 'COALESCE(NULLIF(UPPER(TRIM(' || COUNTRY_COLUMN || '::STRING)), ''''), '

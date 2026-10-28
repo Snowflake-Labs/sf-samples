@@ -59,7 +59,28 @@ DECLARE
     radius       FLOAT DEFAULT 10.0;   -- starting radius; doubles each pass
     eff          FLOAT;                -- effective radius for the current pass
     passes       INTEGER DEFAULT 0;
+    bad_arg EXCEPTION (-20001, 'Invalid argument: table/column names must be plain or double-quoted identifiers; country must be a 2-letter code.');
 BEGIN
+    IF (NOT REGEXP_LIKE(SOURCE_TABLE, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")([.]([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")){0,2}$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(OUTPUT_TABLE, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")([.]([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")){0,2}$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(LAT_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(LON_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(ID_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (COUNTRY IS NOT NULL AND TRIM(COUNTRY) <> '' AND UPPER(TRIM(COUNTRY)) <> 'ALL'
+        AND NOT REGEXP_LIKE(TRIM(COUNTRY), '^[A-Za-z]{2}$')) THEN
+        RAISE bad_arg;
+    END IF;
+
     IF (COUNTRY IS NULL OR TRIM(COUNTRY) = '' OR UPPER(TRIM(COUNTRY)) = 'ALL') THEN
         country_pred := '';
     ELSE
