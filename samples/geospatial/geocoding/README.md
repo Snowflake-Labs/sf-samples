@@ -89,6 +89,42 @@ The installer is idempotent (re-runnable), auto-acquires the Overture listing,
 and tags every object with `COMMENT = 'oss-geocoding'`. See
 [.cortex/skills/install-geocoding/SKILL.md](.cortex/skills/install-geocoding/SKILL.md).
 
+### Pause or remove
+
+The libpostal service is billed while it runs. To pause it between uses:
+
+```sql
+ALTER SERVICE GEOCODING.PUBLIC.LIBPOSTAL_SVC SUSPEND;
+ALTER COMPUTE POOL GEOCODING_LIBPOSTAL_POOL SUSPEND;
+```
+
+Re-running the installer with `--eu` (or `--intl`) resumes both. To free the
+about 19.7 GB of EU index storage but keep US and reverse geocoding:
+
+```sql
+DROP TABLE IF EXISTS GEOCODING.PUBLIC.OVERTURE_ADDRESS_EU_LOC;
+DROP TABLE IF EXISTS GEOCODING.PUBLIC.OVERTURE_ADDRESS_EU;
+DROP TABLE IF EXISTS GEOCODING.PUBLIC.EU_LOCALITY_ALIAS;
+DROP TABLE IF EXISTS GEOCODING.PUBLIC.EU_LOCALITY;
+```
+
+To remove everything the installer created (service, compute pool, image
+repository, functions, procedures and index tables):
+
+```sql
+DROP SERVICE IF EXISTS GEOCODING.PUBLIC.LIBPOSTAL_SVC;
+DROP COMPUTE POOL IF EXISTS GEOCODING_LIBPOSTAL_POOL;
+DROP DATABASE IF EXISTS GEOCODING;
+-- Optional, only if nothing else uses them:
+-- DROP DATABASE IF EXISTS OVERTURE_MAPS__ADDRESSES;
+-- DROP DATABASE IF EXISTS OVERTURE_MAPS__DIVISIONS;
+-- DROP WAREHOUSE IF EXISTS GEOCODING_BUILD_WH;
+-- DROP WAREHOUSE IF EXISTS GEOCODING_XS_WH;
+```
+
+The compute pool can only be dropped once the service is gone, so keep that
+order.
+
 ## Quickstart (manual, US geocoding)
 
 Run in order:
