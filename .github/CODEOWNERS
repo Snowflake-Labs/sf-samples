@@ -1,0 +1,9 @@
+# The mythos-codeowners check requires a default * rule naming at least two
+# users or a team with two or more members. Later rules take precedence.
+* @Snowflake-Labs/guide-maintainers
+
+# Geospatial samples
+/samples/geospatial/geocoding/ @sfc-gh-obielov @sfc-gh-boconnor @sfc-gh-ppaczewski
+/samples/geospatial/java_udfs/ @sfc-gh-obielov @sfc-gh-boconnor @sfc-gh-ppaczewski
+/samples/geospatial/tileserver/ @sfc-gh-obielov @sfc-gh-boconnor @sfc-gh-ppaczewski
+/samples/geospatial/overture_maps_semantic_layer/ @sfc-gh-obielov @sfc-gh-boconnor @sfc-gh-ppaczewski
