@@ -47,7 +47,18 @@ AS
 $$
 DECLARE
     res RESULTSET;
+    bad_arg EXCEPTION (-20001, 'Invalid argument: table/column names must be plain or double-quoted identifiers; country must be a 2-letter code.');
 BEGIN
+    IF (NOT REGEXP_LIKE(RESULT_TABLE, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")([.]([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")){0,2}$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(ACTUAL_GEOG_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(GEOCODED_GEOG_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+
     res := (EXECUTE IMMEDIATE '
         WITH base AS (
             SELECT
@@ -75,6 +86,75 @@ BEGIN
         UNION ALL SELECT ''within_threshold_pct'',   ROUND(100.0 * within_thr / NULLIF(matched, 0), 2) FROM agg
         UNION ALL SELECT ''avg_distance_m'',         ROUND(avg_dist_m, 1)       FROM agg');
 
+    RETURN TABLE(res);
+END;
+$$;
+
+-- ----------------------------------------------------------------------------
+-- EVALUATE_GEOCODE (grouped) — the same metrics broken down by a column,
+-- e.g. MATCH_LEVEL or RESULT_COUNTRY. Separate overload so the original
+-- 3/4-argument signature and its output are unchanged.
+--
+-- Returns TABLE(grp, total_rows, matched, match_rate_pct, within_100m_pct,
+--               within_500m_pct, within_threshold_pct, avg_distance_m)
+-- A row counts as matched when GEOCODED_GEOG_COLUMN is not NULL. Percentages
+-- of distance are over matched rows; match_rate_pct is over all rows.
+--
+-- Example:
+--   CALL GEOCODING.PUBLIC.EVALUATE_GEOCODE(
+--     'MY_DB.PUBLIC.EVAL', 'ACTUAL_GEOG', 'RESULT_GEOG', 200, 'MATCH_LEVEL');
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE PROCEDURE GEOCODING.PUBLIC.EVALUATE_GEOCODE(
+    RESULT_TABLE         VARCHAR,
+    ACTUAL_GEOG_COLUMN   VARCHAR,
+    GEOCODED_GEOG_COLUMN VARCHAR,
+    THRESHOLD_METERS     FLOAT,
+    GROUP_COLUMN         VARCHAR)
+RETURNS TABLE(grp VARCHAR, total_rows NUMBER, matched NUMBER, match_rate_pct FLOAT,
+              within_100m_pct FLOAT, within_500m_pct FLOAT,
+              within_threshold_pct FLOAT, avg_distance_m FLOAT)
+LANGUAGE SQL
+COMMENT = 'oss-geocoding'
+EXECUTE AS OWNER
+AS
+$$
+DECLARE
+    res RESULTSET;
+    bad_arg EXCEPTION (-20001, 'Invalid argument: table/column names must be plain or double-quoted identifiers; country must be a 2-letter code.');
+BEGIN
+    IF (NOT REGEXP_LIKE(RESULT_TABLE, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")([.]([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")){0,2}$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(ACTUAL_GEOG_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(GEOCODED_GEOG_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(GROUP_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+
+    res := (EXECUTE IMMEDIATE '
+        WITH base AS (
+            SELECT ' || GROUP_COLUMN || '::VARCHAR AS grp,
+                   ' || ACTUAL_GEOG_COLUMN   || ' AS actual_g,
+                   ' || GEOCODED_GEOG_COLUMN || ' AS geocoded_g,
+                   IFF(' || ACTUAL_GEOG_COLUMN || ' IS NOT NULL AND ' || GEOCODED_GEOG_COLUMN || ' IS NOT NULL,
+                       ST_DISTANCE(' || ACTUAL_GEOG_COLUMN || ', ' || GEOCODED_GEOG_COLUMN || '), NULL) AS d
+            FROM ' || RESULT_TABLE || '
+        )
+        SELECT COALESCE(grp, ''(all)'')::VARCHAR AS grp,
+               COUNT(*)::NUMBER AS total_rows,
+               COUNT(geocoded_g)::NUMBER AS matched,
+               ROUND(100.0 * COUNT(geocoded_g) / NULLIF(COUNT(*), 0), 1)::FLOAT AS match_rate_pct,
+               ROUND(100.0 * COUNT_IF(d <= 100) / NULLIF(COUNT(d), 0), 1)::FLOAT AS within_100m_pct,
+               ROUND(100.0 * COUNT_IF(d <= 500) / NULLIF(COUNT(d), 0), 1)::FLOAT AS within_500m_pct,
+               ROUND(100.0 * COUNT_IF(d <= ' || THRESHOLD_METERS || ') / NULLIF(COUNT(d), 0), 1)::FLOAT AS within_threshold_pct,
+               ROUND(AVG(d), 1)::FLOAT AS avg_distance_m
+        FROM base
+        GROUP BY GROUPING SETS ((grp), ())
+        ORDER BY GROUPING(grp), grp');
     RETURN TABLE(res);
 END;
 $$;

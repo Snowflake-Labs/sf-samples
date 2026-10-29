@@ -16,13 +16,19 @@ from postal.expand import expand_address
 
 app = FastAPI()
 
-# libpostal parse labels we surface, mapped to friendly keys.
+# libpostal parse labels we surface, mapped to friendly keys. suburb /
+# city_district / state_district / island matter for Europe: libpostal often
+# labels the town people write there ("Mengede", "lanciano") as one of them.
 _LABEL_MAP = {
     "house_number": "house_number",
     "road": "road",
     "unit": "unit",
     "postcode": "postcode",
+    "suburb": "suburb",
+    "city_district": "city_district",
     "city": "city",
+    "island": "island",
+    "state_district": "state_district",
     "state": "state",
     "country": "country",
 }

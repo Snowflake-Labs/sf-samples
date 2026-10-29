@@ -27,6 +27,8 @@
 --
 -- Output columns: input_id, input_geog (GEOGRAPHY), full_address, result_city,
 --   result_zip, result_country, result_geog (GEOGRAPHY), distance_m
+--   result_city is Overture POSTAL_CITY; outside the US, where that is mostly
+--   NULL, it falls back to the municipality in ADDRESS_LEVELS.
 --   input_geog and result_geog are GEOGRAPHY points (built with ST_POINT for the
 --   input, the Overture GEOMETRY for the result). Use ST_X()/ST_Y() if you need
 --   lon/lat back.
@@ -57,7 +59,28 @@ DECLARE
     radius       FLOAT DEFAULT 10.0;   -- starting radius; doubles each pass
     eff          FLOAT;                -- effective radius for the current pass
     passes       INTEGER DEFAULT 0;
+    bad_arg EXCEPTION (-20001, 'Invalid argument: table/column names must be plain or double-quoted identifiers; country must be a 2-letter code.');
 BEGIN
+    IF (NOT REGEXP_LIKE(SOURCE_TABLE, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")([.]([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")){0,2}$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(OUTPUT_TABLE, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")([.]([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")){0,2}$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(LAT_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(LON_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (NOT REGEXP_LIKE(ID_COLUMN, '^([A-Za-z_][A-Za-z0-9_$]*|"[^"]+")$')) THEN
+        RAISE bad_arg;
+    END IF;
+    IF (COUNTRY IS NOT NULL AND TRIM(COUNTRY) <> '' AND UPPER(TRIM(COUNTRY)) <> 'ALL'
+        AND NOT REGEXP_LIKE(TRIM(COUNTRY), '^[A-Za-z]{2}$')) THEN
+        RAISE bad_arg;
+    END IF;
+
     IF (COUNTRY IS NULL OR TRIM(COUNTRY) = '' OR UPPER(TRIM(COUNTRY)) = 'ALL') THEN
         country_pred := '';
     ELSE
@@ -72,8 +95,10 @@ BEGIN
         SELECT
             t1.' || ID_COLUMN || '        AS input_id,
             ST_POINT(t1.' || LON_COLUMN || '::FLOAT, t1.' || LAT_COLUMN || '::FLOAT) AS input_geog,
-            CONCAT_WS('' '', a.NUMBER, a.STREET) AS full_address,
-            a.POSTAL_CITY                  AS result_city,
+            IFF(a.COUNTRY IN (''DE'',''AT'',''CH'',''NL'',''BE'',''PL'',''CZ'',''IT'',''ES'',''PT'',''DK'',''NO'',''FI''),
+                CONCAT_WS('' '', a.STREET, a.NUMBER),   -- local order: Hauptstrasse 12
+                CONCAT_WS('' '', a.NUMBER, a.STREET)) AS full_address,
+            a.POSTAL_CITY::VARCHAR         AS result_city,
             a.POSTCODE                     AS result_zip,
             a.COUNTRY                      AS result_country,
             a.GEOMETRY                     AS result_geog,
@@ -102,8 +127,15 @@ BEGIN
                 SELECT
                     r.input_id,
                     r.input_geog,
-                    CONCAT_WS('' '', a.NUMBER, a.STREET) AS full_address,
-                    a.POSTAL_CITY AS result_city,
+                    IFF(a.COUNTRY IN (''DE'',''AT'',''CH'',''NL'',''BE'',''PL'',''CZ'',''IT'',''ES'',''PT'',''DK'',''NO'',''FI''),
+                CONCAT_WS('' '', a.STREET, a.NUMBER),   -- local order: Hauptstrasse 12
+                CONCAT_WS('' '', a.NUMBER, a.STREET)) AS full_address,
+                    -- POSTAL_CITY is NULL across most of Europe in Overture;
+                    -- there the municipality is the last ADDRESS_LEVELS entry.
+                    -- US rows keep POSTAL_CITY exactly as before.
+                    IFF(a.COUNTRY = ''US'', a.POSTAL_CITY,
+                        COALESCE(a.POSTAL_CITY,
+                                 a.ADDRESS_LEVELS[ARRAY_SIZE(a.ADDRESS_LEVELS) - 1]:value::VARCHAR)) AS result_city,
                     a.POSTCODE    AS result_zip,
                     a.COUNTRY     AS result_country,
                     a.GEOMETRY    AS result_geog,
