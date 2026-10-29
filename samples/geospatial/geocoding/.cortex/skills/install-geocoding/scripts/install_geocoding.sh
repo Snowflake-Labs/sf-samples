@@ -8,7 +8,8 @@
 # IF NOT EXISTS, so a second run detects-and-reuses.
 #
 # Every object created is tagged with COMMENT = 'oss-geocoding' and the session
-# sets QUERY_TAG = 'oss-geocoding', so a future cleanup can discover them.
+# sets QUERY_TAG = 'oss-geocoding', so they are easy to find. To pause or remove
+# them, see "Pause or remove" in README.md.
 #
 # Usage:
 #   bash install_geocoding.sh --connection <conn> [--warehouse <wh>] [--intl | --eu]

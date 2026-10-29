@@ -250,3 +250,5 @@ CH house-number gaps) are in the README section "European forward geocoding".
 
 Snowflake-native forward + reverse geocoding deployed in `GEOCODING.PUBLIC`,
 tagged `oss-geocoding`, ready to call from any worksheet, notebook, or procedure.
+To suspend the libpostal service, free the EU index storage or remove
+everything, follow "Pause or remove" in the README.
