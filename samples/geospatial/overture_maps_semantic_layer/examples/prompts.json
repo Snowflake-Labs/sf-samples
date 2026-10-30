@@ -1,0 +1,92 @@
+[
+  {
+    "id": "hospital_points",
+    "question": "Show up to 200 hospitals in San Francisco, California, on a map. Include their names and use the primary hospital category.",
+    "requires": ["place"],
+    "coverage": "San Francisco, US-CA",
+    "layer": "latlon",
+    "columns": ["ID", "NAME", "LATITUDE", "LONGITUDE"],
+    "reference_sql": "select id, name, latitude, longitude from $ns.PLACE where country = 'US' and region = 'CA' and locality = 'San Francisco' and category = 'hospital' order by id limit 200",
+    "caveat": "Address locality, not exact city-boundary containment; primary tag only."
+  },
+  {
+    "id": "sf_hexagons",
+    "question": "Map the density of places with locality San Francisco in California, US, using resolution-8 H3 hexagons, colored by place count. Show the 500 busiest cells.",
+    "requires": ["place"],
+    "coverage": "San Francisco, US-CA; within the default SF-only S3 load",
+    "layer": "h3",
+    "columns": ["H3_CELL", "PLACE_COUNT"],
+    "reference_sql": "select h3_cell, count(*) as place_count from $ns.PLACE where country = 'US' and region = 'CA' and locality = 'San Francisco' group by h3_cell order by place_count desc, h3_cell limit 500",
+    "caveat": "Top 500 cells within installed coverage; locality filter, not administrative containment."
+  },
+  {
+    "id": "berlin_hexagons",
+    "question": "Map the density of places with locality Berlin in Germany using resolution-8 H3 hexagons, colored by place count. Show the 500 busiest cells.",
+    "requires": ["place"],
+    "coverage": "Berlin, DE; unavailable in the default SF-only S3 load",
+    "layer": "h3",
+    "columns": ["H3_CELL", "PLACE_COUNT"],
+    "reference_sql": "select h3_cell, count(*) as place_count from $ns.PLACE where country = 'DE' and locality = 'Berlin' group by h3_cell order by place_count desc, h3_cell limit 500",
+    "caveat": "Top 500 cells; locality filter, not administrative containment."
+  },
+  {
+    "id": "california_counties",
+    "question": "Show California county land boundaries on a map, colored by area in square kilometres. Include each area's unique ID and name; exclude maritime areas.",
+    "requires": ["division_area"],
+    "coverage": "US-CA counties",
+    "layer": "geojson",
+    "columns": ["ID", "NAME", "GEOJSON", "AREA_SQKM"],
+    "reference_sql": "select id, name, geojson, area_sqkm from $ns.DIVISION_AREA where country = 'US' and region = 'US-CA' and subtype = 'county' and class = 'land' order by id limit 200",
+    "caveat": "Shapes simplified by 100 metres for display; area uses original geometry."
+  },
+  {
+    "id": "nearby_cafes",
+    "question": "Find the 20 nearest places in primary category cafe within 1 km of longitude -122.3937, latitude 37.7955. Map them and show straight-line distance in metres.",
+    "requires": ["place"],
+    "coverage": "San Francisco Ferry Building vicinity",
+    "layer": "latlon",
+    "columns": ["ID", "NAME", "LATITUDE", "LONGITUDE", "DISTANCE_M"],
+    "reference_sql": "select id, name, latitude, longitude, st_distance(geom, to_geography('POINT(-122.3937 37.7955)')) as distance_m from $ns.PLACE where category = 'cafe' and st_dwithin(geom, to_geography('POINT(-122.3937 37.7955)'), 1000) order by distance_m, id limit 20",
+    "caveat": "Explicit primary category; counts vary with source release."
+  },
+  {
+    "id": "reverse_geocode",
+    "question": "Which US county land area contains longitude -122.4194, latitude 37.7749? Show its boundary on a map.",
+    "requires": ["division_area"],
+    "coverage": "San Francisco, US-CA",
+    "layer": "geojson",
+    "columns": ["ID", "NAME", "GEOJSON"],
+    "reference_sql": "select id, name, geojson from $ns.DIVISION_AREA where country = 'US' and subtype = 'county' and class = 'land' and st_contains(geom, to_geography('POINT(-122.4194 37.7749)')) order by id limit 10",
+    "caveat": "Exact literal-point containment; a point on a boundary may need ST_COVERS."
+  },
+  {
+    "id": "market_street_addresses",
+    "question": "Show up to 500 addresses on Market Street in downtown San Francisco, between longitude -122.42 and -122.39 and latitude 37.77 and 37.80, on a map.",
+    "requires": ["address"],
+    "coverage": "Downtown San Francisco bbox; inside the default SF S3 clip",
+    "layer": "latlon",
+    "columns": ["ID", "STREET", "HOUSE_NUMBER", "LATITUDE", "LONGITUDE"],
+    "reference_sql": "select id, street, house_number, latitude, longitude from $ns.ADDRESS where bbox_xmin >= -122.42 and bbox_xmax <= -122.39 and bbox_ymin >= 37.77 and bbox_ymax <= 37.80 and street ilike 'market st%' order by id limit 500",
+    "caveat": "Street names are matched as published; bbox bounds the scan."
+  },
+  {
+    "id": "downtown_major_roads",
+    "question": "Map the motorway, trunk and primary road segments in downtown San Francisco, between longitude -122.42 and -122.39 and latitude 37.77 and 37.80, with their length in kilometres.",
+    "requires": ["segment"],
+    "coverage": "Downtown San Francisco bbox; inside the default SF S3 clip",
+    "layer": "lines",
+    "columns": ["ID", "NAME", "CLASS", "GEOJSON", "LENGTH_KM"],
+    "reference_sql": "select id, name, class, geojson, length_km from $ns.SEGMENT where bbox_xmin >= -122.42 and bbox_xmax <= -122.39 and bbox_ymin >= 37.77 and bbox_ymax <= 37.80 and subtype = 'road' and class in ('motorway', 'trunk', 'primary') order by id limit 500",
+    "caveat": "Mapped reference roads, not a routing graph; segments crossing the box edge are excluded."
+  },
+  {
+    "id": "tallest_buildings",
+    "question": "What are the 10 tallest buildings in downtown San Francisco, between longitude -122.41 and -122.39 and latitude 37.78 and 37.80? Show their footprints on a map.",
+    "requires": ["building"],
+    "coverage": "Downtown San Francisco bbox; inside the default SF S3 clip",
+    "layer": "geojson",
+    "columns": ["ID", "NAME", "GEOJSON", "HEIGHT_M"],
+    "reference_sql": "select id, name, geojson, height_m from $ns.BUILDING where bbox_xmin >= -122.41 and bbox_xmax <= -122.39 and bbox_ymin >= 37.78 and bbox_ymax <= 37.80 and height_m is not null order by height_m desc, id limit 10",
+    "caveat": "Only footprints with a recorded height; height coverage varies by city."
+  }
+]

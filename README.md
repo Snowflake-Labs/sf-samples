@@ -135,6 +135,7 @@ If it doesn't fit neatly into one of those — or crosses multiple areas — thi
 | Sample | Description |
 |--------|-------------|
 | [geospatial](samples/geospatial) | Geospatial Python UDFs and Streamlit apps for location analytics |
+| [Overture Maps Semantic Layer](samples/geospatial/overture_maps_semantic_layer) | Overture semantic view, Cortex Agent and map prompts for Marketplace or S3-loaded data |
 
 ### External Integrations
 
