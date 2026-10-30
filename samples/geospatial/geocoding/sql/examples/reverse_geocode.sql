@@ -32,7 +32,7 @@ INSERT INTO _demo_points VALUES
 CALL REVERSE_GEOCODE_TABLE(
     '_demo_points', 'lat', 'lon', 'label', 200,
     '_demo_points_addressed', 'US');
-ALTER TABLE _demo_points_addressed SET COMMENT = 'oss-geocoding';
+ALTER TABLE _demo_points_addressed SET COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
 
 -- input_geog and result_geog are GEOGRAPHY; ST_X/ST_Y recover lon/lat for display.
 SELECT

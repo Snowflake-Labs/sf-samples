@@ -1,0 +1,134 @@
+-- ============================================================================
+-- benchmark_functions.sql — single-call and batch timings for every
+-- GEOCODING.PUBLIC function and procedure.
+--
+-- Run (one warehouse per run; results accumulate in GEOCODING.TESTER.BENCH_RESULTS):
+--   snow sql -c <conn> -D wh=GEOCODING_XS_WH -f sql/examples/benchmark_functions.sql
+--   snow sql -c <conn> -D wh=MEDIUM          -f sql/examples/benchmark_functions.sql
+--
+-- Each case runs twice: run 1 includes warm-up (warehouse resume, Python
+-- package load, libpostal batch fan-out), run 2 is warm. Result cache is off.
+-- Inputs are real Overture rows (US addresses, DE+FR EU addresses, and
+-- address points jittered by up to ~30 m), deterministic by ID order.
+-- ============================================================================
+USE WAREHOUSE &{wh};
+ALTER SESSION SET USE_CACHED_RESULT = FALSE;
+ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS = 7200;
+CREATE SCHEMA IF NOT EXISTS GEOCODING.TESTER;
+
+-- Inputs (built once, reused by later runs).
+CREATE TRANSIENT TABLE IF NOT EXISTS GEOCODING.TESTER.BENCH_US AS
+SELECT ROW_NUMBER() OVER (ORDER BY ID) AS ID,
+       NUMBER || ' ' || STREET || ', ' || POSTAL_CITY || ' ' || POSTCODE AS ADDRESS,
+       'US' AS COUNTRY,
+       ST_Y(GEOMETRY) + UNIFORM(-0.0003::FLOAT, 0.0003::FLOAT, RANDOM(1)) AS LAT,
+       ST_X(GEOMETRY) + UNIFORM(-0.0003::FLOAT, 0.0003::FLOAT, RANDOM(2)) AS LON
+FROM (SELECT * FROM GEOCODING.PUBLIC.OVERTURE_ADDRESS
+      WHERE COUNTRY = 'US' AND NUMBER IS NOT NULL AND STREET IS NOT NULL
+        AND POSTCODE IS NOT NULL AND POSTAL_CITY IS NOT NULL
+      ORDER BY ID LIMIT 10000);
+
+CREATE TRANSIENT TABLE IF NOT EXISTS GEOCODING.TESTER.BENCH_EU AS
+SELECT ROW_NUMBER() OVER (ORDER BY COUNTRY, ID) AS ID,
+       STREET || ' ' || NUMBER || ', ' || POSTCODE AS ADDRESS,
+       COUNTRY,
+       ST_Y(GEOG) + UNIFORM(-0.0003::FLOAT, 0.0003::FLOAT, RANDOM(3)) AS LAT,
+       ST_X(GEOG) + UNIFORM(-0.0003::FLOAT, 0.0003::FLOAT, RANDOM(4)) AS LON
+FROM (SELECT * FROM GEOCODING.PUBLIC.OVERTURE_ADDRESS_EU
+      WHERE COUNTRY = 'DE' AND NUMBER IS NOT NULL AND POSTCODE IS NOT NULL
+      ORDER BY ID LIMIT 5000)
+UNION ALL
+SELECT * FROM (
+SELECT 5000 + ROW_NUMBER() OVER (ORDER BY ID), NUMBER || ' ' || STREET || ', ' || POSTCODE, COUNTRY,
+       ST_Y(GEOG) + UNIFORM(-0.0003::FLOAT, 0.0003::FLOAT, RANDOM(5)),
+       ST_X(GEOG) + UNIFORM(-0.0003::FLOAT, 0.0003::FLOAT, RANDOM(6))
+FROM (SELECT * FROM GEOCODING.PUBLIC.OVERTURE_ADDRESS_EU
+      WHERE COUNTRY = 'FR' AND NUMBER IS NOT NULL AND POSTCODE IS NOT NULL
+      ORDER BY ID LIMIT 5000));
+
+CREATE TABLE IF NOT EXISTS GEOCODING.TESTER.BENCH_RESULTS (
+  RUN_AT TIMESTAMP_LTZ, WAREHOUSE STRING, WAREHOUSE_SIZE STRING, CASE_NAME STRING,
+  ROWS_IN INT, RUN INT, SECONDS FLOAT, ROWS_OUT INT);
+
+EXECUTE IMMEDIATE $$
+DECLARE
+  sizes ARRAY := ARRAY_CONSTRUCT(1, 100, 1000, 10000);
+  wh STRING := CURRENT_WAREHOUSE();
+  whsize STRING;
+  n INT;
+  t0 TIMESTAMP_LTZ;
+  secs FLOAT;
+  out_n INT;
+  cases ARRAY := ARRAY_CONSTRUCT(
+    -- name, kind (udf|proc), sql template ({N} = row count)
+    ARRAY_CONSTRUCT('PARSE_ADDRESS (US)', 'udf',
+      'SELECT COUNT(*), HASH_AGG(GEOCODING.PUBLIC.PARSE_ADDRESS(ADDRESS)) FROM (SELECT * FROM GEOCODING.TESTER.BENCH_US WHERE ID <= {N})'),
+    ARRAY_CONSTRUCT('STANDARDIZE_STREET (US)', 'udf',
+      'SELECT COUNT(*), HASH_AGG(GEOCODING.PUBLIC.STANDARDIZE_STREET(SPLIT_PART(ADDRESS, '','', 1))) FROM (SELECT * FROM GEOCODING.TESTER.BENCH_US WHERE ID <= {N})'),
+    ARRAY_CONSTRUCT('NORMALIZE_STREET_EU (DE/FR)', 'udf',
+      'SELECT COUNT(*), HASH_AGG(GEOCODING.PUBLIC.NORMALIZE_STREET_EU(SPLIT_PART(ADDRESS, '','', 1), COUNTRY)) FROM (SELECT * FROM GEOCODING.TESTER.BENCH_EU WHERE ID <= {N})'),
+    ARRAY_CONSTRUCT('PARSE_ADDRESS_INTL (SPCS)', 'udf',
+      'SELECT COUNT(*), HASH_AGG(GEOCODING.PUBLIC.PARSE_ADDRESS_INTL(ADDRESS)) FROM (SELECT * FROM GEOCODING.TESTER.BENCH_EU WHERE ID <= {N})'),
+    ARRAY_CONSTRUCT('EXPAND_STREET_INTL (SPCS)', 'udf',
+      'SELECT COUNT(*), HASH_AGG(GEOCODING.PUBLIC.EXPAND_STREET_INTL(ADDRESS)) FROM (SELECT * FROM GEOCODING.TESTER.BENCH_EU WHERE ID <= {N})'),
+    ARRAY_CONSTRUCT('FORWARD_GEOCODE_TABLE (US)', 'proc', 'BENCH_US'),
+    ARRAY_CONSTRUCT('FORWARD_GEOCODE_TABLE (DE/FR)', 'proc', 'BENCH_EU'),
+    ARRAY_CONSTRUCT('REVERSE_GEOCODE_TABLE (US, 200 m)', 'rev', 'BENCH_US', 'US'),
+    ARRAY_CONSTRUCT('REVERSE_GEOCODE_TABLE (DE, 200 m)', 'rev', 'BENCH_EU', 'DE'),
+    -- No country filter: searches every country's addresses. Much slower per
+    -- batch, so it is measured at 1 and 100 points only.
+    ARRAY_CONSTRUCT('REVERSE_GEOCODE_TABLE (any country, 200 m)', 'rev', 'BENCH_US', NULL));
+  c ARRAY;
+  q STRING;
+BEGIN
+  SHOW WAREHOUSES LIKE :wh;
+  SELECT "size" INTO :whsize FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()));
+  FOR i IN 0 TO ARRAY_SIZE(:cases) - 1 DO
+    c := GET(:cases, :i);
+    FOR j IN 0 TO ARRAY_SIZE(:sizes) - 1 DO
+      n := GET(:sizes, :j);
+      IF (GET(:c, 3) IS NULL AND GET(:c, 1)::STRING = 'rev' AND :n > 100) THEN
+        CONTINUE;
+      END IF;
+      FOR r IN 1 TO 2 DO
+        IF (GET(:c, 1)::STRING = 'udf') THEN
+          q := REPLACE(GET(:c, 2)::STRING, '{N}', :n::STRING);
+        ELSE
+          -- EU input is DE (IDs 1-5000) then FR (5001-10000): take half of each,
+          -- except reverse DE, which uses DE rows only.
+          IF (GET(:c, 2)::STRING = 'BENCH_EU' AND GET(:c, 1)::STRING = 'rev') THEN
+            EXECUTE IMMEDIATE 'CREATE OR REPLACE TRANSIENT TABLE GEOCODING.TESTER.BENCH_IN_&{wh} AS SELECT * FROM GEOCODING.TESTER.BENCH_EU WHERE ID <= ' || LEAST(:n, 5000);
+          ELSEIF (GET(:c, 2)::STRING = 'BENCH_EU') THEN
+            EXECUTE IMMEDIATE 'CREATE OR REPLACE TRANSIENT TABLE GEOCODING.TESTER.BENCH_IN_&{wh} AS SELECT * FROM GEOCODING.TESTER.BENCH_EU WHERE ID <= '
+              || CEIL(:n / 2) || ' OR (ID > 5000 AND ID <= 5000 + ' || FLOOR(:n / 2) || ')';
+          ELSE
+            EXECUTE IMMEDIATE 'CREATE OR REPLACE TRANSIENT TABLE GEOCODING.TESTER.BENCH_IN_&{wh} AS SELECT * FROM GEOCODING.TESTER.BENCH_US WHERE ID <= ' || :n;
+          END IF;
+          IF (GET(:c, 1)::STRING = 'proc') THEN
+            q := 'CALL GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(''GEOCODING.TESTER.BENCH_IN_&{wh}'', ''ADDRESS'', ''ID'', ''GEOCODING.TESTER.BENCH_OUT_&{wh}'', ''US'', ''COUNTRY'')';
+          ELSE
+            q := 'CALL GEOCODING.PUBLIC.REVERSE_GEOCODE_TABLE(''GEOCODING.TESTER.BENCH_IN_&{wh}'', ''LAT'', ''LON'', ''ID'', 200, ''GEOCODING.TESTER.BENCH_OUT_&{wh}'', '
+              || IFF(GET(:c, 3) IS NULL, 'NULL', '''' || GET(:c, 3)::STRING || '''') || ')';
+          END IF;
+        END IF;
+        t0 := CURRENT_TIMESTAMP();
+        EXECUTE IMMEDIATE :q;
+        secs := DATEDIFF('millisecond', :t0, CURRENT_TIMESTAMP()) / 1000.0;
+        IF (GET(:c, 1)::STRING = 'udf') THEN
+          out_n := (SELECT $1 FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())));
+        ELSE
+          out_n := (SELECT COUNT(*) FROM GEOCODING.TESTER.BENCH_OUT_&{wh});
+        END IF;
+        INSERT INTO GEOCODING.TESTER.BENCH_RESULTS
+          SELECT CURRENT_TIMESTAMP(), :wh, :whsize, GET(:c, 0)::STRING, :n, :r, :secs, :out_n;
+      END FOR;
+    END FOR;
+  END FOR;
+  RETURN 'benchmark complete on ' || :wh || ' (' || :whsize || ')';
+END;
+$$;
+
+SELECT CASE_NAME, ROWS_IN, RUN, SECONDS, ROWS_OUT
+FROM GEOCODING.TESTER.BENCH_RESULTS
+WHERE WAREHOUSE = '&{wh}'
+ORDER BY RUN_AT;

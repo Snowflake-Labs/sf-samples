@@ -8,7 +8,7 @@
 -- never farther from the input than the source address is.
 -- ============================================================================
 
-CREATE OR REPLACE TABLE GEOCODING.PUBLIC.TEST_EU_REV_INPUT COMMENT = 'oss-geocoding' AS
+CREATE OR REPLACE TABLE GEOCODING.PUBLIC.TEST_EU_REV_INPUT COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}' AS
 SELECT country || '-' || LPAD(ROW_NUMBER() OVER (PARTITION BY country ORDER BY HASH(id))::STRING, 3, '0') AS id,
        country,
        id AS overture_id,
@@ -22,7 +22,7 @@ QUALIFY ROW_NUMBER() OVER (PARTITION BY country ORDER BY HASH(id)) <= 30;
 CALL GEOCODING.PUBLIC.REVERSE_GEOCODE_TABLE(
     'GEOCODING.PUBLIC.TEST_EU_REV_INPUT', 'LAT', 'LON', 'ID', 200,
     'GEOCODING.PUBLIC.TEST_EU_REV_OUT');
-ALTER TABLE GEOCODING.PUBLIC.TEST_EU_REV_OUT SET COMMENT = 'oss-geocoding';
+ALTER TABLE GEOCODING.PUBLIC.TEST_EU_REV_OUT SET COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
 
 -- Per country: how many returned the source address exactly, how many are
 -- at least as close as the source address, and field coverage.

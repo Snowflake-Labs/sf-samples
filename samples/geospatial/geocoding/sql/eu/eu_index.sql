@@ -35,7 +35,7 @@ CREATE OR REPLACE PROCEDURE GEOCODING.PUBLIC.BUILD_EU_INDEX(
     REBUILD BOOLEAN DEFAULT FALSE)
 RETURNS VARCHAR
 LANGUAGE SQL
-COMMENT = 'oss-geocoding'
+COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
 EXECUTE AS CALLER
 AS
 $$
@@ -63,7 +63,7 @@ BEGIN
     IF (REBUILD OR has_loc = 0) THEN
         EXECUTE IMMEDIATE '
             CREATE OR REPLACE TABLE GEOCODING.PUBLIC.EU_LOCALITY
-              COMMENT = ''oss-geocoding''
+              COMMENT = ''{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}''
             AS
             SELECT a.DIVISION_ID::VARCHAR                              AS locality_id,
                    a.COUNTRY::VARCHAR                                  AS country,
@@ -128,7 +128,7 @@ BEGIN
     IF (REBUILD OR has_alias = 0 OR CONTAINS(built, 'EU_LOCALITY ')) THEN
         CREATE OR REPLACE TABLE GEOCODING.PUBLIC.EU_LOCALITY_ALIAS
           CLUSTER BY (country, alias_key)
-          COMMENT = 'oss-geocoding'
+          COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
         AS
         SELECT DISTINCT locality_id, country, alias_key
         FROM (
@@ -153,7 +153,7 @@ BEGIN
         EXECUTE IMMEDIATE '
             CREATE OR REPLACE TABLE GEOCODING.PUBLIC.OVERTURE_ADDRESS_EU
               CLUSTER BY (country, postcode_norm)
-              COMMENT = ''oss-geocoding''
+              COMMENT = ''{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}''
             AS
             WITH a AS (
                 SELECT * FROM GEOCODING.PUBLIC.OVERTURE_ADDRESS
@@ -192,7 +192,7 @@ BEGIN
         EXECUTE IMMEDIATE '
             CREATE OR REPLACE TABLE GEOCODING.PUBLIC.OVERTURE_ADDRESS_EU_LOC
               CLUSTER BY (country, locality_id)
-              COMMENT = ''oss-geocoding''
+              COMMENT = ''{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}''
             AS
             SELECT l.locality_id, a.id, a.country, a.number, a.num_base, a.num_full,
                    a.street, a.street_key, a.postcode, a.geog

@@ -1,6 +1,6 @@
-# libpostal on SPCS (international geocoding, `--intl`)
+# libpostal on SPCS (international geocoding, default; `--no-intl` skips)
 
-The optional `--intl` path adds worldwide, multi-language address parsing by
+The installer's default libpostal step adds worldwide, multi-language address parsing by
 running **libpostal** as an internal Snowpark Container Services (SPCS) service.
 US forward geocoding uses the `usaddress` parser (US-specific); libpostal covers
 non-US / non-Latin addresses.
@@ -11,7 +11,7 @@ libpostal is a C library with ~2 GB of trained models — too large for a plain
 Python UDF. It runs as an internal SPCS service exposed to SQL via service
 functions.
 
-## What `--intl` does
+## What the libpostal step does
 
 1. `CREATE IMAGE REPOSITORY IF NOT EXISTS GEOCODING.PUBLIC.IMAGE_REPOSITORY`.
 2. Resolves the repo URL (`snow spcs image-repository url ...`).

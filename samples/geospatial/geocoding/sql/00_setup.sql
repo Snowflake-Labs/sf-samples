@@ -31,9 +31,12 @@
 -- ============================================================================
 
 CREATE DATABASE IF NOT EXISTS GEOCODING
-  COMMENT = 'oss-geocoding';
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
 CREATE SCHEMA   IF NOT EXISTS GEOCODING.PUBLIC
-  COMMENT = 'oss-geocoding';
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
+-- IF NOT EXISTS keeps an older comment on re-install; refresh the tag.
+ALTER DATABASE GEOCODING SET COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
+ALTER SCHEMA   GEOCODING.PUBLIC SET COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
 
 USE DATABASE GEOCODING;
 USE SCHEMA   PUBLIC;
@@ -83,7 +86,7 @@ BEGIN
             -- match against (GEOGRAPHY already enforces valid lat/lon ranges).
             EXECUTE IMMEDIATE
                 'CREATE OR REPLACE VIEW GEOCODING.PUBLIC.OVERTURE_ADDRESS
-                   COMMENT = ''oss-geocoding''
+                   COMMENT = ''{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}''
                  AS SELECT * FROM ' || :candidate || '
                     WHERE GEOMETRY IS NOT NULL';
             resolved := :candidate;

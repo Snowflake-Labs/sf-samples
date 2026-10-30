@@ -20,7 +20,7 @@ USE SCHEMA   PUBLIC;
 -- 1. Image repository (push the built image here)
 -- ---------------------------------------------------------------------------
 CREATE IMAGE REPOSITORY IF NOT EXISTS GEOCODING.PUBLIC.IMAGE_REPOSITORY
-  COMMENT = 'oss-geocoding';
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
 -- Get the repo URL for `docker push`:
 SHOW IMAGE REPOSITORIES IN SCHEMA GEOCODING.PUBLIC;
 
@@ -33,7 +33,7 @@ CREATE COMPUTE POOL IF NOT EXISTS GEOCODING_LIBPOSTAL_POOL
   MAX_NODES = 1
   INSTANCE_FAMILY = CPU_X64_S
   AUTO_SUSPEND_SECS = 600
-  COMMENT = 'oss-geocoding';
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"spcs"}}';
 
 -- ---------------------------------------------------------------------------
 -- 3. Service (internal endpoint only; spec in ./service-spec.yaml)
@@ -44,7 +44,7 @@ CREATE SERVICE IF NOT EXISTS GEOCODING.PUBLIC.LIBPOSTAL_SVC
   IN COMPUTE POOL GEOCODING_LIBPOSTAL_POOL
   MIN_INSTANCES = 1
   MAX_INSTANCES = 1
-  COMMENT = 'oss-geocoding'
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"spcs"}}'
   FROM SPECIFICATION $$
 spec:
   containers:
@@ -102,7 +102,7 @@ CREATE OR REPLACE FUNCTION GEOCODING.PUBLIC.PARSE_ADDRESS_INTL(addr VARCHAR)
   SERVICE  = GEOCODING.PUBLIC.LIBPOSTAL_SVC
   ENDPOINT = 'api'
   MAX_BATCH_ROWS = 500
-  COMMENT = 'oss-geocoding'
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
   AS '/parse';
 
 CREATE OR REPLACE FUNCTION GEOCODING.PUBLIC.EXPAND_STREET_INTL(addr VARCHAR)
@@ -110,7 +110,7 @@ CREATE OR REPLACE FUNCTION GEOCODING.PUBLIC.EXPAND_STREET_INTL(addr VARCHAR)
   SERVICE  = GEOCODING.PUBLIC.LIBPOSTAL_SVC
   ENDPOINT = 'api'
   MAX_BATCH_ROWS = 500
-  COMMENT = 'oss-geocoding'
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
   AS '/expand';
 
 -- Smoke test (multi-country):

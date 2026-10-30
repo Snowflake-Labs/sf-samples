@@ -18,7 +18,7 @@ CREATE OR REPLACE FUNCTION GEOCODING.PUBLIC.STANDARDIZE_STREET(street VARCHAR)
   LANGUAGE PYTHON
   RUNTIME_VERSION = 3.11
   HANDLER = 'standardize'
-  COMMENT = 'oss-geocoding'
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
 AS $$
 import re
 

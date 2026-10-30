@@ -22,7 +22,7 @@
 --   abbr_low  abbreviation + lower case
 -- ============================================================================
 
-CREATE OR REPLACE TABLE GEOCODING.PUBLIC.TEST_EU_INPUT COMMENT = 'oss-geocoding' AS
+CREATE OR REPLACE TABLE GEOCODING.PUBLIC.TEST_EU_INPUT COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}' AS
 WITH s AS (
     SELECT a.*
     -- Hash of the stable Overture ID instead of SAMPLE, so a rebuilt index

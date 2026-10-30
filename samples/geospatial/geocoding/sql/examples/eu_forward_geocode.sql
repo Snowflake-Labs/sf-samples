@@ -15,7 +15,7 @@ INSERT INTO _demo_eu VALUES
     (3, 'Karl-Marx-Allee 90, Berlin');
 CALL GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(
     '_demo_eu', 'address', 'id', '_demo_eu_geocoded', 'DE');
-ALTER TABLE _demo_eu_geocoded SET COMMENT = 'oss-geocoding';
+ALTER TABLE _demo_eu_geocoded SET COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
 SELECT input_id, raw_address, result_street, result_number, result_zip,
        match_level, match_score, result_geog
 FROM _demo_eu_geocoded ORDER BY input_id;
@@ -30,7 +30,7 @@ INSERT INTO _demo_mixed VALUES
     (4, '10 Downing St, London SW1A 2AA',             'GB');
 CALL GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(
     '_demo_mixed', 'address', 'id', '_demo_mixed_geocoded', 'US', 'cc');
-ALTER TABLE _demo_mixed_geocoded SET COMMENT = 'oss-geocoding';
+ALTER TABLE _demo_mixed_geocoded SET COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
 SELECT input_id, result_country, raw_address, result_street, result_number,
        match_level, match_score
 FROM _demo_mixed_geocoded ORDER BY input_id;
@@ -39,9 +39,9 @@ FROM _demo_mixed_geocoded ORDER BY input_id;
 CALL GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(
     'GEOCODING.PUBLIC.TEST_EU_INPUT', 'ADDRESS', 'TEST_ID',
     'GEOCODING.PUBLIC.TEST_EU_RESULT', 'US', 'COUNTRY');
-ALTER TABLE GEOCODING.PUBLIC.TEST_EU_RESULT SET COMMENT = 'oss-geocoding';
+ALTER TABLE GEOCODING.PUBLIC.TEST_EU_RESULT SET COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
 
-CREATE OR REPLACE TABLE GEOCODING.PUBLIC.TEST_EU_EVAL COMMENT = 'oss-geocoding' AS
+CREATE OR REPLACE TABLE GEOCODING.PUBLIC.TEST_EU_EVAL COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}' AS
 SELECT t.test_id, t.country, t.noise, r.match_level, r.match_score,
        t.actual_geog, r.result_geog,
        ST_DISTANCE(t.actual_geog, r.result_geog) AS dist_m

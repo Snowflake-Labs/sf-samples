@@ -19,7 +19,7 @@ CREATE OR REPLACE FUNCTION GEOCODING.PUBLIC.PARSE_ADDRESS(raw_address VARCHAR)
   ARTIFACT_REPOSITORY = snowflake.snowpark.pypi_shared_repository
   PACKAGES = ('usaddress')
   HANDLER = 'parse'
-  COMMENT = 'oss-geocoding'
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
 AS $$
 import usaddress
 

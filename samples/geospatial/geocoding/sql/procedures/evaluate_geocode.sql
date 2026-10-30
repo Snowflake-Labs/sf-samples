@@ -41,7 +41,7 @@ CREATE OR REPLACE PROCEDURE GEOCODING.PUBLIC.EVALUATE_GEOCODE(
     THRESHOLD_METERS     FLOAT DEFAULT 200)
 RETURNS TABLE(metric VARCHAR, value FLOAT)
 LANGUAGE SQL
-COMMENT = 'oss-geocoding'
+COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
 EXECUTE AS OWNER
 AS
 $$
@@ -114,7 +114,7 @@ RETURNS TABLE(grp VARCHAR, total_rows NUMBER, matched NUMBER, match_rate_pct FLO
               within_100m_pct FLOAT, within_500m_pct FLOAT,
               within_threshold_pct FLOAT, avg_distance_m FLOAT)
 LANGUAGE SQL
-COMMENT = 'oss-geocoding'
+COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
 EXECUTE AS OWNER
 AS
 $$

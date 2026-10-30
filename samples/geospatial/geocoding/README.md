@@ -4,10 +4,12 @@ Forward and reverse geocoding built entirely inside Snowflake on the **Overture
 Maps** Marketplace share — no external geocoding APIs. All objects live in the
 `GEOCODING.PUBLIC` schema.
 
-- **Forward** - free-text address -> GEOGRAPHY point. US by default; 14
-  European countries with the optional `--eu` install (see below)
+- **Forward** - free-text address -> GEOGRAPHY point. US plus 14
+  European countries
 - **Reverse** - lat/lon -> nearest address (worldwide)
-- **International parsing** (optional) - worldwide address parsing via libpostal on SPCS
+- **Tester app** - `GEOCODING_TESTER`, a Snowflake App Runtime app to try forward,
+  reverse and normalization with results on a map
+- **International parsing** - worldwide address parsing via libpostal on SPCS
 
 ## Repository layout
 
@@ -33,7 +35,8 @@ geocoding/
 │       ├── eu_forward_geocode.sql  European demos + accuracy evaluation
 │       ├── eu_benchmark.sql        10,000-row DE / FR runtime + accuracy
 │       └── eu_reverse_geocode.sql  reverse check for DE / FR / IT
-└── libpostal_service/             libpostal on SPCS (deployed by --intl / --eu)
+├── geocoding_tester/              Snowflake App Runtime tester (Next.js + deck.gl)
+└── libpostal_service/             libpostal on SPCS (deployed by default; --no-intl skips)
     ├── server.py  Dockerfile  requirements.txt  service-spec.yaml
     ├── deploy.sql
     └── README.md
@@ -53,8 +56,9 @@ Columns: `ID, STREET, NUMBER, UNIT, POSTCODE, POSTAL_CITY, COUNTRY, GEOMETRY (GE
 > manual Marketplace step. If a copy already exists under either
 > `OVERTURE_MAPS__ADDRESSES` or the `DS_`-prefixed name, it is reused. A stable
 > view `GEOCODING.PUBLIC.OVERTURE_ADDRESS` is created over whichever share
-> resolves, so you never edit the physical share name. No external access
-> integration is required by the solution.
+> resolves, so you never edit the physical share name. Geocoding itself needs
+> no external access integration; only the tester app uses one, to proxy its
+> CARTO basemap.
 
 ## Install with Cortex Code (recommended)
 
@@ -63,30 +67,29 @@ deploys the whole solution with one command. Open this folder in Cortex Code and
 say **"install geocoding"**, or run the orchestrator directly:
 
 ```bash
-# core: US forward + worldwide reverse geocoding
+# full install: core + libpostal SPCS + EU index + tester app
 bash .cortex/skills/install-geocoding/scripts/install_geocoding.sh \
-  --connection <your-snow-connection> [--warehouse <wh>]
+  --connection <your-snow-connection> [--warehouse <wh>] --eu-warehouse GEOCODING_BUILD_WH
 
-# optional: also deploy the libpostal SPCS service for international parsing
+# US forward + worldwide reverse only (no Docker needed)
 bash .cortex/skills/install-geocoding/scripts/install_geocoding.sh \
-  --connection <your-snow-connection> --intl
-
-# optional: European forward geocoding (libpostal service + EU index tables)
-bash .cortex/skills/install-geocoding/scripts/install_geocoding.sh \
-  --connection <your-snow-connection> --eu --eu-warehouse GEOCODING_BUILD_WH
+  --connection <your-snow-connection> --no-intl
 ```
 
-`--eu` does everything `--intl` does, then calls `BUILD_EU_INDEX`, which builds
-the European candidate tables once. The first build reads about 140M addresses
-and runs a spatial join, so pass an X-Large warehouse with `--eu-warehouse`. If
-you have none, create one first: `CREATE WAREHOUSE IF NOT EXISTS
-GEOCODING_BUILD_WH WAREHOUSE_SIZE = XLARGE AUTO_SUSPEND = 60
-INITIALLY_SUSPENDED = TRUE COMMENT = 'oss-geocoding';`
-Later runs find the tables and skip the build. Both flags need a running Docker
-daemon or Podman machine to build the linux/amd64 libpostal image.
+Opt-outs: `--no-intl` (skips libpostal and the EU index), `--no-eu` (keeps
+libpostal, skips the index), `--no-app` (skips the tester app). The old `--intl`
+and `--eu` flags are still accepted.
+
+The EU step calls `BUILD_EU_INDEX`, which builds the European candidate tables
+once. The first build reads about 140M addresses and runs a spatial join, so pass
+an X-Large warehouse with `--eu-warehouse`. If you have none, create one first:
+`CREATE WAREHOUSE IF NOT EXISTS GEOCODING_BUILD_WH WAREHOUSE_SIZE = XLARGE
+AUTO_SUSPEND = 60 INITIALLY_SUSPENDED = TRUE COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';`
+Later runs find the tables and skip the build. The libpostal step needs a running
+Docker daemon or Podman machine to build the linux/amd64 image.
 
 The installer is idempotent (re-runnable), auto-acquires the Overture listing,
-and tags every object with `COMMENT = 'oss-geocoding'`. See
+and tags every object with a JSON tracking `COMMENT` (see [Tracking](#tracking)). See
 [.cortex/skills/install-geocoding/SKILL.md](.cortex/skills/install-geocoding/SKILL.md).
 
 ### Pause or remove
@@ -98,7 +101,7 @@ ALTER SERVICE GEOCODING.PUBLIC.LIBPOSTAL_SVC SUSPEND;
 ALTER COMPUTE POOL GEOCODING_LIBPOSTAL_POOL SUSPEND;
 ```
 
-Re-running the installer with `--eu` (or `--intl`) resumes both. To free the
+Re-running the installer resumes both. To free the
 about 19.7 GB of EU index storage but keep US and reverse geocoding:
 
 ```sql
@@ -112,6 +115,8 @@ To remove everything the installer created (service, compute pool, image
 repository, functions, procedures and index tables):
 
 ```sql
+DROP APPLICATION SERVICE IF EXISTS GEOCODING.PUBLIC.GEOCODING_TESTER;
+DROP EXTERNAL ACCESS INTEGRATION IF EXISTS GEOCODING_TESTER_CARTO_EAI;
 DROP SERVICE IF EXISTS GEOCODING.PUBLIC.LIBPOSTAL_SVC;
 DROP COMPUTE POOL IF EXISTS GEOCODING_LIBPOSTAL_POOL;
 DROP DATABASE IF EXISTS GEOCODING;
@@ -124,6 +129,100 @@ DROP DATABASE IF EXISTS GEOCODING;
 
 The compute pool can only be dropped once the service is gone, so keep that
 order.
+
+## Function tester
+
+The installer finishes by printing the tester link:
+
+```
+Function tester: https://<id>-<org>-<account>.snowflakecomputing.app
+```
+
+To print it again: `cd geocoding_tester && snow app open -c <connection> --print-only`.
+
+`GEOCODING_TESTER` is a small Snowflake App Runtime app (Next.js, deck.gl and
+MapLibre) in `GEOCODING.PUBLIC`. It has three tabs, and every result is drawn on a map:
+
+- **Forward geocode**: one address per line, up to 200. A country dropdown
+  sets the default. Prefix a line with `CC |` (for example
+  `DE | Unter den Linden 77, 10117 Berlin`) to mix countries in one batch.
+  Points are colored by `MATCH_LEVEL`.
+- **Reverse geocode**: one `lat, lon` per line, up to 200. Clicking the map
+  adds a point. Each input is linked to its nearest address, and search radii
+  are drawn for batches of 25 points or fewer. "Any country" searches worldwide.
+- **Normalize address**: runs `PARSE_ADDRESS`, `STANDARDIZE_STREET`,
+  `PARSE_ADDRESS_INTL`, `EXPAND_STREET_INTL` and `NORMALIZE_STREET_EU` on one
+  address side by side, then geocodes it onto the map.
+
+"Next sample" cycles through single and batch examples, including a 20-row
+batch across six countries and a 20-point US/EU reverse batch. Under the
+results, collapsible panels with copy buttons show the exact **request**
+JSON, the raw **response** JSON and the **SQL** that ran.
+
+The app runs with owner's rights. It sends user input only as bind
+variables, and keeps per-request input and output tables in
+`GEOCODING.TESTER`, dropping them after each call. App Runtime pages may only
+connect to the app's own origin, so the CARTO basemap is fetched through the
+app's `/api/basemap` proxy. The proxy only accepts CARTO hosts and uses the
+`GEOCODING_TESTER_CARTO_EAI` integration. To redeploy after editing:
+`bash geocoding_tester/deploy.sh --connection <connection>`. Deploying needs
+a Snowflake CLI with `snow app` (3.26+).
+
+## Batch processing
+
+Every procedure is table in, table out, so batches are the normal path. The
+calls below are what the tester runs, scaled up. Timings are in
+[Benchmarks](#benchmarks).
+
+```sql
+-- Forward, mixed countries: one row per address with an ISO-2 country column.
+-- Rows with a NULL country use the 5th argument.
+CREATE OR REPLACE TRANSIENT TABLE MY_DB.PUBLIC.CUSTOMERS AS
+SELECT * FROM VALUES
+  (1, '6310 Milford Rd, Fayetteville NC 28303', 'US'),
+  (2, 'Unter den Linden 77, 10117 Berlin',      'DE'),
+  (3, '10 Rue de Rivoli, 75001 Paris',          'FR'),
+  (4, 'Schiekade 568, 3032AZ Rotterdam',        'NL'),
+  (5, 'Calle Moratin 6, 28014 Madrid',          'ES')
+  AS t(ID, ADDRESS, COUNTRY);
+
+CALL GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(
+    'MY_DB.PUBLIC.CUSTOMERS', 'ADDRESS', 'ID',
+    'MY_DB.PUBLIC.CUSTOMERS_GEOCODED', 'US', 'COUNTRY');
+
+SELECT INPUT_ID, RAW_ADDRESS, RESULT_COUNTRY, MATCH_LEVEL, MATCH_SCORE,
+       ST_Y(RESULT_GEOG) AS LAT, ST_X(RESULT_GEOG) AS LON
+FROM MY_DB.PUBLIC.CUSTOMERS_GEOCODED ORDER BY INPUT_ID;
+
+-- Reverse: a table of points -> nearest address within 200 m (country optional).
+CREATE OR REPLACE TRANSIENT TABLE MY_DB.PUBLIC.PINGS AS
+SELECT * FROM VALUES
+  ('a', 40.7484, -73.9857), ('b', 48.8606, 2.3376), ('c', 52.5163, 13.3777)
+  AS t(DEVICE_ID, LAT, LON);
+
+CALL GEOCODING.PUBLIC.REVERSE_GEOCODE_TABLE(
+    'MY_DB.PUBLIC.PINGS', 'LAT', 'LON', 'DEVICE_ID', 200,
+    'MY_DB.PUBLIC.PINGS_ADDRESSED');
+
+-- Normalization UDFs are scalar, so they batch like any SELECT.
+SELECT ADDRESS,
+       GEOCODING.PUBLIC.PARSE_ADDRESS(ADDRESS)      AS us_parse,
+       GEOCODING.PUBLIC.PARSE_ADDRESS_INTL(ADDRESS) AS intl_parse,
+       GEOCODING.PUBLIC.NORMALIZE_STREET_EU(
+           GEOCODING.PUBLIC.PARSE_ADDRESS_INTL(ADDRESS):road::STRING, COUNTRY) AS street_key
+FROM MY_DB.PUBLIC.CUSTOMERS;
+
+-- Accuracy against known coordinates (hit rate, % within 100 / 500 m, average
+-- distance). Needs a known-truth GEOGRAPHY column (here ACTUAL_GEOG) on the
+-- output, e.g. joined back from your source table.
+CALL GEOCODING.PUBLIC.EVALUATE_GEOCODE(
+    'MY_DB.PUBLIC.CUSTOMERS_GEOCODED', 'ACTUAL_GEOG', 'RESULT_GEOG', 200);
+```
+
+Batches of 10,000 rows or more should run on a dedicated warehouse; the size
+trade-off is in [Benchmarks](#benchmarks). `PARSE_ADDRESS_INTL` and
+`EXPAND_STREET_INTL` send rows to the libpostal service in batches of 500
+(`MAX_BATCH_ROWS`), so the single `CPU_X64_S` node rarely limits throughput.
 
 ## Quickstart (manual, US geocoding)
 
@@ -160,9 +259,11 @@ CALL GEOCODING.PUBLIC.REVERSE_GEOCODE_TABLE(
 | `REVERSE_GEOCODE_TABLE` | SQL proc | `(SOURCE_TABLE, LAT_COLUMN, LON_COLUMN, ID_COLUMN, RADIUS_METERS, OUTPUT_TABLE, [COUNTRY])` |
 | `EVALUATE_GEOCODE` | SQL proc | `(RESULT_TABLE, ACTUAL_GEOG_COLUMN, GEOCODED_GEOG_COLUMN, [THRESHOLD_METERS])`, plus a grouped overload `(..., THRESHOLD_METERS, GROUP_COLUMN)` |
 | `NORMALIZE_STREET_EU`, `NORMALIZE_NAME_EU` | Python UDF | `(VARCHAR, VARCHAR) → VARCHAR`, `(VARCHAR) → VARCHAR` |
-| `BUILD_EU_INDEX` | SQL proc | `([REBUILD=FALSE])` (`--eu` only) |
-| `EU_LOCALITY`, `EU_LOCALITY_ALIAS`, `OVERTURE_ADDRESS_EU`, `OVERTURE_ADDRESS_EU_LOC` | Tables | European candidate index (`--eu` only) |
-| `LIBPOSTAL_SVC`, `PARSE_ADDRESS_INTL`, `EXPAND_STREET_INTL` | SPCS service + functions | `--intl` / `--eu` only |
+| `BUILD_EU_INDEX` | SQL proc | `([REBUILD=FALSE])` |
+| `EU_LOCALITY`, `EU_LOCALITY_ALIAS`, `OVERTURE_ADDRESS_EU`, `OVERTURE_ADDRESS_EU_LOC` | Tables | European candidate index (skipped with `--no-eu`) |
+| `LIBPOSTAL_SVC`, `PARSE_ADDRESS_INTL`, `EXPAND_STREET_INTL` | SPCS service + functions | skipped with `--no-intl` |
+| `GEOCODING_TESTER` | Application service | tester app (skipped with `--no-app`) |
+| `GEOCODING_TESTER_CARTO_RULE`, `GEOCODING_TESTER_CARTO_EAI` | Network rule + EAI | egress so the app can proxy the CARTO basemap (`--no-app` skips) |
 
 ## How matching works
 
@@ -210,6 +311,128 @@ call is slow (~30 s) while the PyPI package installs; subsequent calls are fast.
 For high-accuracy / routing use a partner solution (Carto / ESRI / Mapbox).
 European accuracy is in the next section.
 
+## Benchmarks
+
+Measured 2026-10-30 with
+[`sql/examples/benchmark_functions.sql`](sql/examples/benchmark_functions.sql).
+Each figure is wall-clock seconds for one statement or `CALL`, with the result
+cache off. "cold" is the first run of a case and "warm" the repeat; the table
+shows the warm run unless the two differ a lot.
+
+| Setting | Value |
+|---|---|
+| Account | `tib85385` with the Overture Addresses share (126.3M US rows) and the EU index (139M rows) |
+| Warehouses | `GEOCODING_XS_WH` = X-Small Standard (1 credit/h); `MEDIUM` = adaptive warehouse at Medium size (credit estimates below assume the Medium rate, 4 credits/h) |
+| libpostal | `GEOCODING_LIBPOSTAL_POOL`: 1 node of `CPU_X64_S` (3 vCPU, 13 GiB), 1 service instance (requests 1 CPU / 2 GiB, limit 2 CPU / 4 GiB), `MAX_BATCH_ROWS = 500` |
+| Inputs | real Overture rows: US addresses `"NUM STREET, CITY ZIP"`, DE+FR addresses (half each), points jittered up to ~30 m from real addresses |
+
+**Normalization UDFs** (one `SELECT` over N rows):
+
+| Function | 1 row | 100 | 1,000 | 10,000 | X-Small / Medium |
+|---|---|---|---|---|---|
+| `PARSE_ADDRESS` (US, Python) | 1.4 s | 1.9 s | 1.7 s | 1.7 s | X-Small |
+| | 1.7 s | 1.2 s | 1.2 s | 1.3 s | Medium |
+| `STANDARDIZE_STREET` | 1.6 s | 1.5 s | 1.6 s | 1.6 s | X-Small |
+| `NORMALIZE_STREET_EU` | 1.7 s | 1.5 s | 1.6 s | 1.6 s | X-Small |
+| `PARSE_ADDRESS_INTL` (SPCS) | 0.3-0.9 s | 0.5 s | 0.4 s | 0.7-1.1 s | both |
+| `EXPAND_STREET_INTL` (SPCS) | 0.3 s | 0.4 s | 0.4-0.5 s | 1.2-1.6 s | both |
+
+These scalar functions are effectively free at batch scale: about 1.2-1.5 s is
+statement overhead, and 10,000 rows add well under a second. The Python UDFs
+only cost noticeable time on the very first call after the warehouse resumes
+(3.9 s here), while the package loads.
+
+**Geocoding procedures** (`CALL`, warm):
+
+| Procedure | Warehouse | 1 | 100 | 1,000 | 10,000 | Matched at 10,000 |
+|---|---|---|---|---|---|---|
+| `FORWARD_GEOCODE_TABLE`, US | X-Small | 7.6 s | 10.8 s | 14.0 s | 26.6 s | 9,829 (98.3%) |
+| | Medium | 7.8 s | 11.8 s | 8.9 s | 12.1 s | 9,829 (98.3%) |
+| `FORWARD_GEOCODE_TABLE`, DE+FR | X-Small | 23.2 s | 25.3 s | 27.7 s | 29.1 s | 10,000 (100%) |
+| | Medium | 24.7 s | 32.2 s | 35.4 s | 30.1 s | 10,000 (100%) |
+| `REVERSE_GEOCODE_TABLE`, `'US'`, 200 m | X-Small | 9.4 s | 278 s | 281 s | 297 s | 10,000 |
+| | Medium | 11.7 s | 63 s | 61 s | 63 s | 10,000 |
+| `REVERSE_GEOCODE_TABLE`, `'DE'`, 200 m | X-Small | 9.1 s | 50 s | 50 s | 51 s (5,000 pts) | 5,000 |
+| | Medium | 9.1 s | 22 s | 23 s | 24 s (5,000 pts) | 5,000 |
+| `REVERSE_GEOCODE_TABLE`, no country, 200 m | X-Small | 9.2 s | 1,063 s | not run | not run | |
+| | Medium | 11.0 s | 196 s | not run | not run | |
+
+Some patterns to plan around:
+
+- **Cost is set per batch, not per row.** One address costs about as much
+  as a thousand: forward US on Medium is 7.8 s for 1 row and 12.1 s for
+  10,000 (about 0.013 credits, 830 rows/s). Always geocode a table, never a
+  loop of single rows.
+- **European forward has a fixed floor of about 25 s.** It runs a fixed
+  sequence of statements (libpostal parse, key building, postcode and
+  locality candidates, ranking) whatever the size, so Medium is no faster
+  than X-Small. Use X-Small for EU batches.
+- **Reverse geocoding is bound by the address scan.** From 100 points up,
+  time is flat because the work is a spatial join over the country's
+  addresses: about 63 s for the US and 23 s for DE on Medium. X-Small is
+  about 4.7x slower on the US share at a quarter of the price, so a batch
+  costs slightly less on Medium (0.07 vs 0.08 credits) and finishes much
+  sooner.
+- **Always pass a country to reverse.** Without one, every country's
+  addresses are candidates. A 100-point batch takes 196 s on Medium versus
+  63 s with `'US'`, and over 17 min on X-Small.
+- **The libpostal pool is not the bottleneck.** 10,000 rows go through one
+  `CPU_X64_S` node in about 1 s (20 calls of 500 rows). A larger instance
+  family or more nodes buys nothing at these volumes. The pool costs credits
+  for every hour it is running, used or not, so suspend it between batches
+  (see [Pause or remove](#pause-or-remove)).
+
+**Function tester round trips** (browser to map, `MEDIUM`, including
+scratch-table setup and cleanup): normalize one address 6.6 s, forward 2 US
+addresses 27-46 s, a 20-row forward batch over six countries 52 s, a 20-point
+US reverse batch 88 s, and a 20-point reverse batch with "Any country" 235 s. Requests longer than the App Runtime ingress
+timeout (about 60 s) run as a background job that the page polls, so large
+batches finish instead of timing out.
+
+The previous baseline (2026-07-01, another account, X-Small) measured 5,000 US
+forward addresses in 24.0 s and 50,000 US reverse points in 229 s. That is in
+line with the flat scaling above.
+
+## Tracking
+
+Every object the installer creates carries a JSON `COMMENT`, and the install
+session sets a matching `QUERY_TAG`, so usage and object inventory can be
+queried from Snowflake system views. The output tables written by
+`FORWARD_GEOCODE_TABLE` and `REVERSE_GEOCODE_TABLE` get the same `COMMENT`.
+
+```json
+{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}
+```
+
+`attributes.source` is `spcs` on the libpostal compute pool and service and
+`sql` everywhere else. Temporary working tables are not tagged. The query tag
+covers only sessions that set it (the installer and the example scripts).
+Calls from your own worksheets are not tagged unless you set it yourself.
+
+```sql
+-- Objects created by this package
+SELECT TABLE_NAME AS object_name, TABLE_TYPE AS object_type, COMMENT
+FROM   GEOCODING.INFORMATION_SCHEMA.TABLES
+WHERE  COMMENT LIKE '%sf_sit-is-geocoding%'
+UNION ALL
+SELECT FUNCTION_NAME, 'FUNCTION', COMMENT
+FROM   GEOCODING.INFORMATION_SCHEMA.FUNCTIONS
+WHERE  COMMENT LIKE '%sf_sit-is-geocoding%'
+UNION ALL
+SELECT PROCEDURE_NAME, 'PROCEDURE', COMMENT
+FROM   GEOCODING.INFORMATION_SCHEMA.PROCEDURES
+WHERE  COMMENT LIKE '%sf_sit-is-geocoding%';
+
+-- Query volume attributable to the package over the last 30 days
+SELECT DATE_TRUNC('day', START_TIME) AS day,
+       COUNT(*)                      AS query_count
+FROM   SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
+WHERE  QUERY_TAG LIKE '%sf_sit-is-geocoding%'
+  AND  START_TIME >= DATEADD(day, -30, CURRENT_TIMESTAMP())
+GROUP  BY 1
+ORDER  BY 1 DESC;
+```
+
 ## European forward geocoding
 
 Supported countries: FR, ES, PL, BE, DK, CH, AT, NL, NO, FI, PT, DE, IT, CZ.
@@ -241,7 +464,7 @@ is returned with three extra columns: `result_country`, `MATCH_LEVEL` (`ADDRESS`
 
 ### Coverage
 
-Measured on `OVERTURE_MAPS__ADDRESSES.CARTO.ADDRESS` and the `--eu` index.
+Measured on `OVERTURE_MAPS__ADDRESSES.CARTO.ADDRESS` and the EU index.
 "Missing" columns are the share of Overture rows with that field NULL. "In a
 locality" is the share of addresses inside an Overture locality polygon, which
 is what an input without a postcode is matched through.
@@ -394,6 +617,6 @@ ALTER COMPUTE POOL GEOCODING_LIBPOSTAL_POOL SUSPEND;
 
 For non-US / multi-language addresses, see `libpostal_service/`, a libpostal
 container on SPCS exposed as service functions (`PARSE_ADDRESS_INTL`,
-`EXPAND_STREET_INTL`). The installer's `--intl` or `--eu` flag builds the image,
+`EXPAND_STREET_INTL`). The installer builds the image,
 pushes it to your account's repository and creates the service and functions.
 Re-running it picks up a rebuilt image.
