@@ -13,10 +13,11 @@ section "Function tester", for how to use it.
 - **Reverse geocode**: up to 200 `lat, lon` points, or clicks on the map. It
   calls `REVERSE_GEOCODE_TABLE`.
 - **Normalize address**: runs `PARSE_ADDRESS`, `STANDARDIZE_STREET`,
-  `PARSE_ADDRESS_INTL`, `EXPAND_STREET_INTL` and `NORMALIZE_STREET_EU` side by
-  side, then geocodes the address.
+  `PARSE_ADDRESS_INTL`, `EXPAND_STREET_INTL` and `NORMALIZE_STREET_EU` on up to
+  200 addresses (one per line), then geocodes them.
 
-Each run shows the request JSON, the response JSON and the SQL that ran.
+Each tab has a **Sample** dropdown with single-record and multiple-record test
+samples. Each run shows the request JSON, the response JSON and the SQL that ran.
 
 ## How it works
 

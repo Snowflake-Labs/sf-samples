@@ -184,11 +184,23 @@ MapLibre) in `GEOCODING.PUBLIC`. It has three tabs, and every result is drawn on
   adds a point. Each input is linked to its nearest address, and search radii
   are drawn for batches of 25 points or fewer. "Any country" searches worldwide.
 - **Normalize address**: runs `PARSE_ADDRESS`, `STANDARDIZE_STREET`,
-  `PARSE_ADDRESS_INTL`, `EXPAND_STREET_INTL` and `NORMALIZE_STREET_EU` on one
-  address side by side, then geocodes it onto the map.
+  `PARSE_ADDRESS_INTL`, `EXPAND_STREET_INTL` and `NORMALIZE_STREET_EU` on each
+  line (up to 200, `CC |` prefix as on Forward), then geocodes them onto the
+  map. One address shows the functions side by side; several show a table, and
+  clicking a row shows that record's full output.
 
-"Next sample" cycles through single and batch examples, including a 20-row
-batch across six countries and a 20-point US reverse batch. Under the
+A **Sample** dropdown on each tab loads a test sample, grouped into single
+records and multiple records:
+
+| Tab | Multiple-record samples |
+|-----|-------------------------|
+| Forward | 10 US, 10 DE, 10 FR, 20 across six countries, 50 across six countries |
+| Reverse | 10 Berlin, 10 Paris, 20 US, 5 with "Any country" |
+| Normalize | 12 across six countries (abbreviations such as Str., bd, C/, Pza), 10 US unit and suffix variants |
+
+On TIB, the 50-address forward sample took 57.5 s, with all 50 at `ADDRESS`
+level. The 12-address normalize sample took 10.7 s, all 12 geocoded. A loaded
+sample can be edited before Run; the dropdown then shows "Custom". Under the
 results, collapsible panels with copy buttons show the exact **request**
 JSON, the raw **response** JSON and the **SQL** that ran.
 
