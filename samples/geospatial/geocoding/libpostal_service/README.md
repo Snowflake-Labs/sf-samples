@@ -6,7 +6,7 @@ SQL as **service functions**. This complements the US-only `usaddress` UDF in
 `../sql/` with global coverage.
 
 > **Status:** the container image is **already built and pushed** to
-> `GEOCODING.PUBLIC.IMAGE_REPOSITORY` (`.../geocoding/public/image_repository/libpostal:latest`).
+> `GEOCODING.PUBLIC.IMAGE_REPOSITORY` (`.../geocoding/public/image_repository/libpostal:<VERSION>`).
 > The **service and service functions are not yet created** — run `deploy.sql`
 > steps 2–4 to finish. (Skip step 1 / the build unless you change the image.)
 > libpostal is a C library needing its compiled `.so` + ~2 GB trained models, so
@@ -34,10 +34,10 @@ Request `{"data": [[row_idx, addr], ...]}` -> Response `{"data": [[row_idx, resu
 
 ```bash
 # 1. Build for the SPCS platform (QEMU emulation on Apple Silicon; slow, ~2-3 GB image)
-docker build --platform linux/amd64 -t libpostal:latest .
+docker build --platform linux/amd64 -t libpostal:$(cat VERSION) .
 
 # 2. (Recommended) verify locally before pushing
-docker run --rm -p 8080:8080 libpostal:latest &
+docker run --rm -p 8080:8080 libpostal:$(cat VERSION) &
 curl localhost:8080/healthcheck
 curl -X POST localhost:8080/parse -H 'content-type: application/json' \
   -d '{"data": [[0, "Av. Paulista 1578, São Paulo, Brazil"]]}'
@@ -46,8 +46,8 @@ curl -X POST localhost:8080/parse -H 'content-type: application/json' \
 snow spcs image-registry login
 REPO_URL=$(snow sql -q "SHOW IMAGE REPOSITORIES IN SCHEMA GEOCODING.PUBLIC" --format json \
   | python3 -c "import sys,json;print(json.load(sys.stdin)[0]['repository_url'])")
-docker tag libpostal:latest "$REPO_URL/libpostal:latest"
-docker push "$REPO_URL/libpostal:latest"
+docker tag libpostal:$(cat VERSION) "$REPO_URL/libpostal:$(cat VERSION)"
+docker push "$REPO_URL/libpostal:$(cat VERSION)"
 ```
 
 Then run `deploy.sql` and poll `SYSTEM$GET_SERVICE_STATUS` until `READY`.

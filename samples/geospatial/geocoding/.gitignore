@@ -3,3 +3,6 @@ libpostal_service/*.log
 
 # OS / editor cruft
 .DS_Store
+
+# Installer receipts
+logs/

@@ -7,7 +7,7 @@
 -- Run by the installer's --intl / --eu flags after the image is built and
 -- pushed (see this folder's README.md, Build & push section, to do it by hand).
 -- Safe to re-run: existing objects are kept and the service is moved to the
--- current :latest image.
+-- image tag in ./VERSION.
 --
 -- Prerequisites: ACCOUNTADMIN (or a role with CREATE COMPUTE POOL / SERVICE /
 -- IMAGE REPOSITORY), and the GEOCODING database from ../sql/00_setup.sql.
@@ -20,7 +20,7 @@ USE SCHEMA   PUBLIC;
 -- 1. Image repository (push the built image here)
 -- ---------------------------------------------------------------------------
 CREATE IMAGE REPOSITORY IF NOT EXISTS GEOCODING.PUBLIC.IMAGE_REPOSITORY
-  COMMENT = 'oss-geocoding';
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
 -- Get the repo URL for `docker push`:
 SHOW IMAGE REPOSITORIES IN SCHEMA GEOCODING.PUBLIC;
 
@@ -33,7 +33,7 @@ CREATE COMPUTE POOL IF NOT EXISTS GEOCODING_LIBPOSTAL_POOL
   MAX_NODES = 1
   INSTANCE_FAMILY = CPU_X64_S
   AUTO_SUSPEND_SECS = 600
-  COMMENT = 'oss-geocoding';
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"spcs"}}';
 
 -- ---------------------------------------------------------------------------
 -- 3. Service (internal endpoint only; spec in ./service-spec.yaml)
@@ -44,12 +44,16 @@ CREATE SERVICE IF NOT EXISTS GEOCODING.PUBLIC.LIBPOSTAL_SVC
   IN COMPUTE POOL GEOCODING_LIBPOSTAL_POOL
   MIN_INSTANCES = 1
   MAX_INSTANCES = 1
-  COMMENT = 'oss-geocoding'
+  -- Suspend after 30 min without calls. Without this the service never idles,
+  -- so the pool cannot suspend either and bills around the clock. A service
+  -- function call resumes it (AUTO_RESUME is on by default).
+  AUTO_SUSPEND_SECS = 1800
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"spcs"}}'
   FROM SPECIFICATION $$
 spec:
   containers:
     - name: libpostal
-      image: /GEOCODING/PUBLIC/IMAGE_REPOSITORY/libpostal:latest
+      image: /GEOCODING/PUBLIC/IMAGE_REPOSITORY/libpostal:1.0.0
       readinessProbe:
         port: 8080
         path: /healthcheck
@@ -66,14 +70,14 @@ spec:
       public: false
 $$;
 
--- Re-running the installer rebuilds and pushes :latest. CREATE ... IF NOT EXISTS
--- leaves an existing service on the old image, so re-apply the spec, which
--- makes SPCS pull the current :latest. Harmless on a first install.
+-- The image tag comes from ./VERSION (the installer checks they match). CREATE
+-- ... IF NOT EXISTS leaves an existing service on its old image, so re-apply
+-- the spec to move it to this tag. Harmless on a first install.
 ALTER SERVICE GEOCODING.PUBLIC.LIBPOSTAL_SVC FROM SPECIFICATION $$
 spec:
   containers:
     - name: libpostal
-      image: /GEOCODING/PUBLIC/IMAGE_REPOSITORY/libpostal:latest
+      image: /GEOCODING/PUBLIC/IMAGE_REPOSITORY/libpostal:1.0.0
       readinessProbe:
         port: 8080
         path: /healthcheck
@@ -89,6 +93,9 @@ spec:
       port: 8080
       public: false
 $$;
+
+-- Existing services keep their settings; apply the idle timer on re-runs.
+ALTER SERVICE GEOCODING.PUBLIC.LIBPOSTAL_SVC SET AUTO_SUSPEND_SECS = 1800;
 
 -- Poll until READY (check logs on failure):
 --   SELECT SYSTEM$GET_SERVICE_STATUS('GEOCODING.PUBLIC.LIBPOSTAL_SVC');
@@ -102,7 +109,7 @@ CREATE OR REPLACE FUNCTION GEOCODING.PUBLIC.PARSE_ADDRESS_INTL(addr VARCHAR)
   SERVICE  = GEOCODING.PUBLIC.LIBPOSTAL_SVC
   ENDPOINT = 'api'
   MAX_BATCH_ROWS = 500
-  COMMENT = 'oss-geocoding'
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
   AS '/parse';
 
 CREATE OR REPLACE FUNCTION GEOCODING.PUBLIC.EXPAND_STREET_INTL(addr VARCHAR)
@@ -110,7 +117,7 @@ CREATE OR REPLACE FUNCTION GEOCODING.PUBLIC.EXPAND_STREET_INTL(addr VARCHAR)
   SERVICE  = GEOCODING.PUBLIC.LIBPOSTAL_SVC
   ENDPOINT = 'api'
   MAX_BATCH_ROWS = 500
-  COMMENT = 'oss-geocoding'
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
   AS '/expand';
 
 -- Smoke test (multi-country):

@@ -26,7 +26,7 @@ CREATE OR REPLACE FUNCTION GEOCODING.PUBLIC.NORMALIZE_STREET_EU(
   LANGUAGE PYTHON
   RUNTIME_VERSION = 3.11
   HANDLER = 'normalize'
-  COMMENT = 'oss-geocoding'
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
 AS $$
 import re
 import unicodedata
@@ -130,7 +130,7 @@ CREATE OR REPLACE FUNCTION GEOCODING.PUBLIC.NORMALIZE_NAME_EU(name VARCHAR)
   LANGUAGE PYTHON
   RUNTIME_VERSION = 3.11
   HANDLER = 'normalize'
-  COMMENT = 'oss-geocoding'
+  COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
 AS $$
 import re
 import unicodedata

@@ -73,7 +73,7 @@ CREATE OR REPLACE PROCEDURE GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(
     COUNTRY_COLUMN VARCHAR DEFAULT NULL)
 RETURNS VARCHAR
 LANGUAGE SQL
-COMMENT = 'oss-geocoding'
+COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
 EXECUTE AS OWNER
 AS
 $$
@@ -134,20 +134,29 @@ BEGIN
         us_src := 'SELECT input_id, raw_address FROM GEOCODING.PUBLIC._FGC_IN WHERE country = ''US''';
     END IF;
 
-    us_sql := '
+    -- Parse once into a table. Inlined as a CTE, the optimizer can push the
+    -- PARSE_ADDRESS UDF into the Overture scan filter (seen with one input
+    -- row: the UDF ran on ~100M share rows), so the join must see plain columns.
+    EXECUTE IMMEDIATE '
+        CREATE OR REPLACE TEMPORARY TABLE GEOCODING.PUBLIC._FGC_PARSED AS
         WITH src AS (
             ' || us_src || '
         ),
-        parsed AS (
-            SELECT
-                input_id,
-                raw_address,
-                GEOCODING.PUBLIC.PARSE_ADDRESS(raw_address):number::STRING AS number,
-                GEOCODING.PUBLIC.STANDARDIZE_STREET(
-                    GEOCODING.PUBLIC.PARSE_ADDRESS(raw_address):street::STRING) AS street_std,
-                GEOCODING.PUBLIC.PARSE_ADDRESS(raw_address):city::STRING AS city,
-                GEOCODING.PUBLIC.PARSE_ADDRESS(raw_address):zip::STRING  AS zip
+        p AS (
+            SELECT input_id, raw_address,
+                   GEOCODING.PUBLIC.PARSE_ADDRESS(raw_address) AS pa
             FROM src
+        )
+        SELECT input_id, raw_address,
+               pa:number::STRING AS number,
+               GEOCODING.PUBLIC.STANDARDIZE_STREET(pa:street::STRING) AS street_std,
+               pa:city::STRING AS city,
+               pa:zip::STRING  AS zip
+        FROM p';
+
+    us_sql := '
+        WITH parsed AS (
+            SELECT * FROM GEOCODING.PUBLIC._FGC_PARSED
         ),
         matched AS (
             SELECT
@@ -455,7 +464,8 @@ BEGIN
     -- Assemble: every input row, NONE where nothing matched.
     -- -----------------------------------------------------------------------
     EXECUTE IMMEDIATE '
-        CREATE OR REPLACE TABLE ' || OUTPUT_TABLE || ' AS
+        CREATE OR REPLACE TABLE ' || OUTPUT_TABLE || '
+          COMMENT = ''{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'' AS
         SELECT i.input_id, i.raw_address,
                COALESCE(u.result_number, e.result_number) AS result_number,
                COALESCE(u.result_street, e.result_street) AS result_street,

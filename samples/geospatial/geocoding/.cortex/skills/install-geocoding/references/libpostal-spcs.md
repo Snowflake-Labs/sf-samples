@@ -1,6 +1,6 @@
-# libpostal on SPCS (international geocoding, `--intl`)
+# libpostal on SPCS (international geocoding, default; `--no-intl` skips)
 
-The optional `--intl` path adds worldwide, multi-language address parsing by
+The installer's default libpostal step adds worldwide, multi-language address parsing by
 running **libpostal** as an internal Snowpark Container Services (SPCS) service.
 US forward geocoding uses the `usaddress` parser (US-specific); libpostal covers
 non-US / non-Latin addresses.
@@ -11,19 +11,19 @@ libpostal is a C library with ~2 GB of trained models — too large for a plain
 Python UDF. It runs as an internal SPCS service exposed to SQL via service
 functions.
 
-## What `--intl` does
+## What the libpostal step does
 
 1. `CREATE IMAGE REPOSITORY IF NOT EXISTS GEOCODING.PUBLIC.IMAGE_REPOSITORY`.
 2. Resolves the repo URL (`snow spcs image-repository url ...`).
 3. Builds the image **for the installing account's own repository**:
    ```
-   <runtime> build --platform linux/amd64 -t <repo_url>/libpostal:latest libpostal_service/
+   <runtime> build --platform linux/amd64 -t <repo_url>/libpostal:<VERSION> libpostal_service/
    ```
    The image is **not** shared between accounts — each install builds + pushes
    its own copy. This is why the installer never assumes a pre-pushed image.
 4. `snow spcs image-registry login` + `<runtime> push`.
 5. Runs `libpostal_service/deploy.sql`: compute pool `GEOCODING_LIBPOSTAL_POOL`
-   (`CPU_X64_S`, auto-suspend 600 s), service `LIBPOSTAL_SVC`, and functions
+   (`CPU_X64_S`, auto-suspend 600 s), service `LIBPOSTAL_SVC` (auto-suspend 1800 s, cold start about 16 s, or about 100 s with the pool also suspended), and functions
    `PARSE_ADDRESS_INTL(VARCHAR)->OBJECT` and `EXPAND_STREET_INTL(VARCHAR)->ARRAY`.
 
 ## Build notes

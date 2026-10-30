@@ -1,0 +1,39 @@
+version: 2
+
+name: GEOCODING_TESTER
+database: GEOCODING
+schema: PUBLIC
+query_warehouse: MEDIUM
+
+label: "Geocoding Tester"
+description: "Try Snowflake-native forward geocoding, reverse geocoding and address normalization, with results on a map."
+icon: "public/icon.svg"
+
+# Runtime egress for the /api/basemap proxy (CARTO basemap). Created by deploy.sh.
+external_access_integrations:
+  - GEOCODING_TESTER_CARTO_EAI
+
+ignore:
+  - node_modules
+  - .env*
+  - __pycache__
+  - "*.pyc"
+  - .next
+  - .git
+  - snowflake.log
+
+install:
+  commands:
+    - ["npm", "ci", "--include=dev"]
+
+build:
+  commands:
+    - ["npm", "run", "build"]
+    # For standalone mode
+    - ["cp", "-r", ".next/static", ".next/standalone/.next/static"]
+    - ["cp", "-r", "public", ".next/standalone/public"]
+    # Avoid packaging extra node_modules since standalone includes its own
+    - ["rm", "-rf", "node_modules"]
+
+run:
+  command: ["node", ".next/standalone/server.js"]

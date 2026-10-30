@@ -49,7 +49,7 @@ CREATE OR REPLACE PROCEDURE GEOCODING.PUBLIC.REVERSE_GEOCODE_TABLE(
     COUNTRY       VARCHAR DEFAULT NULL)
 RETURNS VARCHAR
 LANGUAGE SQL
-COMMENT = 'oss-geocoding'
+COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
 EXECUTE AS OWNER
 AS
 $$
@@ -91,7 +91,8 @@ BEGIN
     -- Points are GEOGRAPHY: input_geog is built once via ST_POINT(lon, lat),
     -- result_geog is the Overture GEOMETRY.
     EXECUTE IMMEDIATE '
-        CREATE OR REPLACE TABLE ' || OUTPUT_TABLE || ' AS
+        CREATE OR REPLACE TABLE ' || OUTPUT_TABLE || '
+          COMMENT = ''{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'' AS
         SELECT
             t1.' || ID_COLUMN || '        AS input_id,
             ST_POINT(t1.' || LON_COLUMN || '::FLOAT, t1.' || LAT_COLUMN || '::FLOAT) AS input_geog,

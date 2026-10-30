@@ -8,10 +8,10 @@
 -- Run with the warehouse you want to measure (README timings are X-Small), e.g.
 --   snow sql -c <conn> --warehouse GEOCODING_XS_WH -f sql/examples/eu_benchmark.sql
 -- To create it: CREATE WAREHOUSE IF NOT EXISTS GEOCODING_XS_WH
---   WAREHOUSE_SIZE = XSMALL AUTO_SUSPEND = 60 COMMENT = 'oss-geocoding';
+--   WAREHOUSE_SIZE = XSMALL AUTO_SUSPEND = 60 COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
 -- ============================================================================
 
-CREATE OR REPLACE TABLE GEOCODING.PUBLIC.TEST_EU_10K COMMENT = 'oss-geocoding' AS
+CREATE OR REPLACE TABLE GEOCODING.PUBLIC.TEST_EU_10K COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}' AS
 WITH s AS (
     SELECT a.*
     -- Hash of the stable Overture ID (not SAMPLE) keeps the batch identical
@@ -54,9 +54,9 @@ CREATE OR REPLACE TEMPORARY TABLE GEOCODING.PUBLIC._BENCH_IN AS
 CALL GEOCODING.PUBLIC.FORWARD_GEOCODE_TABLE(
     'GEOCODING.PUBLIC._BENCH_IN', 'ADDRESS', 'TEST_ID', 'GEOCODING.PUBLIC.TEST_EU_10K_OUT_FR', 'FR');
 
-ALTER SESSION SET QUERY_TAG = 'oss-geocoding';
-ALTER TABLE GEOCODING.PUBLIC.TEST_EU_10K_OUT_DE SET COMMENT = 'oss-geocoding';
-ALTER TABLE GEOCODING.PUBLIC.TEST_EU_10K_OUT_FR SET COMMENT = 'oss-geocoding';
+ALTER SESSION SET QUERY_TAG = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
+ALTER TABLE GEOCODING.PUBLIC.TEST_EU_10K_OUT_DE SET COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
+ALTER TABLE GEOCODING.PUBLIC.TEST_EU_10K_OUT_FR SET COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';
 
 -- Runtime per step (the CALL row is the end-to-end time).
 SELECT query_tag, warehouse_size,
