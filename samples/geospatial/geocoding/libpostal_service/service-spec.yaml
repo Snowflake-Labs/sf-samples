@@ -1,7 +1,7 @@
 spec:
   containers:
     - name: libpostal
-      image: /GEOCODING/PUBLIC/IMAGE_REPOSITORY/libpostal:latest
+      image: /GEOCODING/PUBLIC/IMAGE_REPOSITORY/libpostal:1.0.0
       readinessProbe:
         port: 8080
         path: /healthcheck

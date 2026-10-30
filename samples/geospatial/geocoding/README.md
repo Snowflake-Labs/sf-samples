@@ -92,9 +92,32 @@ The installer is idempotent (re-runnable), auto-acquires the Overture listing,
 and tags every object with a JSON tracking `COMMENT` (see [Tracking](#tracking)). See
 [.cortex/skills/install-geocoding/SKILL.md](.cortex/skills/install-geocoding/SKILL.md).
 
+Around the install, in `.cortex/skills/install-geocoding/scripts/`:
+
+| Script | What it does |
+|--------|--------------|
+| `preflight.sh` | Read-only check of the CLI, Docker, privileges, SPCS and listings. Exit 0 ready, 1 blocking, 2 degraded. The installer runs it first (`--skip-preflight`). |
+| `verify_geocoding.sh` | Read-only check that US, reverse, libpostal and EU geocoding return real matches and the tester is up. The installer runs it last (`--skip-verify`). |
+| `uninstall_geocoding.sh` | Removes what the installer created, in a safe order. Dry run unless `--yes`. |
+
+Each run writes a receipt with per-step status and timings to
+`logs/install_<account>_<timestamp>.md`, also when a step fails. The libpostal
+image is tagged from `libpostal_service/VERSION`; a re-run skips the build and
+push when that tag is already in the registry (`--rebuild-image` forces it).
+
+To give another role access, add `--grant-role <ROLE>`. It grants USAGE on the
+functions and procedures, the libpostal endpoint and the tester app.
+`references/cost-guardrails.sql` has an opt-in resource monitor and budget.
+If something fails, see `references/troubleshooting.md`.
+
 ### Pause or remove
 
-The libpostal service is billed while it runs. To pause it between uses:
+The libpostal service and its compute pool are billed while they run. The
+service suspends itself after 30 minutes without calls (`AUTO_SUSPEND_SECS =
+1800`), and the pool suspends 10 minutes after that. The next
+`PARSE_ADDRESS_INTL` call, or a European forward geocode, wakes both: about
+16 s if only the service was suspended and about 100 s if the pool was too.
+The function tester has Start and Stop buttons for this. To pause by hand:
 
 ```sql
 ALTER SERVICE GEOCODING.PUBLIC.LIBPOSTAL_SVC SUSPEND;
@@ -112,7 +135,17 @@ DROP TABLE IF EXISTS GEOCODING.PUBLIC.EU_LOCALITY;
 ```
 
 To remove everything the installer created (service, compute pool, image
-repository, functions, procedures and index tables):
+repository, functions, procedures and index tables), run the uninstall script.
+It shows the plan first and only drops with `--yes`:
+
+```bash
+bash .cortex/skills/install-geocoding/scripts/uninstall_geocoding.sh --connection <conn>        # dry run
+bash .cortex/skills/install-geocoding/scripts/uninstall_geocoding.sh --connection <conn> --yes
+```
+
+`--keep-eu-index` keeps the database, `--drop-shares` also drops the Overture
+Marketplace databases, and `--keep-warehouses` keeps the build warehouses. The
+equivalent SQL:
 
 ```sql
 DROP APPLICATION SERVICE IF EXISTS GEOCODING.PUBLIC.GEOCODING_TESTER;
@@ -155,9 +188,16 @@ MapLibre) in `GEOCODING.PUBLIC`. It has three tabs, and every result is drawn on
   address side by side, then geocodes it onto the map.
 
 "Next sample" cycles through single and batch examples, including a 20-row
-batch across six countries and a 20-point US/EU reverse batch. Under the
+batch across six countries and a 20-point US reverse batch. Under the
 results, collapsible panels with copy buttons show the exact **request**
 JSON, the raw **response** JSON and the **SQL** that ran.
+
+A **libpostal** bar above the tabs shows whether the SPCS service is
+running, starting or suspended, with its pool size and idle timer. **Start**
+resumes the pool and the service ahead of a European or normalize call, which
+avoids the 16-100 s cold start. **Stop** suspends both after you confirm.
+When a run needs libpostal and it is suspended, the tester says so before you
+run.
 
 The app runs with owner's rights. It sends user input only as bind
 variables, and keeps per-request input and output tables in

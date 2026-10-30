@@ -17,13 +17,13 @@ functions.
 2. Resolves the repo URL (`snow spcs image-repository url ...`).
 3. Builds the image **for the installing account's own repository**:
    ```
-   <runtime> build --platform linux/amd64 -t <repo_url>/libpostal:latest libpostal_service/
+   <runtime> build --platform linux/amd64 -t <repo_url>/libpostal:<VERSION> libpostal_service/
    ```
    The image is **not** shared between accounts — each install builds + pushes
    its own copy. This is why the installer never assumes a pre-pushed image.
 4. `snow spcs image-registry login` + `<runtime> push`.
 5. Runs `libpostal_service/deploy.sql`: compute pool `GEOCODING_LIBPOSTAL_POOL`
-   (`CPU_X64_S`, auto-suspend 600 s), service `LIBPOSTAL_SVC`, and functions
+   (`CPU_X64_S`, auto-suspend 600 s), service `LIBPOSTAL_SVC` (auto-suspend 1800 s, cold start about 16 s, or about 100 s with the pool also suspended), and functions
    `PARSE_ADDRESS_INTL(VARCHAR)->OBJECT` and `EXPAND_STREET_INTL(VARCHAR)->ARRAY`.
 
 ## Build notes

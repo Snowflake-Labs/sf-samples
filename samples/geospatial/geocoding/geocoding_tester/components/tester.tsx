@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { EmptyState } from "@/components/empty-state"
 import { copyText } from "@/lib/clipboard"
+import { LibpostalControl, libpostalState, type LibpostalStatus } from "@/components/libpostal-control"
 import type { MapPoint } from "@/components/result-map"
 
 // deck.gl and MapLibre need the browser.
@@ -149,6 +150,7 @@ export function Tester() {
   const [exchanges, setExchanges] = useState<Exchange[]>([])
   const [points, setPoints] = useState<MapPoint[]>([])
   const [sample, setSample] = useState(0)
+  const [lp, setLp] = useState<LibpostalStatus | null>(null)
 
   function reset() {
     setResp(null)
@@ -210,9 +212,14 @@ export function Tester() {
   const rows = resp?.rows ?? []
   const cols = rows.length ? Object.keys(rows[0]) : []
   const inputCount = tab === "reverse" ? parsePoints(text).length : tab === "forward" ? parseForward(text).length : 1
+  // libpostal is used for normalization and for every non-US forward row.
+  const needsLibpostal =
+    tab === "normalize" || (tab === "forward" && parseForward(text).some((i) => (i.country ?? country) !== "US"))
+  const lpState = libpostalState(lp)
 
   return (
     <div className="space-y-4">
+      <LibpostalControl onChange={setLp} />
       <div className="flex flex-wrap gap-2">
         {(["forward", "reverse", "normalize"] as Tab[]).map((t) => (
           <Button key={t} variant={tab === t ? "default" : "outline"} onClick={() => switchTab(t)}>
@@ -267,6 +274,16 @@ export function Tester() {
             </Button>
             {resp?.ms != null && <span className="self-center text-sm text-muted-foreground">{(resp.ms / 1000).toFixed(1)} s</span>}
           </div>
+          {needsLibpostal && (lpState === "suspended" || lpState === "starting") && (
+            <p className="text-sm text-warning">
+              libpostal is {lpState}. The first call starts it: about 16 s, or about 100 s if its compute pool is also suspended.
+            </p>
+          )}
+          {needsLibpostal && lpState === "absent" && (
+            <p className="text-sm text-muted-foreground">
+              libpostal is not installed (--no-intl), so only US addresses and the US parser work.
+            </p>
+          )}
         </CardContent>
       </Card>
 

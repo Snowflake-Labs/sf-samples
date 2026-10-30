@@ -15,7 +15,7 @@ done
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TRACKING_TAG='{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"app"}}'
 
-if ! snow app deploy --help >/dev/null 2>&1; then
+if ! snow app setup --help >/dev/null 2>&1; then
   echo "ERROR: this Snowflake CLI has no 'snow app' commands. Upgrade it (brew upgrade snowflake-cli" >&2
   echo "       or pip install -U snowflake-cli), or re-run the installer with --no-app." >&2
   exit 1

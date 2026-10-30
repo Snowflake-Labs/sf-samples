@@ -14,7 +14,8 @@
 #
 # Usage:
 #   bash install_geocoding.sh --connection <conn> [--warehouse <wh>] [--eu-warehouse <wh>]
-#                             [--no-intl | --no-eu] [--no-app]
+#                             [--no-intl | --no-eu] [--no-app] [--grant-role <role>]
+#                             [--skip-preflight] [--skip-verify] [--rebuild-image]
 #
 #   --connection   (required) Snowflake CLI connection name (`snow connection list`)
 #   --warehouse    (optional) warehouse to USE for the session (MEDIUM recommended)
@@ -25,6 +26,13 @@
 #   --no-eu        keep libpostal but skip the European index build (~20 GB).
 #   --no-app       skip deploying the GEOCODING_TESTER app.
 #   --intl, --eu   accepted for backward compatibility; now the default.
+#   --grant-role   grant a role USAGE on the functions, procedures and tester app.
+#   --skip-preflight / --skip-verify   skip the read-only checks before / after.
+#   --rebuild-image  rebuild and push the libpostal image even if the registry
+#                  already has the tag in libpostal_service/VERSION.
+#
+# Every run writes a receipt (step status, timings, URL) to
+# logs/install_<account>_<timestamp>.md, also when a step fails.
 # ============================================================================
 set -euo pipefail
 
@@ -34,6 +42,10 @@ INTL=1
 EU=1
 APP=1
 EU_WAREHOUSE=""
+GRANT_ROLE=""
+SKIP_PREFLIGHT=0
+SKIP_VERIFY=0
+REBUILD_IMAGE=0
 
 usage() { grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
@@ -46,10 +58,19 @@ while [[ $# -gt 0 ]]; do
     --no-eu)         EU=0; shift ;;
     --no-app)        APP=0; shift ;;
     --eu-warehouse)  EU_WAREHOUSE="${2:-}"; shift 2 ;;
+    --grant-role)    GRANT_ROLE="${2:-}"; shift 2 ;;
+    --skip-preflight) SKIP_PREFLIGHT=1; shift ;;
+    --skip-verify)   SKIP_VERIFY=1; shift ;;
+    --rebuild-image) REBUILD_IMAGE=1; shift ;;
     -h|--help)       usage 0 ;;
     *) echo "Unknown argument: $1" >&2; usage 1 ;;
   esac
 done
+
+if [[ -n "$GRANT_ROLE" && ! "$GRANT_ROLE" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+  echo "ERROR: --grant-role must be a plain role name (letters, digits and _)." >&2
+  exit 1
+fi
 
 if [[ -z "$CONN" ]]; then
   echo "ERROR: --connection is required. See: snow connection list" >&2
@@ -67,12 +88,69 @@ APP_DIR="$GEO_ROOT/geocoding_tester"
 TRACKING_TAG='{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}'
 
 export SNOWFLAKE_CLI_NO_UPDATE_CHECK="${SNOWFLAKE_CLI_NO_UPDATE_CHECK:-true}"
+IMAGE_TAG="$(tr -d '[:space:]' < "$LIBPOSTAL_DIR/VERSION")"
+grep -q "libpostal:${IMAGE_TAG}$" "$LIBPOSTAL_DIR/deploy.sql" \
+  || { echo "ERROR: libpostal_service/deploy.sql does not use image tag ${IMAGE_TAG} from VERSION." >&2; exit 1; }
 
-echo "==> Preflight"
+# ----------------------------------------------------------------------------
+# Step tracking and receipt. Each step ends as OK, SKIPPED, DEGRADED or FAILED;
+# the EXIT trap writes the receipt, so a failed run still leaves one.
+# ----------------------------------------------------------------------------
+STEPS=()          # "name|status|seconds|note"
+CUR_STEP=""
+CUR_T0=0
+RUN_T0=$SECONDS
+ACCOUNT=""
+APP_URL=""
+LOG_DIR="$GEO_ROOT/logs"
+begin_step() { CUR_STEP="$1"; CUR_T0=$SECONDS; echo "==> $2"; }
+end_step()   { STEPS+=("$CUR_STEP|$1|$(( SECONDS - CUR_T0 ))|${2:-}"); CUR_STEP=""; }
+skip_step()  { STEPS+=("$1|SKIPPED|0|$2"); }
+
+write_receipt() {
+  local rc="$1" st n stt t note f
+  [[ -n "$ACCOUNT" ]] || return 0
+  [[ -n "$CUR_STEP" ]] && STEPS+=("$CUR_STEP|FAILED|$(( SECONDS - CUR_T0 ))|exit code $rc")
+  mkdir -p "$LOG_DIR"
+  f="$LOG_DIR/install_${ACCOUNT}_$(date +%Y%m%d_%H%M%S).md"
+  {
+    echo "# Geocoding install receipt"
+    echo
+    echo "- Date: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+    echo "- Account: $ACCOUNT (connection \`$CONN\`)"
+    echo "- Options: intl=$INTL eu=$EU app=$APP warehouse=${WAREHOUSE:-default} eu_warehouse=${EU_WAREHOUSE:-default} grant_role=${GRANT_ROLE:-none}"
+    echo "- libpostal image: libpostal:$IMAGE_TAG"
+    if (( rc == 0 )); then echo "- Result: success, $(( (SECONDS - RUN_T0) / 60 )) min total"
+    else echo "- Result: FAILED (exit $rc), $(( (SECONDS - RUN_T0) / 60 )) min total"; fi
+    [[ -n "$APP_URL" ]] && echo "- Function tester: $APP_URL"
+    echo
+    echo "| Step | Status | Time | Note |"
+    echo "|------|--------|------|------|"
+    for st in "${STEPS[@]+"${STEPS[@]}"}"; do
+      IFS='|' read -r n stt t note <<<"$st"
+      printf '| %s | %s | %ss | %s |\n' "$n" "$stt" "$t" "$note"
+    done
+  } > "$f"
+  echo
+  echo "Step summary:"
+  for st in "${STEPS[@]+"${STEPS[@]}"}"; do
+    IFS='|' read -r n stt t note <<<"$st"
+    printf '    %-10s %-9s %5ss  %s\n' "$n" "$stt" "$t" "$note"
+  done
+  echo "Receipt: $f"
+}
+
+# ----------------------------------------------------------------------------
+# Preflight (read-only). Exit 1 = blocking (stop), 2 = degraded (continue).
+# ----------------------------------------------------------------------------
 command -v snow >/dev/null 2>&1 || { echo "ERROR: Snowflake CLI (snow) not found." >&2; exit 1; }
-snow sql -c "$CONN" --silent --format csv -q "SELECT 'connected: ' || CURRENT_ACCOUNT() || ' as ' || CURRENT_ROLE() AS c;" \
-  | tail -n +2 | sed 's/^/    /' \
-  || { echo "ERROR: connection '$CONN' is not usable." >&2; exit 1; }
+ACCOUNT="$(snow sql -c "$CONN" --silent --format csv -q "SELECT CURRENT_ACCOUNT() AS a;" 2>/dev/null | tail -1 | tr -d '"[:space:]')"
+[[ -n "$ACCOUNT" ]] || { echo "ERROR: connection '$CONN' is not usable." >&2; exit 1; }
+
+FLAGS=()
+[[ "$INTL" -eq 0 ]] && FLAGS+=(--no-intl)
+[[ "$EU" -eq 0 ]] && FLAGS+=(--no-eu)
+[[ "$APP" -eq 0 ]] && FLAGS+=(--no-app)
 
 # ----------------------------------------------------------------------------
 # Core install — single session so QUERY_TAG applies across all modules.
@@ -93,8 +171,23 @@ for m in "${MODULES[@]}"; do
 done
 
 TMP_SQL="$(mktemp -t install_geocoding.XXXXXX.sql)"
-cleanup() { rm -f "$TMP_SQL" "${PUSH_LOG:-}"; }
+cleanup() { local rc=$?; rm -f "$TMP_SQL" "${PUSH_LOG:-}"; write_receipt "$rc"; }
 trap cleanup EXIT
+
+if [[ "$SKIP_PREFLIGHT" -eq 1 ]]; then
+  skip_step preflight "--skip-preflight"
+else
+  begin_step preflight "Preflight (read-only)"
+  set +e
+  bash "$SCRIPT_DIR/preflight.sh" --connection "$CONN" "${FLAGS[@]+"${FLAGS[@]}"}"
+  PF=$?
+  set -e
+  case "$PF" in
+    0) end_step OK ;;
+    2) end_step DEGRADED "see DEGRADED lines above" ;;
+    *) echo "ERROR: preflight found blocking problems (above). Fix them, or re-run with --skip-preflight." >&2; exit 1 ;;
+  esac
+fi
 
 {
   echo "ALTER SESSION SET QUERY_TAG = '${TRACKING_TAG}';"
@@ -106,7 +199,7 @@ trap cleanup EXIT
   done
 } > "$TMP_SQL"
 
-echo "==> Deploying core geocoding objects (GEOCODING.PUBLIC, ${#MODULES[@]} modules)"
+begin_step core "Deploying core geocoding objects (GEOCODING.PUBLIC, ${#MODULES[@]} modules)"
 # --silent drops the statement echo (about 1,500 lines of SQL source). The
 # output is shown in full only when something fails.
 if ! CORE_OUT="$(snow sql -c "$CONN" --silent --format csv -f "$TMP_SQL" 2>&1)"; then
@@ -117,12 +210,16 @@ fi
 # Report only the setup messages (listing, share resolution, row count).
 echo "$CORE_OUT" | grep -E '^"?(Overture |Could not|OVERTURE_ADDRESS view|ERROR)' \
   | tr -d '"' | sed 's/^/    /'
+end_step OK "${#MODULES[@]} SQL modules"
 
 # ----------------------------------------------------------------------------
 # International path (default; --no-intl skips) — libpostal on SPCS.
 # ----------------------------------------------------------------------------
-if [[ "$INTL" -eq 1 ]]; then
-  echo "==> International (libpostal SPCS) path"
+if [[ "$INTL" -eq 0 ]]; then
+  skip_step intl "--no-intl"
+else
+  begin_step intl "International (libpostal SPCS) path"
+  INTL_NOTE=""
   CONTAINER_CMD=""
   # Use the first runtime whose daemon / VM actually answers, not just the
   # first binary on PATH.
@@ -145,52 +242,63 @@ if [[ "$INTL" -eq 1 ]]; then
   fi
   echo "    repository: $REPO_URL"
 
-  echo "    building linux/amd64 image (this can take a while on ARM)"
-  "$CONTAINER_CMD" build --platform linux/amd64 -t "${REPO_URL}/libpostal:latest" "$LIBPOSTAL_DIR"
+  # The image tag comes from libpostal_service/VERSION. Skip the long build and
+  # push when the registry already has it; --rebuild-image forces both.
+  HAVE_TAG="$(snow sql -c "$CONN" --silent --format csv -q \
+    "SHOW IMAGES IN IMAGE REPOSITORY GEOCODING.PUBLIC.IMAGE_REPOSITORY ->> SELECT COUNT(*) AS n FROM \$1 WHERE \"image_name\" = 'libpostal' AND \"tags\" = '${IMAGE_TAG}';" \
+    2>/dev/null | tail -1 | tr -d '"[:space:]')"
+  if [[ "$HAVE_TAG" == "1" && "$REBUILD_IMAGE" -eq 0 ]]; then
+    echo "    image libpostal:${IMAGE_TAG} already in the registry; skipping build and push (--rebuild-image forces it)"
+    INTL_NOTE="image libpostal:${IMAGE_TAG} reused"
+  else
+    echo "    building linux/amd64 image (this can take a while on ARM)"
+    "$CONTAINER_CMD" build --platform linux/amd64 -t "${REPO_URL}/libpostal:${IMAGE_TAG}" "$LIBPOSTAL_DIR"
 
-  echo "    logging in to the SPCS image registry"
-  snow spcs image-registry login -c "$CONN"
+    echo "    logging in to the SPCS image registry"
+    snow spcs image-registry login -c "$CONN"
 
-  # The image is about 3.5 GB (libpostal models). A push uploads several layers
-  # in parallel, and on a slow uplink a large upload often ends with "timeout
-  # awaiting response headers". The Dockerfile therefore cuts the models into
-  # 200 MB parts, one build stage each; pushing the stages in order uploads a
-  # single new layer per push. A retry skips layers the registry already has.
-  # A non-TTY push prints nothing for minutes, so print a heartbeat.
-  PUSH_LOG="$(mktemp -t install_geocoding_push.XXXXXX)"
-  push_with_retry() {
-    local image="$1" attempt
-    for attempt in 1 2 3 4 5 6 7 8; do
-      "$CONTAINER_CMD" push "$image" > "$PUSH_LOG" 2>&1 &
-      local pid=$! t0=$SECONDS
-      while kill -0 "$pid" 2>/dev/null; do
-        sleep 60
-        kill -0 "$pid" 2>/dev/null && echo "        still pushing ${image##*:} ($(( (SECONDS - t0) / 60 )) min)"
+    # The image is about 3.5 GB (libpostal models). A push uploads several layers
+    # in parallel, and on a slow uplink a large upload often ends with "timeout
+    # awaiting response headers". The Dockerfile therefore cuts the models into
+    # 200 MB parts, one build stage each; pushing the stages in order uploads a
+    # single new layer per push. A retry skips layers the registry already has.
+    # A non-TTY push prints nothing for minutes, so print a heartbeat.
+    PUSH_LOG="$(mktemp -t install_geocoding_push.XXXXXX)"
+    push_with_retry() {
+      local image="$1" attempt
+      for attempt in 1 2 3 4 5 6 7 8; do
+        "$CONTAINER_CMD" push "$image" > "$PUSH_LOG" 2>&1 &
+        local pid=$! t0=$SECONDS
+        while kill -0 "$pid" 2>/dev/null; do
+          sleep 60
+          kill -0 "$pid" 2>/dev/null && echo "        still pushing ${image##*:} ($(( (SECONDS - t0) / 60 )) min)"
+        done
+        wait "$pid" && return 0
+        echo "        attempt ${attempt}/8 failed: $(grep -oE 'timeout[^"]*|denied[^"]*|unauthorized[^"]*' "$PUSH_LOG" | tail -1)"
       done
-      wait "$pid" && return 0
-      echo "        attempt ${attempt}/8 failed: $(grep -oE 'timeout[^"]*|denied[^"]*|unauthorized[^"]*' "$PUSH_LOG" | tail -1)"
-    done
-    cat "$PUSH_LOG" >&2
-    return 1
-  }
-  STAGES=(part-base part-0 part-1 part-2 part-3 part-4 part-5 part-6 part-7)
-  N=$(( ${#STAGES[@]} + 1 ))
-  i=0
-  for stage in "${STAGES[@]}" latest; do
-    i=$(( i + 1 ))
-    if [[ "$stage" != latest ]]; then
-      "$CONTAINER_CMD" build -q --platform linux/amd64 --target "$stage" \
-        -t "${REPO_URL}/libpostal:${stage}" "$LIBPOSTAL_DIR" >/dev/null
-    fi
-    echo "    pushing image, step ${i}/${N} (${stage})"
-    push_with_retry "${REPO_URL}/libpostal:${stage}" || {
-      rm -f "$PUSH_LOG"
-      echo "ERROR: image push failed (log above). Re-run the installer to resume; uploaded layers are kept." >&2
-      exit 1
+      cat "$PUSH_LOG" >&2
+      return 1
     }
-  done
-  rm -f "$PUSH_LOG"
-  echo "    image pushed"
+    STAGES=(part-base part-0 part-1 part-2 part-3 part-4 part-5 part-6 part-7)
+    N=$(( ${#STAGES[@]} + 1 ))
+    i=0
+    for stage in "${STAGES[@]}" "$IMAGE_TAG"; do
+      i=$(( i + 1 ))
+      if [[ "$stage" != "$IMAGE_TAG" ]]; then
+        "$CONTAINER_CMD" build -q --platform linux/amd64 --target "$stage" \
+          -t "${REPO_URL}/libpostal:${stage}" "$LIBPOSTAL_DIR" >/dev/null
+      fi
+      echo "    pushing image, step ${i}/${N} (${stage})"
+      push_with_retry "${REPO_URL}/libpostal:${stage}" || {
+        rm -f "$PUSH_LOG"
+        echo "ERROR: image push failed (log above). Re-run the installer to resume; uploaded layers are kept." >&2
+        exit 1
+      }
+    done
+    rm -f "$PUSH_LOG"
+    echo "    image pushed"
+    INTL_NOTE="image libpostal:${IMAGE_TAG} built and pushed"
+  fi
 
   echo "    deploying SPCS service + intl functions"
   # A re-run may find the pool / service suspended (e.g. after cost control).
@@ -225,14 +333,17 @@ if [[ "$INTL" -eq 1 ]]; then
   snow sql -c "$CONN" --silent --format csv -q \
     "SELECT 'smoke test: ' || GEOCODING.PUBLIC.PARSE_ADDRESS_INTL('Rue de Rivoli 10, 75001 Paris'):road::STRING AS t;" \
     | tail -1 | sed 's/^/    /'
+  end_step OK "$INTL_NOTE"
 fi
 
 # ----------------------------------------------------------------------------
 # European forward geocoding (default; --no-eu skips) — one-time candidate index build.
 # Idempotent: BUILD_EU_INDEX(FALSE) only builds tables that do not exist yet.
 # ----------------------------------------------------------------------------
-if [[ "$EU" -eq 1 ]]; then
-  echo "==> European forward geocoding index (BUILD_EU_INDEX)"
+if [[ "$EU" -eq 0 ]]; then
+  if [[ "$INTL" -eq 0 ]]; then skip_step eu "--no-intl"; else skip_step eu "--no-eu"; fi
+else
+  begin_step eu "European forward geocoding index (BUILD_EU_INDEX)"
   # The locality polygons come from the free Overture Maps "Divisions" listing
   # (Carto). Acquire it the same way 00_setup.sql acquires Addresses.
   echo "    ensuring the Overture Maps Divisions listing (GZT0Z4CM1E9M9)"
@@ -249,14 +360,66 @@ if [[ "$EU" -eq 1 ]]; then
     CALL GEOCODING.PUBLIC.BUILD_EU_INDEX(FALSE);" | grep -E '^"?(EU index|ERROR)' | tr -d '"')"
   echo "    $EU_OUT"
   if [[ "$EU_OUT" == ERROR* ]]; then exit 1; fi
+  end_step OK "$EU_OUT"
 fi
 
 # ----------------------------------------------------------------------------
 # Tester app (default; --no-app skips) — Snowflake App Runtime.
 # ----------------------------------------------------------------------------
-if [[ "$APP" -eq 1 ]]; then
-  echo "==> GEOCODING_TESTER app (Snowflake App Runtime)"
+if [[ "$APP" -eq 0 ]]; then
+  skip_step app "--no-app"
+elif ! snow app setup --help >/dev/null 2>&1; then
+  # Not fatal: everything else works without the tester.
+  STEPS+=("app|DEGRADED|0|snow CLI has no App Runtime commands; upgrade to 3.26+ and run geocoding_tester/deploy.sh")
+  echo "==> GEOCODING_TESTER app: skipped (this snow CLI has no App Runtime commands; upgrade to 3.26+)"
+  APP=0
+else
+  begin_step app "GEOCODING_TESTER app (Snowflake App Runtime)"
   bash "$APP_DIR/deploy.sh" --connection "$CONN"
+  APP_URL="$(cd "$APP_DIR" && snow app open -c "$CONN" --print-only 2>/dev/null | grep -oE 'https://[^[:space:]]+' | head -1 || true)"
+  end_step OK "${APP_URL:-URL not found}"
+fi
+
+# ----------------------------------------------------------------------------
+# Optional: give another role access (--grant-role). Procedures run as owner,
+# so the role needs no access to the Overture shares itself.
+# ----------------------------------------------------------------------------
+if [[ -n "$GRANT_ROLE" ]]; then
+  begin_step grants "Granting role $GRANT_ROLE access"
+  GRANT_SQL="GRANT USAGE ON DATABASE GEOCODING TO ROLE $GRANT_ROLE;
+    GRANT USAGE ON SCHEMA GEOCODING.PUBLIC TO ROLE $GRANT_ROLE;
+    GRANT USAGE ON ALL FUNCTIONS IN SCHEMA GEOCODING.PUBLIC TO ROLE $GRANT_ROLE;
+    GRANT USAGE ON ALL PROCEDURES IN SCHEMA GEOCODING.PUBLIC TO ROLE $GRANT_ROLE;
+    GRANT SELECT ON ALL VIEWS IN SCHEMA GEOCODING.PUBLIC TO ROLE $GRANT_ROLE;"
+  GRANT_NOTE="database, schema, functions, procedures, views"
+  if [[ "$INTL" -eq 1 ]]; then
+    GRANT_SQL+=" GRANT SERVICE ROLE GEOCODING.PUBLIC.LIBPOSTAL_SVC!ALL_ENDPOINTS_USAGE TO ROLE $GRANT_ROLE;"
+    GRANT_NOTE+=", libpostal endpoint"
+  fi
+  if [[ "$APP" -eq 1 ]]; then
+    GRANT_SQL+=" GRANT USAGE ON APPLICATION SERVICE GEOCODING.PUBLIC.GEOCODING_TESTER TO ROLE $GRANT_ROLE;"
+    GRANT_NOTE+=", tester app"
+  fi
+  snow sql -c "$CONN" --silent -q "$GRANT_SQL" >/dev/null
+  end_step OK "$GRANT_NOTE"
+fi
+
+# ----------------------------------------------------------------------------
+# Verify (read-only checks on real Overture rows).
+# ----------------------------------------------------------------------------
+if [[ "$SKIP_VERIFY" -eq 1 ]]; then
+  skip_step verify "--skip-verify"
+else
+  begin_step verify "Verifying (read-only)"
+  VFLAGS=()
+  [[ "$INTL" -eq 0 ]] && VFLAGS+=(--no-intl)
+  [[ "$EU" -eq 0 ]] && VFLAGS+=(--no-eu)
+  [[ "$APP" -eq 0 ]] && VFLAGS+=(--no-app)
+  if bash "$SCRIPT_DIR/verify_geocoding.sh" --connection "$CONN" "${VFLAGS[@]+"${VFLAGS[@]}"}"; then
+    end_step OK
+  else
+    end_step DEGRADED "some checks failed; see above and references/troubleshooting.md"
+  fi
 fi
 
 # ----------------------------------------------------------------------------
@@ -274,11 +437,6 @@ snow sql -c "$CONN" --silent --format csv -q "
   ->> SELECT 'PROCEDURE: ' || LISTAGG(DISTINCT \"name\", ', ') WITHIN GROUP (ORDER BY \"name\") AS objects FROM \$1;" \
   | grep -v -e '^OBJECTS$' -e '^[[:space:]]*$' | tr -d '"' | sed 's/^/    /' || true
 
-APP_URL=""
-if [[ "$APP" -eq 1 ]]; then
-  APP_URL="$(cd "$APP_DIR" && snow app open -c "$CONN" --print-only 2>/dev/null | grep -oE 'https://[^[:space:]]+' | head -1 || true)"
-fi
-
 cat <<EOF
 
 Geocoding is installed.
@@ -293,4 +451,5 @@ Try it:
   CALL GEOCODING.PUBLIC.REVERSE_GEOCODE_TABLE('MY_DB.PUBLIC.PINGS','LAT','LON','DEVICE_ID',200,'MY_DB.PUBLIC.PINGS_ADDRESSED','US');
 
 Smoke tests: $SQL_DIR/examples/
+Remove:      bash $SCRIPT_DIR/uninstall_geocoding.sh --connection $CONN   (dry run first)
 EOF

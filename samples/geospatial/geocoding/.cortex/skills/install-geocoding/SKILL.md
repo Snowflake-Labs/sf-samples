@@ -62,6 +62,33 @@ JSON `QUERY_TAG` with `"origin":"sf_sit-is-geocoding"` and
   you have neither (US forward + reverse only). See `references/libpostal-spcs.md`. Podman machines with
   2 GiB of memory tend to fail this build; prefer Docker.
 
+### Privileges
+
+ACCOUNTADMIN covers everything. A custom installing role needs:
+
+| Privilege | On | Needed for |
+|-----------|----|-----------|
+| `CREATE DATABASE`, `IMPORT SHARE` | account | `GEOCODING` and the Overture listings |
+| `USAGE` | a warehouse | every step (X-Large recommended for the EU build) |
+| `CREATE COMPUTE POOL`, `BIND SERVICE ENDPOINT` | account | libpostal (skip with `--no-intl`) |
+| `CREATE INTEGRATION` | account | tester basemap EAI (skip with `--no-app`) |
+
+`preflight.sh` checks the account-level ones directly granted to your role.
+
+To let **another role use** geocoding, pass `--grant-role <ROLE>`. It grants:
+
+- `USAGE` on `GEOCODING`, `GEOCODING.PUBLIC` and all functions and procedures
+- `SELECT` on the views
+- the libpostal service role `LIBPOSTAL_SVC!ALL_ENDPOINTS_USAGE`
+- `USAGE` on the `GEOCODING_TESTER` application service
+
+The procedures run as owner, so that role needs no grant on the Overture
+shares. It does need write access to the schema it names as the output table;
+the table it creates belongs to the installing role.
+
+Optional spending limits (a resource monitor and a custom budget) are in
+`references/cost-guardrails.sql`. The installer does not apply them.
+
 ## External access integrations
 
 **None required for geocoding.** The tester app gets `GEOCODING_TESTER_CARTO_EAI` (CARTO basemap hosts only), because Snowflake App Runtime's CSP blocks the browser from fetching tiles directly. All geocoding runs on Snowflake-resident data plus the shared
@@ -74,28 +101,35 @@ access integration or network rule.
 
 ### Step 1: Preflight
 
-**Goal:** confirm the tools and connection. The Overture share is acquired
-automatically in Step 2, so no manual Marketplace step is needed up front.
+**Goal:** find blocking problems in about a minute, before a long install.
 
-1. **Check** the CLI and connection:
-   ```bash
-   snow --version
-   snow connection list
-   snow sql -c <connection> -q "SELECT CURRENT_ACCOUNT(), CURRENT_ROLE();"
-   ```
-2. **(Optional)** see whether an Overture Addresses share is already present
-   (either name is fine; the installer also auto-acquires it):
-   ```bash
-   snow sql -c <connection> -q "SHOW DATABASES LIKE '%OVERTURE_MAPS__ADDRESSES%';"
-   ```
+```bash
+bash .cortex/skills/install-geocoding/scripts/preflight.sh --connection <connection> [--no-intl|--no-eu|--no-app]
+```
+
+Read-only. It checks:
+
+- the Snowflake CLI and `snow app` support
+- Docker or Podman health
+- the connection, role and region
+- the CREATE DATABASE, IMPORT SHARE, CREATE COMPUTE POOL, BIND SERVICE ENDPOINT
+  and CREATE INTEGRATION privileges
+- that SPCS is available
+- both Overture listings
+- an existing install
+- an X-Large warehouse for the EU build
+
+Exit code `0` means ready, `1` blocking (fix first) and `2` ready with
+degraded features. Show the user every BLOCKING and DEGRADED line with its
+fix. The installer runs this itself first (`--skip-preflight` turns that off).
 
 **Output:** environment confirmed.
 
 ### Step 2: Install
 
 **MANDATORY STOPPING POINT**: the default install builds and pushes a ~3.5 GB
-container image, creates an SPCS compute pool (`CPU_X64_S`, auto-suspends after
-10 min idle) and service, builds a one-time European index (~19.7 GB, hours below
+container image, creates an SPCS compute pool (`CPU_X64_S`) and service (the service
+suspends after 30 min without calls, the pool 10 min later), builds a one-time European index (~19.7 GB, hours below
 X-Large) and deploys the `GEOCODING_TESTER` app. Confirm with the user first, and
 offer `--no-intl` (US + reverse only), `--no-eu` or `--no-app`.
 
@@ -135,24 +169,26 @@ re-applies the service spec.
 **Output:** forward (US + 14 EU countries), reverse and international parsing in
 `GEOCODING.PUBLIC`, plus the tester app.
 
-### Step 4: Verify
+### Step 3: Verify
+
+The installer finishes by running the read-only verify script; run it again at
+any time:
 
 ```bash
-snow sql -c <connection> -f sql/examples/forward_geocode.sql
-snow sql -c <connection> -f sql/examples/reverse_geocode.sql
-# European:
-snow sql -c <connection> -f sql/examples/eu_test_set.sql
-snow sql -c <connection> -f sql/examples/eu_forward_geocode.sql
-snow sql -c <connection> -f sql/examples/eu_reverse_geocode.sql
-snow sql -c <connection> --warehouse GEOCODING_XS_WH -f sql/examples/eu_benchmark.sql
+bash .cortex/skills/install-geocoding/scripts/verify_geocoding.sh --connection <connection> [--no-intl|--no-eu|--no-app]
 ```
 
-The benchmark timings in the README are for X-Small. Create one if needed:
-`CREATE WAREHOUSE IF NOT EXISTS GEOCODING_XS_WH WAREHOUSE_SIZE = XSMALL
-AUTO_SUSPEND = 60 INITIALLY_SUSPENDED = TRUE COMMENT = '{"origin":"sf_sit-is-geocoding","name":"oss-geocoding","version":{"major":1,"minor":0},"attributes":{"is_quickstart":1,"source":"sql"}}';`
+It checks that the functions and procedures exist, then:
 
-Confirm the smoke tests return matches. The first `PARSE_ADDRESS` call is slow
-(~30 s) while the PyPI package installs; later calls are fast.
+- forward-geocodes 3 real US Overture addresses
+- reverse-geocodes their points
+- calls `PARSE_ADDRESS_INTL`
+- forward-geocodes one DE and one FR address at `ADDRESS` level
+- finds the tester URL
+
+It exits `0` when everything passes and takes about 3 minutes, mostly the US
+reverse scan. For deeper checks, run `sql/examples/*.sql` (forward, reverse,
+EU test set and benchmarks).
 
 ### Step 4: Hand off
 
@@ -178,6 +214,12 @@ Batch SQL and benchmark numbers are in README.md."
 | `--no-app` | off | Skip deploying the `GEOCODING_TESTER` app |
 | `--intl`, `--eu` | n/a | Accepted for backward compatibility; now the default |
 | `--eu-warehouse` | `--warehouse` | Warehouse for the one-time EU index build (X-Large recommended) |
+| `--grant-role` | none | Give a role USAGE on the functions, procedures, libpostal endpoint and tester |
+| `--skip-preflight` / `--skip-verify` | off | Skip the read-only checks before / after the install |
+| `--rebuild-image` | off | Rebuild and push the libpostal image even if its `VERSION` tag is in the registry |
+
+Each run writes a receipt with per-step status (OK, SKIPPED, DEGRADED, FAILED)
+and timings to `logs/install_<account>_<timestamp>.md`, also when it fails.
 
 ## Stopping Points
 
@@ -220,6 +262,9 @@ The full tables, cost and limitations (UK none, CZ and PL street gaps; PT, FI an
 CH house-number gaps) are in the README section "European forward geocoding".
 
 ## Troubleshooting
+
+The full Symptom / Cause / Fix tables are in `references/troubleshooting.md`.
+The most common:
 
 - **`00_setup.sql` sanity check returns 0 / errors:** the Overture listing
   couldn't be auto-acquired (region not auto-fulfilled) or your role lacks
