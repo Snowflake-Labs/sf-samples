@@ -68,6 +68,7 @@ If it doesn't fit neatly into one of those — or crosses multiple areas — thi
 | [leveraging_kumo_for_smarter_recommendations](samples/leveraging_kumo_for_smarter_recommendations) | Product recommendations for high-LTV customers using Kumo's Native App |
 | [prescriptive-maintenance-demo](samples/prescriptive-maintenance-demo) | Prescriptive maintenance with scikit-learn and Snowpark |
 | [multimodal-process-analytics](samples/multimodal-process-analytics) | Multimodal process analytics notebook using ML |
+| [boxoffice-signal-ml-starter](samples/boxoffice-signal-ml-starter) | Predicting outcomes from public conversation: Cortex AISQL intent scoring, as-of feature engineering, walk-forward validation |
 
 ### Snowpark
 
