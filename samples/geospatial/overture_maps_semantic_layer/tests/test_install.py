@@ -75,6 +75,26 @@ class InstallerTests(unittest.TestCase):
         executable = [line for line in rendered.splitlines() if not line.lstrip().startswith("--")]
         self.assertFalse(any("snowflake intelligence" in line.lower() for line in executable))
 
+    def test_cowork_and_warehouse_opt_out(self) -> None:
+        config = deepcopy(self.config)
+        config.update(register_cowork=False, grant_shared_objects=False)
+        client, statements = self.cowork_client([{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}], [])
+        self.assertIsNone(install.register_cowork(config, client))
+        self.assertEqual(statements, [])
+        grants = install.grant_sql(config).lower()
+        self.assertNotIn("warehouse", grants)
+        self.assertNotIn("on database", grants)
+        self.assertIn("on agent", grants)
+        checks = [[{"ID": "p"}]] * 4 + [[{"PLACE_ID": "p"}], [], [{"SERVING_STATE": "ACTIVE"}]]
+        client = unittest.mock.Mock()
+        client.query.side_effect = checks
+        with patch("builtins.print"):
+            self.assertEqual(install.verify(config, client), "skipped")
+        config["register_cowork"] = "no"
+        with patch.object(install.tomllib, "loads", return_value=config):
+            with self.assertRaisesRegex(ValueError, "true or false"):
+                install.load_config(ROOT / "config.example.toml")
+
     def test_cowork_privilege_error_names_grant(self) -> None:
         error = install.subprocess.CalledProcessError(1, "snow", stderr="Insufficient privileges")
         client = unittest.mock.Mock()

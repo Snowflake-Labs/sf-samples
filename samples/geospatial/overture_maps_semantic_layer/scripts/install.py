@@ -125,6 +125,9 @@ def load_config(path: Path, require_connection: bool = True) -> dict[str, Any]:
     schemas = [config[key].upper() for key in ("schema", "project_schema", "raw_schema")]
     if len(set(schemas)) != 3:
         raise ValueError("schema, project_schema and raw_schema must all differ")
+    for key in ("register_cowork", "grant_shared_objects"):
+        if type(config.setdefault(key, True)) is not bool:
+            raise ValueError(f"{key} must be true or false")
     if require_connection and (
         not isinstance(config.get("connection"), str) or not config["connection"].strip()
     ):
@@ -150,6 +153,11 @@ def load_config(path: Path, require_connection: bool = True) -> dict[str, Any]:
     integration = config.get("s3", {}).get("storage_integration", "")
     if integration:
         identifier(integration)
+    clone_stage = config.get("s3", {}).get("clone_stage", "")
+    if clone_stage:
+        identifier(clone_stage, 3)
+        if integration:
+            raise ValueError("Set s3.storage_integration or s3.clone_stage, not both")
     release = config.get("s3", {}).get("release", "latest")
     if release != "latest" and not RELEASE.fullmatch(release):
         raise ValueError("s3.release must be latest or YYYY-MM-DD.N")
@@ -527,9 +535,21 @@ def load_s3(config: dict[str, Any], client: SnowCLI, load_id: str | None = None,
         raise ValueError("S3 data is already loaded in the raw schema. Install reuses it; "
                          "to load a different release or area, run cleanup first.")
     integration = config.get("s3", {}).get("storage_integration", "")
-    client.query(render_file("sql/05_s3_setup.sql", config,
-                            integration=f"storage_integration = {identifier(integration)}"
-                            if integration else ""))
+    clone_stage = config.get("s3", {}).get("clone_stage", "")
+    if clone_stage:
+        # Accounts that forbid new credential-less stages still allow cloning one an
+        # admin already approved; the clone is repointed and the original is untouched.
+        client.query(f"create stage if not exists {ns}.OVERTURE_S3 clone {identifier(clone_stage, 3)}")
+        client.query(render_file("sql/05_s3_setup.sql", config, integration="")
+                     .split("create stage")[0]
+                     + f"alter stage {ns}.OVERTURE_S3 set "
+                       "url = 's3://overturemaps-us-west-2/release/' "
+                       f"file_format = (format_name = '{ns}.OVERTURE_PARQUET') "
+                       f"comment = {literal(marker(config))};")
+    else:
+        client.query(render_file("sql/05_s3_setup.sql", config,
+                                integration=f"storage_integration = {identifier(integration)}"
+                                if integration else ""))
     if requested != "latest":
         release = requested
     else:
@@ -674,10 +694,13 @@ def grant_sql(config: dict[str, Any], cowork: str | None = None) -> str:
         return ""
     ns = namespace(config)
     role = identifier(config["viewer_role"])
-    statements = [f"grant usage on database {identifier(config['database'])} to role {role}",
-                  f"grant usage on warehouse {identifier(config['warehouse'])} to role {role}",
-                  f"grant usage on agent {ns}.OVERTURE_MAPS_AGENT to role {role}",
-                  f"grant usage on cortex search service {ns}.CATEGORY_SEARCH to role {role}"]
+    statements = []
+    if config.get("grant_shared_objects", True):
+        # Shared with other applications; skip where the installer cannot grant on them.
+        statements += [f"grant usage on database {identifier(config['database'])} to role {role}",
+                       f"grant usage on warehouse {identifier(config['warehouse'])} to role {role}"]
+    statements += [f"grant usage on agent {ns}.OVERTURE_MAPS_AGENT to role {role}",
+                   f"grant usage on cortex search service {ns}.CATEGORY_SEARCH to role {role}"]
     if cowork:
         # Without USAGE on the CoWork object the viewer sees an empty agent list.
         statements.append(f"grant usage on snowflake intelligence {cowork} to role {role}")
@@ -709,6 +732,8 @@ def register_cowork(config: dict[str, Any], client: Any) -> str | None:
     is already present, so check first instead of catching errors (the agent
     path cannot run scripting blocks).
     """
+    if not config.get("register_cowork", True):
+        return None
     try:
         cowork = cowork_object(client)
         if cowork and not cowork_listed(config, client, cowork):
@@ -744,7 +769,7 @@ def verify(config: dict[str, Any], client: SnowCLI) -> str:
     search = client.query(f"describe cortex search service {ns}.CATEGORY_SEARCH")[0]
     if search.get("SERVING_STATE") != "ACTIVE" or search.get("INDEXING_ERROR"):
         raise ValueError(f"Search service is not ready: {search}")
-    cowork = cowork_object(client)
+    cowork = cowork_object(client) if config.get("register_cowork", True) else None
     if cowork and not cowork_listed(config, client, cowork):
         raise ValueError(f"The agent is not added to the CoWork object {cowork}, so users "
                          "cannot see it there. Rerun install with a role that has "
@@ -752,6 +777,9 @@ def verify(config: dict[str, Any], client: SnowCLI) -> str:
     print(f"Data/model/search checks passed. Agent: {ns}.OVERTURE_MAPS_AGENT")
     if cowork:
         print(f"CoWork: agent registered in {cowork}.")
+    elif not config.get("register_cowork", True):
+        print("CoWork: registration skipped (register_cowork = false).")
+        return "skipped"
     else:
         print("CoWork: no CoWork object in this account, so none was created and the agent "
               "is listed for every role with USAGE on it.")
