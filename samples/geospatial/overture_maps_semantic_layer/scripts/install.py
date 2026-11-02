@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""Render or install the Overture sample through the user's Snowflake CLI connection."""
+"""Install the Overture sample: pre-deploy SQL, a DCM project, then post-deploy SQL."""
 
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 from decimal import Decimal
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 from string import Template
@@ -18,8 +21,17 @@ from typing import Any
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.1.0"
+VERSION = "2.0.0"
 MARKER_PREFIX = "overture-maps-semantic-layer:"
+# 1.x installed every object imperatively; 2.x lets a DCM project own the model.
+LEGACY_MARKER = MARKER_PREFIX + "1."
+DCM_PROJECT = "OVERTURE_MAPS_SEMANTIC_LAYER"
+# snow dcm needs Snowflake CLI 3.24+; SNOW_CLI points at it if `snow` is older.
+SNOW = os.environ.get("SNOW_CLI", "snow")
+MIN_SNOW_CLI = (3, 24)
+# CATEGORY_VOCAB is a full-refresh dynamic table over PLACE: each refresh rescans
+# places, and the vocabulary only changes with a new release.
+VOCAB_TARGET_LAG = "7 days"
 THEMES = ("place", "division", "division_area", "division_boundary")
 # Opt-in themes. Each is too large for an unbounded scan (buildings: a bbox
 # filter scanned 15 GB in 1.8 s; the same box as a geometry predicate scanned
@@ -70,12 +82,20 @@ TYPE_PREFIXES = {
     "boolean": ("BOOLEAN",),
 }
 ALL_THEMES = THEMES + OPTIONAL_THEMES
-OBJECTS = {
+# Objects a 1.x installation created in the sample schema, for migrate-legacy.
+LEGACY_OBJECTS = {
     "VIEW": [theme.upper() for theme in ALL_THEMES],
     "SEMANTIC VIEW": ["OVERTURE_MAPS_SV"],
     "CORTEX SEARCH SERVICE": ["CATEGORY_SEARCH"],
     "AGENT": ["OVERTURE_MAPS_AGENT"],
     "TABLE": ["DATASET_INFO", "CATEGORY_VOCAB"] + [f"RAW_{theme.upper()}" for theme in ALL_THEMES],
+    "STAGE": ["OVERTURE_S3"],
+    "FILE FORMAT": ["OVERTURE_PARQUET"],
+}
+# S3 data lives in the raw schema, outside the DCM project, so a redeploy or
+# purge of the model never touches loaded data.
+RAW_OBJECTS = {
+    "TABLE": ["LOAD_INFO"] + [f"RAW_{theme.upper()}" for theme in ALL_THEMES],
     "STAGE": ["OVERTURE_S3"],
     "FILE FORMAT": ["OVERTURE_PARQUET"],
 }
@@ -97,8 +117,14 @@ def literal(value: str) -> str:
 
 def load_config(path: Path, require_connection: bool = True) -> dict[str, Any]:
     config = tomllib.loads(path.read_text())
-    for key in ("role", "warehouse", "database", "schema", "viewer_role"):
+    config.setdefault("project_schema", f"{config['schema']}_DCM")
+    config.setdefault("raw_schema", f"{config['schema']}_RAW")
+    for key in ("role", "warehouse", "database", "schema", "viewer_role",
+                "project_schema", "raw_schema"):
         identifier(config[key])
+    schemas = [config[key].upper() for key in ("schema", "project_schema", "raw_schema")]
+    if len(set(schemas)) != 3:
+        raise ValueError("schema, project_schema and raw_schema must all differ")
     if require_connection and (
         not isinstance(config.get("connection"), str) or not config["connection"].strip()
     ):
@@ -109,17 +135,18 @@ def load_config(path: Path, require_connection: bool = True) -> dict[str, Any]:
     for key in ("release", "coverage"):
         if not isinstance(source[key], str) or not source[key].strip():
             raise ValueError(f"source.{key} must be a non-empty string")
-    target = f'{config["database"]}.{config["schema"]}'
+    owned_schemas = {f'{config["database"]}.{config[key]}'.upper()
+                     for key in ("schema", "project_schema", "raw_schema")}
     optional = source.setdefault("optional_themes", [])
     if (not isinstance(optional, list) or len(set(optional)) != len(optional)
             or not set(optional) <= set(OPTIONAL_THEMES)):
         raise ValueError(f"source.optional_themes must be a subset of {list(OPTIONAL_THEMES)}")
     for theme in THEMES + tuple(optional):
         if source["mode"] == "s3":
-            source[theme] = f"{target}.RAW_{theme.upper()}"
+            source[theme] = f'{config["database"]}.{config["raw_schema"]}.RAW_{theme.upper()}'
         identifier(source[theme], 3)
-        if source["mode"] == "existing" and source[theme].upper().rsplit(".", 1)[0] == target.upper():
-            raise ValueError("Existing sources must be outside the sample-owned schema")
+        if source["mode"] == "existing" and source[theme].upper().rsplit(".", 1)[0] in owned_schemas:
+            raise ValueError("Existing sources must be outside the sample-owned schemas")
     integration = config.get("s3", {}).get("storage_integration", "")
     if integration:
         identifier(integration)
@@ -150,6 +177,19 @@ def namespace(config: dict[str, Any]) -> str:
     return identifier(config["database"]) + "." + identifier(config["schema"])
 
 
+def project_namespace(config: dict[str, Any]) -> str:
+    return identifier(config["database"]) + "." + identifier(config["project_schema"])
+
+
+def raw_namespace(config: dict[str, Any]) -> str:
+    return identifier(config["database"]) + "." + identifier(config["raw_schema"])
+
+
+def project_name(config: dict[str, Any]) -> str:
+    """Unquoted project identifier for snow dcm (parts are validated identifiers)."""
+    return f'{config["database"]}.{config["project_schema"]}.{DCM_PROJECT}'.upper()
+
+
 def active_themes(config: dict[str, Any]) -> tuple[str, ...]:
     return THEMES + tuple(config["source"].get("optional_themes", []))
 
@@ -164,8 +204,8 @@ def available_prompts(config: dict[str, Any]) -> list[dict[str, Any]]:
 def marker(config: dict[str, Any]) -> str:
     content = {key: value for key, value in config.items() if key != "connection"}
     digest_builder = hashlib.sha256(json.dumps(content, sort_keys=True).encode())
-    for folder in ("sql", "sql/themes", "semantic", "semantic/themes", "agent", "examples",
-                   "scripts"):
+    for folder in ("sql", "dcm", "dcm/sources/definitions", "dcm/sources/macros", "agent",
+                   "examples", "scripts"):
         for path in sorted((ROOT / folder).glob("*")):
             if path.is_file():
                 digest_builder.update(path.relative_to(ROOT).as_posix().encode())
@@ -180,60 +220,101 @@ def owned(comment: Any) -> bool:
 
 
 def context(config: dict[str, Any]) -> dict[str, str]:
+    """Placeholders for the S3 templates, which build objects in the raw schema."""
     return {
-        "ns": namespace(config),
+        "ns": raw_namespace(config),
         "warehouse": identifier(config["warehouse"]),
         "owner_comment": literal(marker(config)),
-        "map_rows": str(config["limits"]["map_rows"]),
-        **{f"source_{theme}": identifier(config["source"][theme], 3)
-           for theme in active_themes(config)},
     }
 
 
-BBOX_GUIDANCE = (
-    " Tables {tables} are global and very large. Every query on them must filter "
-    "bbox_xmin, bbox_xmax, bbox_ymin and bbox_ymax with literal coordinates spanning "
-    "a small area before any geometry predicate; a geometry predicate alone scans the "
-    "whole table. If no area is given, ask for one. Their height, floors and subtype "
-    "fields are often NULL, so never present a NULL-heavy count as absence."
-)
-
-
-def theme_sections(theme: str) -> dict[str, str]:
-    text = (ROOT / "semantic/themes" / f"{theme}.sql").read_text()
-    sections = {}
-    for block in text.split("@@")[1:]:
-        name, _, body = block.partition("\n")
-        sections[name.strip()] = body.rstrip()
-    if set(sections) != {"tables", "facts", "dimensions", "metrics"}:
-        raise ValueError(f"semantic/themes/{theme}.sql must define all four sections")
-    return sections
-
-
-def semantic_extras(config: dict[str, Any]) -> dict[str, str]:
-    optional = config["source"].get("optional_themes", [])
-    extras = {f"extra_{name}": "" for name in ("tables", "facts", "dimensions", "metrics")}
-    for theme in optional:
-        for name, body in theme_sections(theme).items():
-            # Fragments are inserted as values, so render their own placeholders first.
-            extras[f"extra_{name}"] += ",\n" + Template(body).substitute(context(config))
-    extras["extra_guidance"] = (
-        BBOX_GUIDANCE.format(tables=", ".join(theme.upper() for theme in optional))
-        if optional else "")
-    return extras
-
-
-def install_files(config: dict[str, Any]) -> list[str]:
-    return (["sql/10_sources.sql"]
-            + [f"sql/themes/{theme}.sql" for theme in config["source"].get("optional_themes", [])]
-            + ["semantic/overture.sql", "sql/30_category_search.sql"])
-
-
 def render_file(name: str, config: dict[str, Any], **values: str) -> str:
-    if name == "semantic/overture.sql":
-        values["verified_queries"] = verified_queries(config)
-        values.update(semantic_extras(config))
     return Template((ROOT / name).read_text()).substitute(context(config), **values).strip()
+
+
+def dcm_variables(config: dict[str, Any], dataset: dict[str, Any]) -> dict[str, Any]:
+    """Templating values for dcm/: the single mapping from config to the DCM project."""
+    source = config["source"]
+    variables = {
+        "database": config["database"].upper(),
+        "schema": config["schema"].upper(),
+        "warehouse": config["warehouse"].upper(),
+        "role": config["role"].upper(),
+        "viewer_role": config["viewer_role"].upper(),
+        # Stable per version, so a plan shows only real definition changes. The
+        # full marker, with its config and code hash, is the deploy alias in the
+        # project's deployment history.
+        "owner_comment": f"{MARKER_PREFIX}{VERSION}",
+        "source_mode": source["mode"],
+        "release": str(dataset["RELEASE"]),
+        "coverage": str(dataset["COVERAGE"]),
+        "vocab_target_lag": VOCAB_TARGET_LAG,
+        "optional_themes": list(source.get("optional_themes", [])),
+    }
+    for theme in active_themes(config):
+        variables[f"source_{theme}"] = source[theme].upper()
+    return variables
+
+
+def dcm_directory(config: dict[str, Any]) -> Path:
+    return ROOT / ".install/dcm" / f'{config["database"]}.{config["schema"]}'.upper()
+
+
+def write_dcm_project(config: dict[str, Any], dataset: dict[str, Any]) -> Path:
+    """Copy dcm/sources and write a manifest holding this install's values.
+
+    JSON is valid YAML, so the manifest needs no YAML library and values never
+    pass through shell quoting.
+    """
+    target = dcm_directory(config)
+    if target.exists():
+        shutil.rmtree(target)
+    shutil.copytree(ROOT / "dcm/sources", target / "sources")
+    manifest = {
+        "manifest_version": 2,
+        "type": "DCM_PROJECT",
+        "default_target": "INSTALL",
+        "targets": {"INSTALL": {"project_name": project_name(config),
+                                "project_owner": config["role"].upper()}},
+        "templating": {"defaults": dcm_variables(config, dataset)},
+    }
+    (target / "manifest.yml").write_text(json.dumps(manifest, indent=2) + "\n")
+    return target
+
+
+def snow_version() -> tuple[int, ...]:
+    output = subprocess.run([SNOW, "--version"], text=True, capture_output=True, check=True).stdout
+    match = re.search(r"(\d+)\.(\d+)\.(\d+)", output)
+    if not match:
+        raise ValueError(f"Could not read the Snowflake CLI version from {output!r}")
+    return tuple(int(part) for part in match.groups())
+
+
+def run_dcm(command: str, config: dict[str, Any], directory: Path,
+            alias: str | None = None) -> str:
+    """Run snow dcm plan/deploy/purge for this install's project and return its output."""
+    if snow_version()[:2] < MIN_SNOW_CLI:
+        raise ValueError(
+            f"DCM needs Snowflake CLI {'.'.join(map(str, MIN_SNOW_CLI))} or later; "
+            f"`{SNOW}` is {'.'.join(map(str, snow_version()))}. Upgrade it, or set "
+            "SNOW_CLI to a newer snow executable.")
+    if not isinstance(config.get("connection"), str) or not config["connection"].strip():
+        raise ValueError("The DCM step needs a named Snowflake CLI connection in the config")
+    arguments = [SNOW, "dcm", command, project_name(config), "--from", str(directory),
+                 "--connection", config["connection"], "--role", config["role"],
+                 "--warehouse", config["warehouse"]]
+    if command in {"deploy", "purge"}:
+        # Aliases are unique per project: the build marker plus a run timestamp
+        # keeps the config/code hash in the history while allowing redeploys.
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        arguments += ["--alias", alias or f"{marker(config)}:{command}:{stamp}"]
+    if command == "plan":
+        arguments.append("--save-output")
+    if command == "purge":
+        arguments.append("--force")
+    result = subprocess.run(arguments, text=True, capture_output=True, check=True,
+                            cwd=directory)
+    return result.stdout
 
 
 class SnowCLI:
@@ -247,7 +328,7 @@ class SnowCLI:
             f"{self.config['limits']['statement_timeout_seconds']};\n"
         )
         result = subprocess.run(
-            ["snow", "sql", "--connection", self.config["connection"],
+            [SNOW, "sql", "--connection", self.config["connection"],
              "--role", self.config["role"], "--warehouse", self.config["warehouse"],
              "--database", self.config["database"], "--format", "JSON",
              "--enhanced-exit-codes", "--enable-templating", "NONE",
@@ -307,35 +388,53 @@ def preflight(config: dict[str, Any], client: SnowCLI) -> None:
     print("Source contract passed (metadata and sample, not a full quality audit).", file=sys.stderr)
 
 
-def ensure_namespace(config: dict[str, Any], client: SnowCLI, create: bool = False) -> None:
-    database = identifier(config["database"])
+def schema_comment(config: dict[str, Any], client: Any, key: str) -> str | None:
+    """Comment of database.<config[key]>, or None when the schema does not exist."""
     rows = client.query(
-        f"select schema_name, comment from {database}.information_schema.schemata "
-        f"where schema_name = {literal(config['schema'].upper())}"
+        f"select schema_name, comment from {identifier(config['database'])}.information_schema.schemata "
+        f"where schema_name = {literal(config[key].upper())}"
     )
-    if not rows:
-        if not create:
-            raise ValueError("Sample schema not found")
-        client.query(f"create schema {namespace(config)} comment = {literal(marker(config))}")
-    elif not owned(rows[0].get("COMMENT")):
-        raise ValueError("Schema exists but was not created by this sample; choose another schema")
-    elif create and rows[0]["COMMENT"] != marker(config):
-        # Upgrade in place: the one schema keeps its name and records the new build.
-        client.query(f"alter schema {namespace(config)} set comment = {literal(marker(config))}")
+    return (rows[0].get("COMMENT") or "") if rows else None
 
 
-def check_owned_objects(config: dict[str, Any], client: SnowCLI,
-                        allow_candidates: bool = False) -> None:
-    kinds = {"VIEW": "VIEWS", "TABLE": "TABLES", "SEMANTIC VIEW": "SEMANTIC VIEWS",
-             "AGENT": "AGENTS", "CORTEX SEARCH SERVICE": "CORTEX SEARCH SERVICES",
-             "STAGE": "STAGES", "FILE FORMAT": "FILE FORMATS"}
+def model_state(config: dict[str, Any], client: Any) -> str:
+    """Classify the sample schema: absent, dcm, legacy or foreign.
+
+    DCM owns the model schema after the first deploy, and its DEFINE statements
+    would silently replace same-named objects. So the schema is only deployed
+    over when it is absent or already belongs to this sample's DCM project.
+    """
+    comment = schema_comment(config, client, "schema")
+    if comment is None:
+        return "absent"
+    if comment.startswith(LEGACY_MARKER):
+        return "legacy"
+    if owned(comment):
+        return "dcm"
+    return "foreign"
+
+
+def ensure_owned_schema(config: dict[str, Any], client: Any, key: str) -> None:
+    """Create database.<config[key]> with the marker, or accept it if this sample owns it."""
+    comment = schema_comment(config, client, key)
+    if comment is None:
+        client.query(f"create schema {identifier(config['database'])}.{identifier(config[key])} "
+                     f"comment = {literal(marker(config))}")
+    elif not owned(comment):
+        raise ValueError(f"Schema {config[key]} exists but was not created by this sample; "
+                         f"set {key} to another schema")
+
+
+def check_raw_objects(config: dict[str, Any], client: Any, allow_candidates: bool = False) -> None:
+    """Refuse to touch a raw schema holding objects this sample did not create."""
+    kinds = {"TABLE": "TABLES", "STAGE": "STAGES", "FILE FORMAT": "FILE FORMATS"}
     for kind, plural in kinds.items():
-        for row in client.query(f"show {plural} in schema {namespace(config)}"):
+        for row in client.query(f"show {plural} in schema {raw_namespace(config)}"):
             name = row["NAME"]
             candidate = (allow_candidates and kind == "TABLE"
                          and re.fullmatch(r"LOAD_(" + "|".join(t.upper() for t in ALL_THEMES)
                                           + r")_[A-F0-9]{8}", name))
-            if (name not in OBJECTS[kind] and not candidate) or not owned(row.get("COMMENT")):
+            if (name not in RAW_OBJECTS[kind] and not candidate) or not owned(row.get("COMMENT")):
                 raise ValueError(f"Unrecognized or modified {kind} {name}; refusing to mutate schema")
 
 
@@ -420,12 +519,12 @@ def load_s3(config: dict[str, Any], client: SnowCLI, load_id: str | None = None,
     if requested != "latest" and release and release != requested:
         raise ValueError("Release override conflicts with the pinned s3.release")
     themes = active_themes(config)
-    ensure_namespace(config, client, create=True)
-    check_owned_objects(config, client)
-    ns = namespace(config)
+    ensure_owned_schema(config, client, "raw_schema")
+    check_raw_objects(config, client)
+    ns = raw_namespace(config)
     existing = client.query(f"show tables in schema {ns}")
-    if any(row["NAME"].startswith("RAW_") or row["NAME"] == "DATASET_INFO" for row in existing):
-        raise ValueError("S3 data is already loaded in this schema. Install reuses it; "
+    if any(row["NAME"].startswith("RAW_") or row["NAME"] == "LOAD_INFO" for row in existing):
+        raise ValueError("S3 data is already loaded in the raw schema. Install reuses it; "
                          "to load a different release or area, run cleanup first.")
     integration = config.get("s3", {}).get("storage_integration", "")
     client.query(render_file("sql/05_s3_setup.sql", config,
@@ -484,30 +583,37 @@ def load_s3(config: dict[str, Any], client: SnowCLI, load_id: str | None = None,
     coverage = f"Places bbox {bbox or 'global'}; divisions global"
     if optional:
         coverage += f"; {', '.join(optional)} bbox {bbox}"
-    create_dataset_info(config, client, release, coverage)
+    client.query(load_info_sql(config, release, coverage))
 
 
-def create_dataset_info(config: dict[str, Any], client: SnowCLI,
-                        release: str, coverage: str) -> None:
-    client.query(dataset_sql(config, release, coverage))
-
-
-def dataset_sql(config: dict[str, Any], release: str, coverage: str) -> str:
+def load_info_sql(config: dict[str, Any], release: str, coverage: str) -> str:
+    """Record what was loaded; install reads it into the DCM DATASET_INFO view."""
     return (
-        f"create or replace table {namespace(config)}.DATASET_INFO "
+        f"create or replace table {raw_namespace(config)}.LOAD_INFO "
         f"comment = {literal(marker(config))} as select {literal(release)} as release, "
-        f"{literal(coverage)} as coverage, {literal(config['source']['mode'])} as source_mode, "
-        "current_timestamp() as recorded_at;"
+        f"{literal(coverage)} as coverage, current_timestamp() as loaded_at;"
     )
 
 
-def verified_queries(config: dict[str, Any]) -> str:
-    queries = []
-    for prompt in available_prompts(config):
-        sql = Template(prompt["reference_sql"]).substitute(ns=namespace(config))
-        queries.append(f"{prompt['id']} as (question {literal(prompt['question'])} "
-                       f"sql {literal(sql)})")
-    return "ai_verified_queries (\n" + ",\n".join(queries) + "\n)"
+def dataset(config: dict[str, Any], client: Any) -> dict[str, Any]:
+    """Release and coverage for DATASET_INFO: from the S3 load, else from config."""
+    if config["source"]["mode"] == "s3":
+        if schema_comment(config, client, "raw_schema") is None:
+            raise ValueError("No S3 load found; run load-s3 first")
+        rows = client.query(f"select release, coverage from {raw_namespace(config)}.LOAD_INFO")
+        if not rows:
+            raise ValueError("LOAD_INFO is empty; inspect the S3 load before installing")
+        return {"RELEASE": rows[0]["RELEASE"], "COVERAGE": rows[0]["COVERAGE"]}
+    return {"RELEASE": config["source"]["release"], "COVERAGE": config["source"]["coverage"]}
+
+
+def search_sql(config: dict[str, Any]) -> str:
+    """Category search over the DCM-managed CATEGORY_VOCAB (DCM cannot define search services)."""
+    ns = namespace(config)
+    return (f"create or replace cortex search service {ns}.CATEGORY_SEARCH "
+            f"on search_text attributes category warehouse = {identifier(config['warehouse'])} "
+            f"target_lag = '12 hours' comment = {literal(marker(config))} "
+            f"as select category, place_count, search_text from {ns}.CATEGORY_VOCAB")
 
 
 def agent_sql(config: dict[str, Any], dataset: dict[str, Any]) -> str:
@@ -558,19 +664,20 @@ def agent_sql(config: dict[str, Any], dataset: dict[str, Any]) -> str:
 
 
 def grant_sql(config: dict[str, Any], cowork: str | None = None) -> str:
+    """Viewer grants DCM does not own; dcm/sources/definitions/access.sql has the rest.
+
+    The database and warehouse are shared, and a privilege-grantee pair can be
+    defined in only one DCM project; the agent, search service and CoWork object
+    are not DCM objects. These grants are idempotent and run after every deploy.
+    """
     if config["role"].upper() == config["viewer_role"].upper():
         return ""
     ns = namespace(config)
     role = identifier(config["viewer_role"])
     statements = [f"grant usage on database {identifier(config['database'])} to role {role}",
-                  f"grant usage on schema {ns} to role {role}",
-                  f"grant usage on warehouse {identifier(config['warehouse'])} to role {role}"]
-    for name in [theme.upper() for theme in active_themes(config)] + ["DATASET_INFO"]:
-        statements.append(f"grant select on view {ns}.{name} to role {role}" if name != "DATASET_INFO"
-                          else f"grant select on table {ns}.{name} to role {role}")
-    statements += [f"grant select on semantic view {ns}.OVERTURE_MAPS_SV to role {role}",
-                   f"grant usage on agent {ns}.OVERTURE_MAPS_AGENT to role {role}",
-                   f"grant usage on cortex search service {ns}.CATEGORY_SEARCH to role {role}"]
+                  f"grant usage on warehouse {identifier(config['warehouse'])} to role {role}",
+                  f"grant usage on agent {ns}.OVERTURE_MAPS_AGENT to role {role}",
+                  f"grant usage on cortex search service {ns}.CATEGORY_SEARCH to role {role}"]
     if cowork:
         # Without USAGE on the CoWork object the viewer sees an empty agent list.
         statements.append(f"grant usage on snowflake intelligence {cowork} to role {role}")
@@ -770,84 +877,112 @@ def verify_prompts(config: dict[str, Any], client: SnowCLI) -> None:
               "Agent equivalence and map rendering require separate checks.")
 
 
-def run(command: str, config: dict[str, Any], execute: bool) -> None:
-    files = install_files(config)
-    dataset = {"RELEASE": config["source"]["release"], "COVERAGE": config["source"]["coverage"]}
-    if command == "render":
-        print("-- Review only. Preflight and schema ownership checks require the installer.")
-        print(f"use role {identifier(config['role'])};")
-        print(f"use warehouse {identifier(config['warehouse'])};")
-        print(f"create schema {namespace(config)} comment = {literal(marker(config))};")
-        if config["source"]["mode"] == "s3":
-            print("-- S3 loading is a separate command. Read actual release/coverage from DATASET_INFO.")
-            print("-- Agent below uses placeholder metadata; use install after load-s3 for execution.")
-        else:
-            print(dataset_sql(config, dataset["RELEASE"], dataset["COVERAGE"]))
-        for name in files:
-            print(render_file(name, config))
-        print(agent_sql(config, dataset))
-        print("-- Then, only if SHOW SNOWFLAKE INTELLIGENCES returns a row, add the agent to\n"
-              "-- that CoWork object (unless SHOW AGENTS IN SNOWFLAKE INTELLIGENCE lists it)\n"
-              "-- and grant the viewer USAGE on it. Never create a CoWork object: once one\n"
-              "-- exists, CoWork lists only the agents added to it.\n"
-              f"-- alter snowflake intelligence <cowork_object> add agent "
-              f"{namespace(config)}.OVERTURE_MAPS_AGENT;")
-        print(grant_sql(config))
-        return
-    if command in {"install", "load-s3", "cleanup"} and not execute:
-        raise ValueError(f"{command} changes Snowflake objects; review first, then pass --execute")
-    execute_workflow(command, config, SnowCLI(config))
+def pre_deploy(config: dict[str, Any], client: Any) -> None:
+    """SQL that must run before snow dcm: guard the target, create the project container."""
+    state = model_state(config, client)
+    if state == "legacy":
+        raise ValueError(f"{config['schema']} holds a 1.x installation. Run migrate-legacy "
+                         "first; it keeps S3 data and removes the rest before the DCM deploy.")
+    if state == "foreign":
+        raise ValueError(f"Schema {config['schema']} exists but was not created by this sample; "
+                         "choose another schema")
+    ensure_owned_schema(config, client, "project_schema")
+    client.query(f"create dcm project if not exists {project_namespace(config)}.{DCM_PROJECT} "
+                 f"comment = {literal(marker(config))}")
 
 
-def drop_unused_theme_views(config: dict[str, Any], client: Any) -> None:
-    """Remove views for optional themes no longer configured, before the model is replaced."""
-    unused = {theme.upper() for theme in OPTIONAL_THEMES} - {
-        theme.upper() for theme in active_themes(config)}
-    for row in client.query(f"show views in schema {namespace(config)}"):
-        if row["NAME"] in unused and owned(row.get("COMMENT")):
-            client.query(f"drop view {namespace(config)}.{identifier(row['NAME'])}")
+def post_deploy(config: dict[str, Any], client: Any) -> str:
+    """SQL after snow dcm deploy: objects DCM cannot define, then verification."""
+    info = dataset(config, client)
+    client.query(search_sql(config))
+    client.query(agent_sql(config, info))
+    cowork = register_cowork(config, client)
+    grants = grant_sql(config, cowork)
+    if grants:
+        client.query(grants)
+    return verify(config, client)
 
 
-def execute_workflow(command: str, config: dict[str, Any], client: Any,
-                     load_id: str | None = None, release: str | None = None) -> str | None:
-    """Run a command; install and verify return the CoWork status from verify()."""
-    files = install_files(config)
-    dataset = {"RELEASE": config["source"]["release"], "COVERAGE": config["source"]["coverage"]}
-    if command == "preflight":
-        preflight(config, client)
-    elif command == "load-s3":
-        load_s3(config, client, load_id=load_id, release=release)
-    elif command == "install":
-        preflight(config, client)
-        ensure_namespace(config, client, create=True)
-        check_owned_objects(config, client)
-        if config["source"]["mode"] == "existing":
-            create_dataset_info(config, client, dataset["RELEASE"], dataset["COVERAGE"])
-        dataset = client.query(f"select release, coverage from {namespace(config)}.DATASET_INFO")[0]
-        drop_unused_theme_views(config, client)
-        for name in files:
-            client.query(render_file(name, config))
-        client.query(agent_sql(config, dataset))
-        cowork = register_cowork(config, client)
-        grants = grant_sql(config, cowork)
-        if grants:
-            client.query(grants)
-        return verify(config, client)
-    elif command == "verify":
-        return verify(config, client)
-    elif command == "verify-prompts":
-        verify_prompts(config, client)
-    elif command == "cleanup":
-        ensure_namespace(config, client)
-        check_owned_objects(config, client, allow_candidates=True)
-        ns = namespace(config)
-        # Remove only this agent from CoWork; the CoWork object is account-wide.
-        cowork = cowork_object(client)
-        if cowork and cowork_listed(config, client, cowork):
-            client.query(f"alter snowflake intelligence {cowork} drop agent {ns}.OVERTURE_MAPS_AGENT")
-        for kind in ("AGENT", "CORTEX SEARCH SERVICE", "SEMANTIC VIEW", "VIEW", "TABLE",
-                     "STAGE", "FILE FORMAT"):
-            for name in OBJECTS[kind]:
+def plan_summary(directory: Path) -> dict[str, Any]:
+    """Operation counts, and every object to drop, from snow dcm plan's plan_result.json."""
+    result = json.loads((directory / "out/plan_result.json").read_text())
+    counts: dict[str, int] = {}
+    drops = []
+    for change in result.get("changeset", []):
+        kind = change.get("type", "UNKNOWN")
+        counts[kind] = counts.get(kind, 0) + 1
+        if kind == "DROP":
+            target = change.get("object_id") or {}
+            drops.append(f'{target.get("domain")} {target.get("fqn")}')
+    return {"counts": counts, "drops": drops}
+
+
+def deploy_model(config: dict[str, Any], client: Any, command: str) -> None:
+    """Write the DCM project for this install and run snow dcm plan or deploy on it."""
+    directory = write_dcm_project(config, dataset(config, client))
+    print(run_dcm(command, config, directory).strip().splitlines()[-1], file=sys.stderr)
+    if command == "plan":
+        print(f"Plan saved to {directory / 'out/plan_result.json'}: "
+              f"{json.dumps(plan_summary(directory))}", file=sys.stderr)
+
+
+def drop_cowork_and_agent(config: dict[str, Any], client: Any) -> None:
+    ns = namespace(config)
+    # Remove only this agent from CoWork; the CoWork object is account-wide.
+    cowork = cowork_object(client)
+    if cowork and cowork_listed(config, client, cowork):
+        client.query(f"alter snowflake intelligence {cowork} drop agent {ns}.OVERTURE_MAPS_AGENT")
+    client.query(f"drop agent if exists {ns}.OVERTURE_MAPS_AGENT")
+    client.query(f"drop cortex search service if exists {ns}.CATEGORY_SEARCH")
+
+
+def migrate_legacy(config: dict[str, Any], client: Any) -> None:
+    """Clear a 1.x schema so the DCM project can own it; S3 data moves to the raw schema."""
+    if model_state(config, client) != "legacy":
+        raise ValueError(f"{config['schema']} is not a 1.x installation of this sample")
+    ns = namespace(config)
+    for kind, plural in (("VIEW", "VIEWS"), ("TABLE", "TABLES"), ("SEMANTIC VIEW", "SEMANTIC VIEWS"),
+                         ("AGENT", "AGENTS"), ("CORTEX SEARCH SERVICE", "CORTEX SEARCH SERVICES"),
+                         ("STAGE", "STAGES"), ("FILE FORMAT", "FILE FORMATS")):
+        for row in client.query(f"show {plural} in schema {ns}"):
+            if row["NAME"] not in LEGACY_OBJECTS[kind] or not owned(row.get("COMMENT")):
+                raise ValueError(f"Unrecognized or modified {kind} {row['NAME']}; refusing to migrate")
+    drop_cowork_and_agent(config, client)
+    raw = [row["NAME"] for row in client.query(f"show tables in schema {ns}")
+           if row["NAME"].startswith("RAW_")]
+    if raw:
+        ensure_owned_schema(config, client, "raw_schema")
+        check_raw_objects(config, client)
+        client.query(f"create table {raw_namespace(config)}.LOAD_INFO "
+                     f"comment = {literal(marker(config))} as select release, coverage, "
+                     f"recorded_at as loaded_at from {ns}.DATASET_INFO")
+        for name in raw:
+            client.query(f"alter table {ns}.{identifier(name)} rename to "
+                         f"{raw_namespace(config)}.{identifier(name)}")
+    for kind in ("SEMANTIC VIEW", "VIEW", "TABLE", "STAGE", "FILE FORMAT"):
+        for name in LEGACY_OBJECTS[kind]:
+            client.query(f"drop {kind} if exists {ns}.{identifier(name)}")
+    client.query(f"drop schema {ns} restrict")
+
+
+def cleanup(config: dict[str, Any], client: Any) -> None:
+    """Remove the agent, search service, DCM-managed model, project and raw data."""
+    if model_state(config, client) == "dcm":
+        drop_cowork_and_agent(config, client)
+    if schema_comment(config, client, "project_schema") is not None:
+        ensure_owned_schema(config, client, "project_schema")
+        if client.query(f"show dcm projects like {literal(DCM_PROJECT)} "
+                        f"in schema {project_namespace(config)}"):
+            info = {"RELEASE": config["source"]["release"], "COVERAGE": config["source"]["coverage"]}
+            run_dcm("purge", config, write_dcm_project(config, info))
+            client.query(f"drop dcm project {project_namespace(config)}.{DCM_PROJECT}")
+        client.query(f"drop schema {project_namespace(config)} restrict")
+    if schema_comment(config, client, "raw_schema") is not None:
+        ensure_owned_schema(config, client, "raw_schema")
+        check_raw_objects(config, client, allow_candidates=True)
+        ns = raw_namespace(config)
+        for kind in ("TABLE", "STAGE", "FILE FORMAT"):
+            for name in RAW_OBJECTS[kind]:
                 client.query(f"drop {kind} if exists {ns}.{identifier(name)}")
         for row in client.query(f"show tables in schema {ns}"):
             if row["NAME"].startswith("LOAD_") and owned(row.get("COMMENT")):
@@ -855,15 +990,97 @@ def execute_workflow(command: str, config: dict[str, Any], client: Any,
         client.query(f"drop schema {ns} restrict")
 
 
+# Commands made only of SQL, so the agent path can replay them through its
+# session SQL tool. The rest also run snow dcm and need the CLI connection.
+SQL_COMMANDS = ("preflight", "load-s3", "pre-deploy", "post-deploy", "verify", "verify-prompts")
+CLI_COMMANDS = ("render", "plan", "deploy", "install", "migrate-legacy", "cleanup")
+MUTATING = {"load-s3", "pre-deploy", "post-deploy", "plan", "deploy", "install",
+            "migrate-legacy", "cleanup"}
+
+
+def execute_workflow(command: str, config: dict[str, Any], client: Any,
+                     load_id: str | None = None, release: str | None = None) -> str | None:
+    """Run a command; post-deploy, install and verify return the CoWork status."""
+    if command == "preflight":
+        preflight(config, client)
+    elif command == "load-s3":
+        load_s3(config, client, load_id=load_id, release=release)
+    elif command == "pre-deploy":
+        pre_deploy(config, client)
+    elif command == "post-deploy":
+        return post_deploy(config, client)
+    elif command == "verify":
+        return verify(config, client)
+    elif command == "verify-prompts":
+        verify_prompts(config, client)
+    elif command in {"plan", "deploy"}:
+        pre_deploy(config, client)
+        deploy_model(config, client, command)
+    elif command == "install":
+        preflight(config, client)
+        pre_deploy(config, client)
+        deploy_model(config, client, "deploy")
+        return post_deploy(config, client)
+    elif command == "migrate-legacy":
+        migrate_legacy(config, client)
+    elif command == "cleanup":
+        cleanup(config, client)
+    else:
+        raise ValueError(f"Unknown command {command}")
+    return None
+
+
+def render(config: dict[str, Any]) -> None:
+    """Write the DCM project and print the SQL around it, without touching Snowflake."""
+    info = {"RELEASE": config["source"]["release"], "COVERAGE": config["source"]["coverage"]}
+    directory = write_dcm_project(config, info)
+    print("-- Review only. Ownership checks and the deploy itself require the installer.")
+    print(f"-- 1. Pre-deploy: create schema {project_namespace(config)}, then "
+          f"create dcm project {project_namespace(config)}.{DCM_PROJECT}.")
+    print(f"-- 2. DCM project written to {directory}; review it with:")
+    print(f"--    snow dcm plan {project_name(config)} --from {directory}")
+    if config["source"]["mode"] == "s3":
+        print("-- S3 mode: run load-s3 first; install reads the loaded release from LOAD_INFO.")
+    print("-- 3. Post-deploy:")
+    print(search_sql(config) + ";")
+    print(agent_sql(config, info))
+    print("-- Then, only if SHOW SNOWFLAKE INTELLIGENCES returns a row, add the agent to\n"
+          "-- that CoWork object (unless SHOW AGENTS IN SNOWFLAKE INTELLIGENCE lists it)\n"
+          "-- and grant the viewer USAGE on it. Never create a CoWork object: once one\n"
+          "-- exists, CoWork lists only the agents added to it.\n"
+          f"-- alter snowflake intelligence <cowork_object> add agent "
+          f"{namespace(config)}.OVERTURE_MAPS_AGENT;")
+    print(grant_sql(config))
+
+
+def run(command: str, config: dict[str, Any], execute: bool,
+        expect_account: str | None = None) -> None:
+    if command == "render":
+        render(config)
+        return
+    if command in MUTATING and not execute:
+        raise ValueError(f"{command} changes Snowflake objects; review first, then pass --execute")
+    client = SnowCLI(config)
+    if expect_account:
+        # The agent path runs SQL in its own session; prove the CLI connection used
+        # for snow dcm points at the same account and role before changing anything.
+        identity = client.query("select current_account() as account, current_role() as role")[0]
+        if (identity["ACCOUNT"] != expect_account.upper()
+                or identity["ROLE"] != config["role"].upper()):
+            raise ValueError(f"CLI connection is {identity}, not account {expect_account.upper()} "
+                             f"with role {config['role'].upper()}")
+    execute_workflow(command, config, client)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("render", "preflight", "install", "load-s3",
-                                             "verify", "verify-prompts", "cleanup"))
+    parser.add_argument("command", choices=SQL_COMMANDS + CLI_COMMANDS)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--execute", action="store_true", help="Authorize mutating commands")
+    parser.add_argument("--expect-account", help="Refuse to run unless the CLI connection is this account")
     args = parser.parse_args()
     config = load_config(args.config)
-    run(args.command, config, args.execute)
+    run(args.command, config, args.execute, args.expect_account)
 
 
 if __name__ == "__main__":

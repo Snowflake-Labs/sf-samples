@@ -4,6 +4,10 @@ warehouse = "MY_WAREHOUSE"
 database = "MY_DATABASE"
 schema = "OVERTURE_SEMANTIC"
 viewer_role = "MY_VIEWER_ROLE"
+# Optional. The DCM project object lives in project_schema, and S3-loaded data
+# in raw_schema; defaults are <schema>_DCM and <schema>_RAW. All three differ.
+# project_schema = "OVERTURE_SEMANTIC_DCM"
+# raw_schema = "OVERTURE_SEMANTIC_RAW"
 
 [source]
 mode = "existing"

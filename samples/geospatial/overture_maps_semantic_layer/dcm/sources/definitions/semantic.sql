@@ -1,13 +1,16 @@
-create or replace semantic view $ns.OVERTURE_MAPS_SV
+{%- set ns = q(database ~ '.' ~ schema) -%}
+
+DEFINE SEMANTIC VIEW {{ ns }}.OVERTURE_MAPS_SV
 tables (
-    places as $ns.PLACE primary key (ID)
+    places as {{ ns }}.PLACE primary key (ID)
         comment = 'Overture POIs. One point per ID. Coverage is recorded in DATASET_INFO.',
-    areas as $ns.DIVISION_AREA primary key (ID)
+    areas as {{ ns }}.DIVISION_AREA primary key (ID)
         comment = 'Administrative polygons. Land and maritime have separate IDs.',
-    divisions as $ns.DIVISION primary key (ID)
+    divisions as {{ ns }}.DIVISION primary key (ID)
         comment = 'Administrative labels as points, not containment polygons.',
-    boundaries as $ns.DIVISION_BOUNDARY primary key (ID)
-        comment = 'Border line segments. Filter IS_LAND for land-only length.'$extra_tables
+    boundaries as {{ ns }}.DIVISION_BOUNDARY primary key (ID)
+        comment = 'Border line segments. Filter IS_LAND for land-only length.'{% for theme in optional_themes %},
+{{ theme_section(theme, 'tables', ns) }}{% endfor %}
 )
 relationships (
     area_to_division as areas(DIVISION_ID) references divisions(ID)
@@ -22,7 +25,8 @@ facts (
     areas.area_sqkm as AREA_SQKM,
     divisions.population_value as POPULATION,
     boundaries.geometry as GEOM,
-    boundaries.length_km as LENGTH_KM$extra_facts
+    boundaries.length_km as LENGTH_KM{% for theme in optional_themes %},
+{{ theme_section(theme, 'facts', ns) }}{% endfor %}
 )
 dimensions (
     places.place_id as ID,
@@ -51,7 +55,8 @@ dimensions (
     boundaries.region as REGION,
     boundaries.subtype as SUBTYPE,
     boundaries.boundary_class as CLASS,
-    boundaries.is_land as IS_LAND$extra_dimensions
+    boundaries.is_land as IS_LAND{% for theme in optional_themes %},
+{{ theme_section(theme, 'dimensions', ns) }}{% endfor %}
 )
 metrics (
     places.place_count as count(places.ID),
@@ -69,9 +74,10 @@ metrics (
     divisions.division_count as count(divisions.ID),
     divisions.total_population as sum(divisions.POPULATION)
         comment = 'Incomplete population coverage; not a complete census total.',
-    boundaries.total_length_km as sum(boundaries.LENGTH_KM)$extra_metrics
+    boundaries.total_length_km as sum(boundaries.LENGTH_KM){% for theme in optional_themes %},
+{{ theme_section(theme, 'metrics', ns) }}{% endfor %}
 )
-comment = $owner_comment
+comment = {{ lit(owner_comment) }}
 ai_sql_generation 'Use original geometry for predicates and simplified GeoJSON only for display.
 Use exposed logical names in semantic SQL: geometry, area_class and place_id,
 not physical GEOM, CLASS or ID from reference queries against normalized views.
@@ -81,5 +87,5 @@ Do not GROUP BY geometry or use GROUP BY ALL when selecting geometry.
 Group map geometry by area_id and point coordinates by place_id, never name alone.
 Filter land area with area_class = land. Place region is CA, area region is US-CA.
 The examples are reference queries; counts depend on installed release and coverage.
-Use coordinate literals, not semantic variables. There is no place-to-area spatial relationship.$extra_guidance'
-$verified_queries;
+Use coordinate literals, not semantic variables. There is no place-to-area spatial relationship.{% if optional_themes %} Tables {{ optional_themes | map('upper') | join(', ') }} are global and very large. Every query on them must filter bbox_xmin, bbox_xmax, bbox_ymin and bbox_ymax with literal coordinates spanning a small area before any geometry predicate; a geometry predicate alone scans the whole table. If no area is given, ask for one. Their height, floors and subtype fields are often NULL, so never present a NULL-heavy count as absence.{% endif %}'
+{{ verified_queries(ns, optional_themes) }};

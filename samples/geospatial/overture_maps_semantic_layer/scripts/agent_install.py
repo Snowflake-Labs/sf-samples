@@ -145,8 +145,10 @@ class ReplayClient:
 
 
 def next_statement(command: str, config: dict[str, Any], receipt: dict[str, Any]) -> dict[str, Any]:
-    if command not in {"preflight", "install", "load-s3", "verify", "verify-prompts"}:
-        raise ValueError("Unsupported agent command; cleanup is deliberately not automated")
+    if command not in install.SQL_COMMANDS:
+        raise ValueError("Unsupported agent command. The DCM step (plan, deploy) runs through "
+                         "scripts/install.py with the CLI connection; migrate-legacy and "
+                         "cleanup are deliberately not automated")
     expected = receipt["identity"]
     current = receipt["current_identity"]
     for field in ("ACCOUNT", "ROLE", "WAREHOUSE"):
@@ -195,7 +197,7 @@ def next_statement(command: str, config: dict[str, Any], receipt: dict[str, Any]
     return {"status": "complete", "command": command, "statements": client.index,
             "output": logs.getvalue().strip(),
             "agent_execution": "not tested", "viewer_access": "not tested",
-            # install/verify return "passed" (listed in the CoWork object) or
+            # post-deploy/verify return "passed" (listed in the CoWork object) or
             # "not required" (the account has no CoWork object).
             "cowork_registration": cowork_status or "not tested",
             "native_maps": "not tested"}
@@ -243,8 +245,12 @@ def main() -> None:
     elif args.action == "proposal":
         config = install.load_config(args.config, require_connection=False)
         result = {"marker": install.marker(config), "target": install.namespace(config),
+                  "dcm_project": install.project_name(config),
+                  "raw_schema": (install.raw_namespace(config)
+                                 if config["source"]["mode"] == "s3" else None),
                   "role": config["role"], "warehouse": config["warehouse"],
                   "viewer_role": config["viewer_role"], "source": config["source"],
+                  "phases": ["preflight", "pre-deploy", "plan", "deploy", "post-deploy"],
                   "approval_required": True}
     else:
         config = install.load_config(args.config, require_connection=False)
