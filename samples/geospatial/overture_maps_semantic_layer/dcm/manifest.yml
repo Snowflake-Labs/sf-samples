@@ -1,0 +1,37 @@
+# DCM project for the Overture Maps Semantic Layer.
+#
+# scripts/install.py copies sources/ into .install/dcm/<database>.<schema>/ and
+# writes a manifest there with your config values, so you normally never edit
+# this file. To run the project by hand (for example from Workspaces), replace
+# the defaults below. The project object lives in project_schema, which must
+# differ from schema: a DCM project cannot define its own parent schema.
+manifest_version: 2
+type: DCM_PROJECT
+default_target: 'DEFAULT'
+
+targets:
+  DEFAULT:
+    project_name: 'MY_DATABASE.OVERTURE_SEMANTIC_DCM.OVERTURE_MAPS_SEMANTIC_LAYER'
+    project_owner: MY_INSTALLER_ROLE
+
+templating:
+  defaults:
+    database: 'MY_DATABASE'
+    schema: 'OVERTURE_SEMANTIC'
+    warehouse: 'MY_WAREHOUSE'
+    role: 'MY_INSTALLER_ROLE'
+    viewer_role: 'MY_VIEWER_ROLE'
+    owner_comment: 'overture-maps-semantic-layer:manual'
+    source_mode: 'existing'
+    release: 'unknown'
+    coverage: 'Global; verify coverage and release with the source provider.'
+    vocab_target_lag: '7 days'
+    source_place: 'OVERTURE_MAPS__PLACES.CARTO.PLACE'
+    source_division: 'OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION'
+    source_division_area: 'OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION_AREA'
+    source_division_boundary: 'OVERTURE_MAPS__DIVISIONS.CARTO.DIVISION_BOUNDARY'
+    # Any of address, segment, building. Each needs its source below.
+    optional_themes: []
+    source_address: 'OVERTURE_MAPS__ADDRESSES.CARTO.ADDRESS'
+    source_segment: 'OVERTURE_MAPS__TRANSPORTATION.CARTO.SEGMENT'
+    source_building: 'OVERTURE_MAPS__BUILDINGS.CARTO.BUILDING'
