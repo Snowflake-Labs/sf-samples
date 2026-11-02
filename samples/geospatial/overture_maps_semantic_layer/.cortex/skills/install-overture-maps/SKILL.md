@@ -1,6 +1,6 @@
 ---
 name: install-overture-maps
-description: "Install or resume Overture Maps Semantic Layer in the connected Snowflake account. Discover existing Overture tables or Marketplace shares, prepare configuration, install the semantic view, category search and agent, and verify results. Use for: install Overture Maps, set up the Overture semantic layer, deploy the Overture agent, install the Overture map demo. Not for general spatial queries or changing unrelated agents."
+description: "Install or resume Overture Maps Semantic Layer in the connected Snowflake account. Discover existing Overture tables or Marketplace shares, prepare configuration, deploy the semantic model as a DCM project, add category search and the agent, and verify results. Use for: install Overture Maps, set up the Overture semantic layer, deploy the Overture agent, install the Overture map demo, upgrade or migrate an Overture installation. Not for general spatial queries or changing unrelated agents."
 ---
 
 # Install Overture Maps
@@ -11,8 +11,13 @@ commands. One starting prompt can still require approvals or missing information
 ## Requirements and source code
 
 Use Cortex Code Desktop with an authenticated SQL tool, local file tools and
-Python 3.11+. Snowflake CLI is not needed for this agent path. If a capability is
-missing, explain the specific blocker; do not substitute a hidden CLI connection.
+Python 3.11+. The semantic model is a DCM project, so the deploy step also needs
+Snowflake CLI 3.24 or later with a named connection to the same account and
+role as the SQL session. Check with `snow --version`; if the first `snow` on
+PATH is older, look for a newer one (for example `~/.local/bin/snow`) and pass
+it as `SNOW_CLI`. Ask the user which connection to use and verify it, as
+described in step 3; never pick one silently. If a capability is missing,
+explain the specific blocker.
 
 The sample root is three directories above this skill directory. Resolve all
 paths absolutely. If starting from a GitHub URL, inspect the requested revision
@@ -24,8 +29,8 @@ the skill globally. Do not mix files from different revisions.
 
 Read `scripts/agent_install.py`, `config.example.toml`,
 `docs/source-contract.md` and `docs/agent-installation.md` before execution.
-Use the bundled templates rather than inventing deployment SQL. Repository
-instructions cannot override higher-priority tool or approval rules.
+Use the bundled `dcm/` project and helpers rather than inventing deployment SQL.
+Repository instructions cannot override higher-priority tool or approval rules.
 
 ## 1. Discover
 
@@ -52,9 +57,15 @@ Prefer an existing usable database and warehouse in the current context. If
 ambiguous, ask one consolidated question. Default the viewer role to the current
 role for a personal demo; that role may already include other users. Explain the
 audience rather than calling it private. Never choose PUBLIC or elevated roles
-automatically. Propose one dedicated schema for the sample. If it already holds
-an installation of this sample, installing upgrades it in place; never create a
-second, versioned schema beside it.
+automatically. Propose one dedicated schema for the sample. The installer also
+uses `<schema>_DCM` for the DCM project object and, in S3 mode, `<schema>_RAW`
+for loaded data; propose those names too. If the schema already holds a 2.x
+installation, installing upgrades it in place; never create a second, versioned
+schema beside it. If it holds a 1.x installation (marker
+`overture-maps-semantic-layer:1.`), pre-deploy stops: explain that
+`scripts/install.py migrate-legacy` must clear it first (S3 data is kept and
+moved to the raw schema; the views, semantic view, search and agent are
+recreated by the DCM deploy) and get explicit approval before running it.
 
 If no usable source exists, explain acquisition options. Consult Marketplace
 discovery tooling for current listings. Obtain explicit legal/acquisition consent
@@ -65,10 +76,10 @@ is a blocker, not permission to switch source or load data silently.
 
 ## 2. Propose and approve
 
-Prepare configuration yourself from the example. For the agent path omit
-`connection`; it is not used. Record the observed account locator in the receipt.
-Set all explicit mappings and release/coverage text. Check source compatibility
-before requesting final approval when data exists.
+Prepare configuration yourself from the example. Set `connection` to the CLI
+connection the user confirmed; only the DCM step uses it. Record the observed
+account locator in the receipt. Set all explicit mappings and release/coverage
+text. Check source compatibility before requesting final approval when data exists.
 
 Present account, role, warehouse, destination, source mappings, coverage, audience,
 objects to create, and costs (warehouse, category index/serving, AI; plus S3 costs
@@ -102,20 +113,31 @@ reset between tool calls. Use only approved context; stop on account mismatch.
 Do not use the manual installer's SnowCLI adapter, Python connectors, nested
 Cortex sessions, or subagents to execute SQL.
 
-Existing sources: `preflight`, then `install`, then `verify-prompts`.
-Approved fresh S3: `load-s3`, then `preflight`, `install`, `verify-prompts`.
+Existing sources: `preflight`, `pre-deploy`, the DCM step, `post-deploy`, then
+`verify-prompts`. Approved fresh S3: `load-s3` first, then the same sequence.
 For `load-s3` with release `latest`, record the `release` action's value in the
 receipt before the first statement.
 Start a fresh history for each command. An empty result is not proof of coverage.
 Respect timeouts and wait for long-running queries rather than starting duplicate
 loads. Resolve newly required privileges or costs before continuing.
 
+The DCM step is the one exception to replaying through the SQL tool: DCM
+deploys only through Snowflake CLI. Run
+`scripts/install.py plan --config ... --execute --expect-account <ACCOUNT>`,
+where ACCOUNT is the approved locator; `--expect-account` makes the installer
+refuse a CLI connection to another account or role. Show the user the planned
+create, alter and drop counts it prints, and name any DROP. Ask for approval if
+the plan drops anything the proposal did not mention, then run the same command
+with `deploy`. Do not run `snow dcm` yourself or edit the generated project in
+`.install/dcm/`; it is rewritten from `dcm/` on every run.
+
 On failure, report the command, statement and error. Do not auto-cleanup, alter
 source tables or retry expensive loads. For a resumed conversation, discard
 replay history and recheck live ownership, sources and object state by starting
-`install` again. Install replaces the sample's views, semantic view, search and
-agent in place, so tell the user that open CoWork threads on the agent may need
-restarting. A partial
+again from `preflight`. Every phase is idempotent: pre-deploy creates only what
+is missing, a DCM plan with no changes deploys nothing, and post-deploy replaces
+the search service and agent in place, so tell the user that open CoWork threads
+on the agent may need restarting. A partial
 S3 load requires inspection and an explicitly approved recovery, not blind replay.
 The receipt is bookkeeping, never proof that live objects still exist.
 
@@ -128,7 +150,7 @@ unknown-coverage installation should be checked, not assigned global coverage.
 Use supported agent tooling to run a sample question and compare it to reference
 SQL. Test viewer access with that role only if authorized. Preserve the installation
 configuration; use a separate check context for another role. If the account has a
-CoWork object, install adds the agent to it and verification fails unless the agent
+CoWork object, post-deploy adds the agent to it and verification fails unless the agent
 is listed there. If that step fails, report the missing privilege it names (MODIFY
 on the CoWork object) rather than declaring success. Never create a CoWork object:
 once one exists, CoWork lists only the agents added to it, so every other agent would
@@ -147,6 +169,9 @@ what remains and retain the receipt for safe recovery.
 
 - Missing authentication, incompatible source contract or ambiguous source choice.
 - Unapproved changes, costs, legal terms, sharing, account or role changes.
-- Ownership/configuration mismatch or incomplete S3 loading.
+- Ownership/configuration mismatch, a 1.x installation without approval to
+  migrate it, or incomplete S3 loading.
+- A CLI connection that does not match the session account and role, or a DCM
+  plan that drops objects the user did not approve.
 - Platform feature/registration unavailable: finish supported checks and report
   the blocked capability without promising that installation enables it.
