@@ -1,0 +1,60 @@
+manifest_version: 1
+
+version:
+  name: "application_control_framework"
+  label: “[[VERSION]]”
+  comment: “This native app is built using the Application Control Framework”
+
+artifacts:
+  setup_script: setup_script.sql
+  extension_code: true
+  default_streamlit: util_app.streamlit
+  readme: readme.md
+
+configuration:
+  trace_level: ON_EVENT
+  log_level: DEBUG
+
+privileges:
+  - CREATE DATABASE:
+      description: "Permission to create database for logs/metrics share back"
+  - CREATE WAREHOUSE: 
+      description: "Permission to create warehouse for app"
+  - EXECUTE TASK:
+      description: "Permission to run upgrade/counter reset tasks"
+  - EXECUTE MANAGED TASK:
+      description: "Permission to run upgrade/counter reset tasks"
+
+references:
+  - matchtest_table:
+        label: "Matchtest Table"
+        description: "Select data table"
+        privileges:
+        - SELECT
+        object_type: TABLE
+        multi_valued: true
+        register_callback: util_app.register_single_callback
+  - matchtest_view:
+        label: "Matchtest View"
+        description: "Select data view"
+        privileges:
+        - SELECT
+        object_type: VIEW
+        multi_valued: true
+        register_callback: util_app.register_single_callback
+  - enrichment_table:
+        label: "Enrichment Table"
+        description: "Select data table"
+        privileges:
+        - SELECT
+        object_type: TABLE
+        multi_valued: true
+        register_callback: util_app.register_single_callback
+  - enrichment_view:
+        label: "Enrichment View"
+        description: "Select data view"
+        privileges:
+        - SELECT
+        object_type: VIEW
+        multi_valued: true
+        register_callback: util_app.register_single_callback
