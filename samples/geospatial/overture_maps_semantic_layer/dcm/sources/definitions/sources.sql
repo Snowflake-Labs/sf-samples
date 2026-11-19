@@ -1,4 +1,6 @@
-create or replace view $ns.PLACE comment = $owner_comment as
+{%- set ns = q(database ~ '.' ~ schema) -%}
+
+DEFINE VIEW {{ ns }}.PLACE comment = {{ lit(owner_comment) }} as
 select id::varchar as id, geometry as geom,
        names:primary::varchar as name,
        coalesce(taxonomy:primary::varchar, basic_category::varchar) as category,
@@ -8,25 +10,25 @@ select id::varchar as id, geometry as geom,
        addresses[0]:locality::varchar as locality,
        st_y(geometry)::float as latitude, st_x(geometry)::float as longitude,
        h3_point_to_cell_string(geometry, 8) as h3_cell
-from $source_place;
+from {{ q(source_place) }};
 
-create or replace view $ns.DIVISION comment = $owner_comment as
+DEFINE VIEW {{ ns }}.DIVISION comment = {{ lit(owner_comment) }} as
 select id::varchar as id, geometry as geom, names:primary::varchar as name,
        country::varchar as country, region::varchar as region,
        subtype::varchar as subtype, population::number as population
-from $source_division;
+from {{ q(source_division) }};
 
-create or replace view $ns.DIVISION_AREA comment = $owner_comment as
+DEFINE VIEW {{ ns }}.DIVISION_AREA comment = {{ lit(owner_comment) }} as
 select id::varchar as id, division_id::varchar as division_id, geometry as geom,
        names:primary::varchar as name, country::varchar as country,
        region::varchar as region, subtype::varchar as subtype, class::varchar as class,
        st_area(geometry) / 1e6 as area_sqkm,
        st_asgeojson(st_simplify(geometry, 100))::varchar as geojson
-from $source_division_area;
+from {{ q(source_division_area) }};
 
-create or replace view $ns.DIVISION_BOUNDARY comment = $owner_comment as
+DEFINE VIEW {{ ns }}.DIVISION_BOUNDARY comment = {{ lit(owner_comment) }} as
 select id::varchar as id, geometry as geom, country::varchar as country,
        region::varchar as region, subtype::varchar as subtype,
        class::varchar as class, is_land::boolean as is_land,
        st_length(geometry) / 1000 as length_km
-from $source_division_boundary;
+from {{ q(source_division_boundary) }};

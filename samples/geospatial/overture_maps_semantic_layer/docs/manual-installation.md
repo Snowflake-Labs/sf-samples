@@ -53,16 +53,26 @@ Existing Overture tables or Marketplace shares
        CoWork answers and native maps
 ```
 
-All created objects live in the database and dedicated schema you configure.
+All created objects live in the database you configure: the model in a dedicated
+schema, the DCM project object in `<schema>_DCM` and S3-loaded data in
+`<schema>_RAW`.
+
+The installer runs in three phases. Pre-deploy checks that the schema is absent
+or already belongs to this sample and creates the DCM project object. The DCM
+deploy creates or updates everything defined in [`dcm/`](../dcm). Post-deploy
+creates the objects DCM cannot define (category search, the agent and CoWork
+registration), applies the grants on shared objects and verifies the result.
 
 | Object | Purpose |
 | --- | --- |
-| `PLACE`, `DIVISION`, `DIVISION_AREA`, `DIVISION_BOUNDARY` | Local views exposing a consistent set of columns over the chosen sources. |
-| `OVERTURE_MAPS_SV` | Semantic view for geographic queries, with six reference-query examples. |
-| `CATEGORY_VOCAB`, `CATEGORY_SEARCH` | Installation-time place-category vocabulary and its Cortex Search service. |
-| `OVERTURE_MAPS_AGENT` | Agent displayed as **Overture Maps**, using Analyst and category search. |
-| `DATASET_INFO` | Recorded source mode, release and geographic coverage. |
-| `RAW_*`, `OVERTURE_S3`, `OVERTURE_PARQUET` | Tables, stage and file format created only by the optional S3 loader. |
+| `PLACE`, `DIVISION`, `DIVISION_AREA`, `DIVISION_BOUNDARY` | Local views exposing a consistent set of columns over the chosen sources. DCM-managed. |
+| `OVERTURE_MAPS_SV` | Semantic view for geographic queries, with reference-query examples. DCM-managed. |
+| `CATEGORY_VOCAB` | Place-category vocabulary: a full-refresh dynamic table with a 7-day target lag. DCM-managed. |
+| `CATEGORY_SEARCH` | Cortex Search service over `CATEGORY_VOCAB`. Created post-deploy. |
+| `OVERTURE_MAPS_AGENT` | Agent displayed as **Overture Maps**, using Analyst and category search. Created post-deploy. |
+| `DATASET_INFO` | View recording source mode, release and geographic coverage. DCM-managed. |
+| `OVERTURE_MAPS_SEMANTIC_LAYER` | The DCM project object, in `<schema>_DCM`. |
+| `RAW_*`, `LOAD_INFO`, `OVERTURE_S3`, `OVERTURE_PARQUET` | Tables, load record, stage and file format created only by the optional S3 loader, in `<schema>_RAW`. |
 
 The sample uses places, administrative label points, area polygons and boundary
 lines. It does not load buildings, roads or address datasets. No separate web app,
@@ -146,13 +156,17 @@ Counts and available categories depend on the installed release and coverage.
 ## Prerequisites
 
 - Python 3.11+ and [Snowflake CLI](https://docs.snowflake.com/en/developer-guide/snowflake-cli/index)
-  3.16+ with a configured named connection. The Python runner has no package dependencies.
-- An existing database and warehouse. The runner creates a dedicated sample schema;
+  3.24+ with a configured named connection; `snow dcm` is not available in older
+  versions. If an older `snow` comes first on PATH, set `SNOW_CLI` to the newer
+  executable. The Python runner has no package dependencies.
+- An existing database and warehouse. The runner creates the sample schemas;
   it does not create a database, warehouse, role or user.
 - The installation role needs CREATE SCHEMA on the target database, source data
-  access, warehouse USAGE and the ability to create views, tables, a semantic view,
-  Cortex Search service and agent in the schema. For S3 it also creates a
-  file format and external stage. Managed-access schemas are not used by this sample.
+  access, warehouse USAGE, CREATE DCM PROJECT in the project schema, and the
+  ability to create views, a dynamic table, a semantic view, a Cortex Search
+  service and an agent in the schema. For S3 it also creates tables, a file
+  format and an external stage in the raw schema. Managed-access schemas are not
+  used by this sample.
 - If the account has a Snowflake CoWork object, the installation role needs MODIFY
   on it so install can add the agent; ACCOUNTADMIN has it by default. Install fails
   if it cannot, because an agent left out of that object is visible only in
@@ -220,7 +234,10 @@ viewer_role = "MY_VIEWER_ROLE"
 `role` runs the installation; `viewer_role` receives access to use the installed
 objects. The database, warehouse and both roles must already exist.
 Use a dedicated schema such as `OVERTURE_SEMANTIC`. Do not use a shared application
-schema: reruns replace the sample's objects there. Names must be ordinary unquoted
+schema: the DCM project owns the model schema and drops any definition removed
+from it, so the installer refuses a schema it did not create. Optional
+`project_schema` and `raw_schema` keys override the `<schema>_DCM` and
+`<schema>_RAW` defaults; all three must differ. Names must be ordinary unquoted
 Snowflake identifiers; the runner quotes
 and uppercases each component. Quoted mixed-case identifiers are not supported.
 Credentials stay in your Snowflake CLI configuration, never in this file.
@@ -261,13 +278,23 @@ not a generic schema-inference tool.
 ```bash
 python3 scripts/install.py preflight --config config.toml
 python3 scripts/install.py render --config config.toml
+python3 scripts/install.py plan --config config.toml --execute
 python3 scripts/install.py install --config config.toml --execute
 ```
 
-`render` prints reviewable SQL without connecting or changing files. For an
-existing source, you can run that SQL in Snowsight **only in a new empty schema**
-after checking source compatibility. The CLI path adds ownership/collision checks
-and checks search readiness. Rendered SQL does not include those safeguards.
+`render` connects to nothing. It writes this installation's DCM project to
+`.install/dcm/<DATABASE>.<SCHEMA>/` (the `dcm/` sources plus a manifest holding
+your values) and prints the post-deploy SQL. `plan` creates the project schema
+and DCM project object if missing, then runs `snow dcm plan` and prints the
+create, alter and drop counts, naming every object it would drop. Nothing in the
+model schema changes until `install`, which runs preflight, pre-deploy,
+`snow dcm deploy` and post-deploy in order. To run the phases separately, use
+`pre-deploy`, `deploy` and `post-deploy`.
+
+You can also open `dcm/` in Snowsight Workspaces and plan or deploy it there
+after editing the defaults in `dcm/manifest.yml`. That path skips the ownership
+checks, and you then create category search and the agent yourself from the
+`render` output.
 
 #### Fresh S3 load
 
@@ -288,7 +315,8 @@ place_bbox = [-122.52, 37.70, -122.35, 37.83]
 ```
 
 Set `source.mode = "s3"`; source object names are then derived as `RAW_*` tables
-inside the sample schema. Set `s3.release = "latest"` or an available explicit
+in the raw schema (`<schema>_RAW` by default), outside the DCM project, so a
+deploy or purge of the model never touches loaded data. Set `s3.release = "latest"` or an available explicit
 release. `latest` selects the newest release with files for all four required
 types; this is a presence check, not proof that an upstream publication is complete.
 Compare with [Overture's release catalog](https://stac.overturemaps.org/catalog.json)
@@ -297,8 +325,9 @@ before a production load. Old releases can disappear from the public bucket.
 `s3.place_bbox` is `[west, south, east, north]`, with San Francisco as the default.
 Use `[]` to load global places. Divisions are always loaded globally. Longitude
 comes first and bounding boxes crossing the antimeridian are not supported.
-The loader records the actual release and coverage in `DATASET_INFO`; it ignores
-the manually entered source release/coverage for loaded data.
+The loader records the actual release and coverage in `LOAD_INFO` in the raw
+schema, and install publishes them in `DATASET_INFO`; it ignores the manually
+entered source release/coverage for loaded data.
 
 ```bash
 python3 scripts/install.py load-s3 --config config.toml --execute
@@ -392,7 +421,9 @@ development and the remaining installation/rendering acceptance tests.
 | Berlin returns no results | The default S3 load contains only San Francisco places. Use a Berlin bounding box or global places in a new installation. |
 | SQL works but no map appears | Confirm native map availability, the selected agent and the result's geographic columns. A successful API response is not a renderer test. |
 | The agent is not visible in CoWork | With a CoWork object, install adds the agent and fails if it cannot; the installer role needs MODIFY on that object and the viewer role needs USAGE on it, which install grants. Without a CoWork object, check the viewer's USAGE on the agent, database and schema. |
-| The schema exists but was not created by this sample | Choose another schema. The installer only replaces objects whose comment carries the `overture-maps-semantic-layer:` marker. |
+| The schema exists but was not created by this sample | Choose another schema. The installer deploys only into a schema that is absent or whose comment carries the `overture-maps-semantic-layer:` marker. |
+| Pre-deploy reports a 1.x installation | The schema predates the DCM project. Run `migrate-legacy` once, as described in [Upgrade and cleanup](#upgrade-and-cleanup). |
+| `DCM needs Snowflake CLI 3.24 or later` | Upgrade Snowflake CLI, or set `SNOW_CLI` to a newer `snow` executable. |
 | S3 loading stops before completion | Inspect retained candidate tables and the error, then run cleanup before retrying. |
 | Category search is not ready | Inspect the service in Snowsight and resolve its indexing, warehouse or privilege error before retrying verification. |
 
@@ -401,8 +432,11 @@ privileges or validate every source row; a later creation or grant can still fai
 
 ## Cost and operation
 
-- Existing-source mode creates views without copying source tables. Creating the
-  category vocabulary scans the places source once and stores category counts.
+- Existing-source mode creates views without copying source tables.
+  `CATEGORY_VOCAB` is a dynamic table with full refresh: creating it scans the
+  places source once, and each refresh scans it again. The target lag is 7 days
+  because the vocabulary changes only with a new release. Suspend it with
+  `alter dynamic table ... suspend` if you do not want the weekly scan.
 - S3 loading reads the selected Overture types. A bounding-box filter limits rows
   written but may not reduce source scan cost. Global places contain tens of
   millions of rows. Cross-region/cloud reads may incur transfer charges.
@@ -412,23 +446,38 @@ privileges or validate every source row; a later creation or grant can still fai
 - The runner uses your existing warehouse and a configurable per-statement timeout.
   These are not an account spending cap. Map row limits are instructions to the
   agent, not an enforceable query or payload-size limit.
-- The category vocabulary is an installation-time snapshot. Existing-source views
-  can see newer provider data while that vocabulary and recorded release metadata
-  stay unchanged. Rerun `install` to refresh the whole sample together.
+- Existing-source views can see newer provider data before the next vocabulary
+  refresh; the recorded release in `DATASET_INFO` changes only when you install
+  again with new `source.release` text.
 
 ## Upgrade and cleanup
 
 There is one installation per schema. Rerunning `install`, with the same or a
-newer configuration or sample version, replaces the views, semantic view,
-category vocabulary and search service, and agent in that schema, and drops views
-for optional themes you removed from the configuration. The schema comment then
-records the new build. Objects carrying any `overture-maps-semantic-layer:`
-marker count as the sample's own; anything else in the schema stops the
-installer. S3-loaded `RAW_*` data is reused, never replaced: to load another
-release or area, run cleanup and load again.
+newer configuration or sample version, is a DCM deploy against the same
+project. Run `plan` first to see what will change: an unchanged installation
+reports no changes, and views for optional themes you removed are listed as
+drops because their definitions are gone. Category search and the agent are then
+replaced. Each deploy is recorded in the project's deployment history. S3-loaded
+`RAW_*` data is reused, never replaced: to load another release or area, run
+cleanup and load again.
 
 Replacing the agent starts it fresh, so restart open CoWork conversations with
 it after an upgrade. Grants to the viewer role are reapplied on every install.
+
+Installations made before the DCM project (1.x markers) are not upgraded in
+place, because the DCM deploy would take over objects it did not create.
+Pre-deploy stops and asks you to migrate first:
+
+```bash
+python3 scripts/install.py migrate-legacy --config config.toml --execute
+python3 scripts/install.py install --config config.toml --execute
+```
+
+`migrate-legacy` refuses unless every object in the schema carries the sample's
+marker. It removes the agent from CoWork, drops the agent, search service,
+semantic view, views and tables, moves any `RAW_*` tables into the raw schema
+(recording their release and coverage in `LOAD_INFO`) and drops the empty schema.
+The agent is unavailable until the following install completes.
 
 To delete the installation:
 
@@ -436,15 +485,19 @@ To delete the installation:
 python3 scripts/install.py cleanup --config config.toml --execute
 ```
 
-Cleanup checks ownership markers, drops only listed sample objects and tagged
-load candidates, and drops the schema with `RESTRICT`. It refuses recognized
-object kinds with unknown names/comments. It never drops source databases,
-Marketplace shares, external source tables, roles or warehouses. It deliberately
-does not revoke database/warehouse USAGE because other applications may use it.
+Cleanup removes this agent from CoWork, drops the agent and search service, runs
+`snow dcm purge` to drop every object the project manages (including the model
+schema), drops the project and its schema, and then drops the sample's own
+objects and tagged load candidates in the raw schema, with `RESTRICT` on each
+schema. It refuses a raw schema holding objects with unknown names or comments.
+It never drops source databases, Marketplace shares, external source tables,
+roles or warehouses. It deliberately does not revoke database/warehouse USAGE
+because other applications may use it.
 **Cleanup deletes this agent's evaluation history and any S3 data loaded by the
-sample.** Export history first if needed. Do not add unrelated objects to this
-sample-owned schema. Markers prevent accidental collisions; they are not a
-security boundary against a role that can change object metadata.
+sample.** Export history first if needed. Do not add unrelated objects to the
+sample's schemas: the purge drops the whole model schema. Markers prevent
+accidental collisions; they are not a security boundary against a role that can
+change object metadata.
 
 ## Limits
 
@@ -463,12 +516,13 @@ filtering and row limits still do not guarantee a small polygon payload.
 
 ```text
 config.example.toml       Account settings and source mappings
-scripts/install.py       Preflight, render, load, install, verify and cleanup
-sql/                     Source normalization, optional S3 load, category search
-semantic/overture.sql    Semantic view and generated verified-query attachment
+scripts/install.py       Preflight, render, load, plan, install, verify, migrate and cleanup
+scripts/build_dcm.py     Regenerates the verified-queries macro from examples/prompts.json
+dcm/                     DCM project: views, vocabulary, semantic view and viewer grants
+sql/                     Optional S3 stage and load templates
 agent/instructions.md    Agent behavior and map-output conventions
 examples/prompts.json    Prompt gallery and reference SQL
-tests/                   Offline installer and rendering tests
+tests/                   Offline installer, DCM rendering and legacy-equivalence tests
 docs/                    Source contract and validation record
 ```
 

@@ -63,12 +63,8 @@ class InstallerTests(unittest.TestCase):
     def test_install_and_render_never_create_cowork_object(self) -> None:
         for objects in ([], [{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}]):
             client, statements = self.cowork_client(objects, [])
-            with patch.object(install, "preflight"), patch.object(install, "ensure_namespace"), \
-                    patch.object(install, "check_owned_objects"), \
-                    patch.object(install, "create_dataset_info"), patch.object(install, "verify"):
-                original = client.query
-                client.query = lambda sql: ([{"RELEASE": "r", "COVERAGE": "c"}]
-                                            if sql.startswith("select release") else original(sql))
+            with patch.object(install, "preflight"), patch.object(install, "pre_deploy"), \
+                    patch.object(install, "deploy_model"), patch.object(install, "verify"):
                 install.execute_workflow("install", self.config, client)
             self.assertFalse(any(sql.lower().startswith("create snowflake intelligence")
                                  for sql in statements))
@@ -78,6 +74,26 @@ class InstallerTests(unittest.TestCase):
         rendered = "\n".join(str(call.args[0]) for call in printed.call_args_list if call.args)
         executable = [line for line in rendered.splitlines() if not line.lstrip().startswith("--")]
         self.assertFalse(any("snowflake intelligence" in line.lower() for line in executable))
+
+    def test_cowork_and_warehouse_opt_out(self) -> None:
+        config = deepcopy(self.config)
+        config.update(register_cowork=False, grant_shared_objects=False)
+        client, statements = self.cowork_client([{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}], [])
+        self.assertIsNone(install.register_cowork(config, client))
+        self.assertEqual(statements, [])
+        grants = install.grant_sql(config).lower()
+        self.assertNotIn("warehouse", grants)
+        self.assertNotIn("on database", grants)
+        self.assertIn("on agent", grants)
+        checks = [[{"ID": "p"}]] * 4 + [[{"PLACE_ID": "p"}], [], [{"SERVING_STATE": "ACTIVE"}]]
+        client = unittest.mock.Mock()
+        client.query.side_effect = checks
+        with patch("builtins.print"):
+            self.assertEqual(install.verify(config, client), "skipped")
+        config["register_cowork"] = "no"
+        with patch.object(install.tomllib, "loads", return_value=config):
+            with self.assertRaisesRegex(ValueError, "true or false"):
+                install.load_config(ROOT / "config.example.toml")
 
     def test_cowork_privilege_error_names_grant(self) -> None:
         error = install.subprocess.CalledProcessError(1, "snow", stderr="Insufficient privileges")
@@ -103,10 +119,10 @@ class InstallerTests(unittest.TestCase):
     def test_cleanup_removes_agent_from_cowork_only(self) -> None:
         client, statements = self.cowork_client([{"NAME": "SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT"}],
                                                 [self.cowork_row])
-        with patch.object(install, "ensure_namespace"), patch.object(install, "check_owned_objects"):
-            install.execute_workflow("cleanup", self.config, client)
-        drop_cowork = next(i for i, sql in enumerate(statements) if "drop agent" in sql)
-        drop_agent = next(i for i, sql in enumerate(statements) if sql.startswith("drop AGENT"))
+        install.drop_cowork_and_agent(self.config, client)
+        drop_cowork = next(i for i, sql in enumerate(statements) if "drop agent " in sql
+                           and sql.startswith("alter snowflake intelligence"))
+        drop_agent = next(i for i, sql in enumerate(statements) if sql.startswith("drop agent"))
         self.assertLess(drop_cowork, drop_agent)
         self.assertFalse(any(sql.startswith("drop snowflake intelligence") for sql in statements))
 
@@ -170,17 +186,17 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(install.marker(updated), install.marker(self.config))
 
     def test_all_templates_render(self) -> None:
-        for file in ("sql/10_sources.sql", "semantic/overture.sql", "sql/30_category_search.sql"):
-            rendered = install.render_file(file, self.config)
-            self.assertNotIn("$ns", rendered)
-            self.assertNotIn("if not exists", rendered.lower())
-            self.assertIn("create or replace", rendered.lower())
         rendered = install.render_file("sql/06_load_table.sql", self.config,
             candidate='"DB"."SCHEMA".LOAD_PLACE_12345678',
             projection=install.projection("place"), release="2026-08-19.0",
             theme="places", type="place", filter="")
         self.assertIn("$1:geometry", rendered)
         self.assertIn("try_to_geography($1:geometry::binary, true)", rendered)
+        setup = install.render_file("sql/05_s3_setup.sql", self.config, integration="")
+        self.assertIn('"MY_DATABASE"."OVERTURE_SEMANTIC_RAW".OVERTURE_S3', setup)
+        search = install.search_sql(self.config)
+        self.assertIn('"OVERTURE_SEMANTIC".CATEGORY_SEARCH', search)
+        self.assertIn('from "MY_DATABASE"."OVERTURE_SEMANTIC".CATEGORY_VOCAB', search)
 
     def optional_config(self, themes=install.OPTIONAL_THEMES, mode="existing"):
         config = deepcopy(self.config)
@@ -189,34 +205,14 @@ class InstallerTests(unittest.TestCase):
         with patch.object(install.tomllib, "loads", return_value=config):
             return install.load_config(ROOT / "config.example.toml")
 
-    def test_optional_themes_render_into_one_semantic_view(self) -> None:
-        base = install.render_file("semantic/overture.sql", self.config)
-        self.assertNotIn("BBOX", base)
-        self.assertNotIn("tallest_buildings", base)
-        config = self.optional_config()
-        sql = install.render_file("semantic/overture.sql", config)
-        for expected in ("addresses as", "segments as", "buildings as", "buildings.bbox_xmin",
-                         "segments.speed_limit_kmh", "tallest_buildings as",
-                         "must filter bbox_xmin"):
-            self.assertIn(expected, sql)
-        self.assertNotIn("$extra", sql)
-        self.assertNotIn("$ns", sql)
-        self.assertIn('"OVERTURE_SEMANTIC".BUILDING primary key', sql)
-        self.assertEqual(install.install_files(config)[1:4],
-                         [f"sql/themes/{theme}.sql" for theme in install.OPTIONAL_THEMES])
-        for name in install.install_files(config):
-            rendered = install.render_file(name, config)
-            self.assertNotIn("--", rendered)
-            self.assertNotIn("if not exists", rendered.lower())
-
     def test_optional_prompts_follow_installed_themes(self) -> None:
         ids = {prompt["id"] for prompt in install.available_prompts(self.optional_config(["building"]))}
         self.assertIn("tallest_buildings", ids)
         self.assertNotIn("market_street_addresses", ids)
         self.assertNotIn("tallest_buildings", {p["id"] for p in install.available_prompts(self.config)})
-        grants = install.grant_sql(self.optional_config(["building"])).lower()
-        self.assertIn('view "my_database"."overture_semantic".building', grants.replace('"building"', "building"))
-        self.assertNotIn("address", install.grant_sql(self.config).lower())
+        variables = install.dcm_variables(self.optional_config(["building"]), {"RELEASE": "r", "COVERAGE": "c"})
+        self.assertEqual(variables["optional_themes"], ["building"])
+        self.assertNotIn("source_address", variables)
 
     def test_optional_theme_configuration(self) -> None:
         for themes in (["connector"], ["building", "building"], "building"):
@@ -229,7 +225,7 @@ class InstallerTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "too large"):
                 install.load_config(ROOT / "config.example.toml")
         loaded = self.optional_config(["segment"], "s3")
-        self.assertEqual(loaded["source"]["segment"], "MY_DATABASE.OVERTURE_SEMANTIC.RAW_SEGMENT")
+        self.assertEqual(loaded["source"]["segment"], "MY_DATABASE.OVERTURE_SEMANTIC_RAW.RAW_SEGMENT")
 
     def test_optional_s3_load_is_clipped(self) -> None:
         config = self.optional_config(["building"], "s3")
@@ -239,29 +235,13 @@ class InstallerTests(unittest.TestCase):
         quality = [{"ROW_COUNT": "10", "INVALID": "0", "NULL_IDS": "0", "IDS": "10"}]
         client.query.side_effect = [[], [], files] + [[], quality] * 5 + [
             [{"ORPHAN_COUNT": "0"}], [], [], [], [], [], []]
-        with patch.object(install, "ensure_namespace"), patch.object(install, "check_owned_objects"), \
+        with patch.object(install, "ensure_owned_schema"), patch.object(install, "check_raw_objects"), \
                 patch.object(install, "fetch_published_release", return_value="2026-08-19.0"):
             install.load_s3(config, client)
         building = next(call.args[0] for call in client.query.call_args_list
                         if "theme=buildings/type=building" in call.args[0])
         self.assertIn("$1:bbox:xmin::float <=", building)
         self.assertIn("$1:bbox::variant as BBOX", building)
-
-    def test_source_independence(self) -> None:
-        updated = deepcopy(self.config)
-        updated["source"]["place"] = "MY_LOADED_DATA.OVERTURE.PLACE"
-        original = install.render_file("semantic/overture.sql", self.config)
-        changed = install.render_file("semantic/overture.sql", updated)
-        self.assertEqual(original.replace(install.marker(self.config), "MARKER"),
-                         changed.replace(install.marker(updated), "MARKER"))
-
-    def test_geometry_grain_and_no_spatial_relationship(self) -> None:
-        sql = install.render_file("semantic/overture.sql", self.config)
-        self.assertIn("areas.area_id as ID", sql)
-        self.assertIn("places.place_id as ID", sql)
-        self.assertIn("st_union_agg", sql)
-        self.assertIn("area_to_division", sql)
-        self.assertNotIn("places(GEOM)", sql)
 
     def test_prompt_contract(self) -> None:
         prompts = json.loads((ROOT / "examples/prompts.json").read_text())
@@ -275,7 +255,10 @@ class InstallerTests(unittest.TestCase):
             if set(prompt["requires"]) & set(install.OPTIONAL_THEMES):
                 for column in ("bbox_xmin", "bbox_xmax", "bbox_ymin", "bbox_ymax"):
                     self.assertIn(column, prompt["reference_sql"])
-        self.assertIn("ai_verified_queries", install.verified_queries(self.config))
+        macro = (ROOT / "dcm/sources/macros/verified_queries.sql").read_text()
+        self.assertIn("ai_verified_queries", macro)
+        for prompt in prompts:
+            self.assertIn(f"{prompt['id']} as (question ", macro)
 
     def test_agent_json_roundtrip(self) -> None:
         sql = install.agent_sql(self.config, {"RELEASE": "unknown", "COVERAGE": "test"})
@@ -310,15 +293,20 @@ class InstallerTests(unittest.TestCase):
             self.assertIn("NONE", mocked.call_args.args[0])
 
     def test_execute_required(self) -> None:
-        for command in ("install", "load-s3", "cleanup"):
-            with self.assertRaises(ValueError):
+        for command in sorted(install.MUTATING):
+            with self.subTest(command=command), self.assertRaises(ValueError):
                 install.run(command, self.config, False)
+        self.assertEqual(set(install.SQL_COMMANDS) & set(install.CLI_COMMANDS), set())
 
     def test_unowned_schema_rejected(self) -> None:
         client = unittest.mock.Mock()
         client.query.return_value = [{"SCHEMA_NAME": self.config["schema"], "COMMENT": "someone else"}]
-        with self.assertRaises(ValueError):
-            install.ensure_namespace(self.config, client, create=True)
+        with self.assertRaisesRegex(ValueError, "not created by this sample"):
+            install.pre_deploy(self.config, client)
+        self.assertEqual(client.query.call_count, 1)
+        client.reset_mock()
+        with self.assertRaisesRegex(ValueError, "not created by this sample"):
+            install.ensure_owned_schema(self.config, client, "project_schema")
         self.assertEqual(client.query.call_count, 1)
 
     def test_no_broad_grants_or_drop(self) -> None:
@@ -342,13 +330,22 @@ class InstallerTests(unittest.TestCase):
         config["source"]["mode"] = "s3"
         with patch.object(install.tomllib, "loads", return_value=config):
             result = install.load_config(ROOT / "config.example.toml")
-        self.assertEqual(result["source"]["place"], "MY_DATABASE.OVERTURE_SEMANTIC.RAW_PLACE")
+        self.assertEqual(result["source"]["place"], "MY_DATABASE.OVERTURE_SEMANTIC_RAW.RAW_PLACE")
+        self.assertEqual(result["project_schema"], "OVERTURE_SEMANTIC_DCM")
+
+    def test_schemas_must_differ(self) -> None:
+        for key in ("project_schema", "raw_schema"):
+            config = deepcopy(self.config)
+            config[key] = config["schema"]
+            with self.subTest(key=key), patch.object(install.tomllib, "loads", return_value=config):
+                with self.assertRaisesRegex(ValueError, "must all differ"):
+                    install.load_config(ROOT / "config.example.toml")
 
     def test_modified_object_blocks_cleanup(self) -> None:
         client = unittest.mock.Mock()
-        client.query.return_value = [{"NAME": "PLACE", "COMMENT": "not our object"}]
+        client.query.return_value = [{"NAME": "RAW_PLACE", "COMMENT": "not our object"}]
         with self.assertRaises(ValueError):
-            install.check_owned_objects(self.config, client, allow_candidates=True)
+            install.check_raw_objects(self.config, client, allow_candidates=True)
 
     def test_load_failure_does_not_publish(self) -> None:
         config = deepcopy(self.config)
@@ -358,7 +355,7 @@ class InstallerTests(unittest.TestCase):
                  for theme in install.THEMES]
         client.query.side_effect = [[], [], files, [],
             [{"ROW_COUNT": "10", "INVALID": "1", "NULL_IDS": "0", "IDS": "10"}]]
-        with patch.object(install, "ensure_namespace"), patch.object(install, "check_owned_objects"), \
+        with patch.object(install, "ensure_owned_schema"), patch.object(install, "check_raw_objects"), \
                 patch.object(install, "fetch_published_release", return_value="2026-08-19.0"):
             with self.assertRaises(ValueError):
                 install.load_s3(config, client)
@@ -375,7 +372,7 @@ class InstallerTests(unittest.TestCase):
         quality = [{"ROW_COUNT": "10", "INVALID": "0", "NULL_IDS": "0", "IDS": "10"}]
         client.query.side_effect = [[], [], files] + [[], quality] * 4 + [
             [{"ORPHAN_COUNT": "0"}], [], [], [], [], []]
-        with patch.object(install, "ensure_namespace"), patch.object(install, "check_owned_objects"), \
+        with patch.object(install, "ensure_owned_schema"), patch.object(install, "check_raw_objects"), \
                 patch.object(install, "fetch_published_release", return_value="2026-08-19.0"):
             install.load_s3(config, client)
         statements = [call.args[0] for call in client.query.call_args_list]
@@ -384,7 +381,7 @@ class InstallerTests(unittest.TestCase):
         validation_end = next(index for index, sql in enumerate(statements) if "orphan_count" in sql)
         rename_start = next(index for index, sql in enumerate(statements) if "rename to" in sql)
         self.assertLess(validation_end, rename_start)
-        self.assertIn("DATASET_INFO", statements[-1])
+        self.assertIn("LOAD_INFO", statements[-1])
 
     def test_existing_source_inside_target_rejected(self) -> None:
         config = deepcopy(self.config)
@@ -393,73 +390,152 @@ class InstallerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 install.load_config(ROOT / "config.example.toml")
 
-    def test_older_sample_schema_is_upgraded_in_place(self) -> None:
+    def test_legacy_schema_requires_migration(self) -> None:
         client = unittest.mock.Mock()
         client.query.return_value = [{"SCHEMA_NAME": self.config["schema"],
-                                      "COMMENT": "overture-maps-semantic-layer:1.0.0:e401a0fe112a9d5a"}]
-        install.ensure_namespace(self.config, client, create=True)
-        update = client.query.call_args_list[-1].args[0]
-        self.assertTrue(update.startswith("alter schema"))
-        self.assertIn(install.marker(self.config), update)
-        client.reset_mock()
-        install.ensure_namespace(self.config, client)
-        self.assertEqual(client.query.call_count, 1)
+                                      "COMMENT": "overture-maps-semantic-layer:1.1.0:936812ea263f3824"}]
+        self.assertEqual(install.model_state(self.config, client), "legacy")
+        with self.assertRaisesRegex(ValueError, "migrate-legacy"):
+            install.pre_deploy(self.config, client)
+        client.query.return_value = [{"SCHEMA_NAME": self.config["schema"],
+                                      "COMMENT": install.marker(self.config)}]
+        self.assertEqual(install.model_state(self.config, client), "dcm")
+        client.query.return_value = []
+        self.assertEqual(install.model_state(self.config, client), "absent")
+        self.assertTrue(install.marker(self.config).startswith("overture-maps-semantic-layer:2."))
 
-    def test_older_sample_objects_accepted_foreign_rejected(self) -> None:
-        client = unittest.mock.Mock()
-        views = lambda row: (lambda sql: [row] if sql.startswith("show VIEWS") else [])
-        client.query.side_effect = views({"NAME": "PLACE", "COMMENT": "overture-maps-semantic-layer:0.9:x"})
-        install.check_owned_objects(self.config, client)
+    def test_migrate_legacy_refuses_foreign_objects(self) -> None:
+        legacy = [{"SCHEMA_NAME": "OVERTURE_SEMANTIC", "COMMENT": "overture-maps-semantic-layer:1.1.0:x"}]
         for row in ({"NAME": "PLACE", "COMMENT": "my overture view"},
-                    {"NAME": "MY_VIEW", "COMMENT": install.marker(self.config)}):
-            client.query.side_effect = views(row)
-            with self.assertRaises(ValueError):
-                install.check_owned_objects(self.config, client)
+                    {"NAME": "MY_VIEW", "COMMENT": "overture-maps-semantic-layer:1.1.0:x"}):
+            statements = []
+            def query(sql, row=row):
+                statements.append(sql)
+                if "information_schema.schemata" in sql:
+                    return legacy
+                return [row] if sql.startswith("show VIEWS") or sql.startswith("show views") else []
+            with self.subTest(row=row), self.assertRaisesRegex(ValueError, "refusing to migrate"):
+                install.migrate_legacy(self.config, unittest.mock.Mock(query=query))
+            self.assertFalse(any(sql.startswith(("drop", "alter")) for sql in statements))
         self.assertFalse(install.owned(None))
         self.assertFalse(install.owned("xoverture-maps-semantic-layer:"))
 
-    def test_removed_theme_view_dropped_before_model(self) -> None:
-        client = unittest.mock.Mock()
-        client.query.return_value = [
-            {"NAME": "BUILDING", "COMMENT": "overture-maps-semantic-layer:1.1.0:old"},
-            {"NAME": "SEGMENT", "COMMENT": "someone else"},
-            {"NAME": "PLACE", "COMMENT": "overture-maps-semantic-layer:1.1.0:old"}]
-        install.drop_unused_theme_views(self.config, client)
-        drops = [call.args[0] for call in client.query.call_args_list if call.args[0].startswith("drop")]
-        self.assertEqual(drops, ['drop view "MY_DATABASE"."OVERTURE_SEMANTIC"."BUILDING"'])
-        client.reset_mock()
-        install.drop_unused_theme_views(self.optional_config(["building"]), client)
-        self.assertEqual(client.query.call_count, 1)
-
-    def test_install_prunes_before_replacing_model(self) -> None:
+    def test_migrate_legacy_moves_raw_data_then_clears_schema(self) -> None:
+        legacy = "overture-maps-semantic-layer:1.1.0:x"
         statements = []
         def query(sql):
             statements.append(sql)
-            if sql.startswith("select release"):
-                return [{"RELEASE": "r", "COVERAGE": "c"}]
+            if "information_schema.schemata" in sql:
+                return [{"SCHEMA_NAME": "S", "COMMENT": legacy}] if "'OVERTURE_SEMANTIC'" in sql else []
+            if sql.startswith("show tables in schema \"MY_DATABASE\".\"OVERTURE_SEMANTIC\""):
+                return [{"NAME": "RAW_PLACE", "COMMENT": legacy}, {"NAME": "DATASET_INFO", "COMMENT": legacy}]
             return []
-        client = unittest.mock.Mock(query=query)
-        with patch.object(install, "preflight"), patch.object(install, "ensure_namespace"), \
-                patch.object(install, "check_owned_objects"), patch.object(install, "verify"):
-            install.execute_workflow("install", self.config, client)
-        prune = next(i for i, sql in enumerate(statements) if sql.startswith("show views"))
-        model = next(i for i, sql in enumerate(statements) if "semantic view" in sql)
-        self.assertLess(prune, model)
+        install.migrate_legacy(self.config, unittest.mock.Mock(query=query))
+        load_info = next(i for i, sql in enumerate(statements) if "LOAD_INFO" in sql)
+        move = next(i for i, sql in enumerate(statements) if "rename to" in sql)
+        drop_info = next(i for i, sql in enumerate(statements)
+                         if sql.startswith("drop TABLE") and "DATASET_INFO" in sql)
+        self.assertLess(load_info, move)
+        self.assertLess(move, drop_info)
+        self.assertIn('rename to "MY_DATABASE"."OVERTURE_SEMANTIC_RAW"."RAW_PLACE"', statements[move])
+        self.assertTrue(statements[-1].startswith('drop schema "MY_DATABASE"."OVERTURE_SEMANTIC" restrict'))
+
+    def test_install_runs_phases_in_order(self) -> None:
+        calls = []
+        def record(name):
+            return lambda *args, **kwargs: calls.append(name)
+        with patch.object(install, "preflight", record("preflight")), \
+                patch.object(install, "pre_deploy", record("pre-deploy")), \
+                patch.object(install, "deploy_model", lambda c, cl, command: calls.append(command)), \
+                patch.object(install, "post_deploy", record("post-deploy")):
+            install.execute_workflow("install", self.config, unittest.mock.Mock())
+        self.assertEqual(calls, ["preflight", "pre-deploy", "deploy", "post-deploy"])
+
+    def test_pre_deploy_creates_project_container_only(self) -> None:
+        statements = []
+        client = unittest.mock.Mock(query=lambda sql: statements.append(sql) or [])
+        install.pre_deploy(self.config, client)
+        executed = [sql for sql in statements if not sql.startswith("select")]
+        self.assertEqual(executed[0].split(" comment")[0],
+                         'create schema "MY_DATABASE"."OVERTURE_SEMANTIC_DCM"')
+        self.assertTrue(executed[1].startswith(
+            'create dcm project if not exists "MY_DATABASE"."OVERTURE_SEMANTIC_DCM".'
+            "OVERTURE_MAPS_SEMANTIC_LAYER"))
+        self.assertEqual(len(executed), 2)
+
+    def test_post_deploy_builds_search_before_agent(self) -> None:
+        statements = []
+        client, statements = self.cowork_client([], [])
+        with patch.object(install, "verify", return_value="not required"):
+            self.assertEqual(install.post_deploy(self.config, client), "not required")
+        search = next(i for i, sql in enumerate(statements) if "cortex search service" in sql)
+        agent = next(i for i, sql in enumerate(statements) if sql.startswith("create or replace agent"))
+        self.assertLess(search, agent)
+        self.assertFalse(any("DEFINE" in sql or "semantic view" in sql.lower() for sql in statements))
+
+    def test_run_dcm_arguments(self) -> None:
+        version = subprocess.CompletedProcess([], 0, "Snowflake CLI version: 3.31.0\n", "")
+        result = subprocess.CompletedProcess([], 0, "Deployed 12 entities.\n", "")
+        with patch.object(install.subprocess, "run", side_effect=[version, version, result]) as mocked:
+            install.run_dcm("deploy", self.config, Path("/tmp/x"))
+        arguments = mocked.call_args.args[0]
+        self.assertEqual(arguments[1:4], ["dcm", "deploy",
+                                          "MY_DATABASE.OVERTURE_SEMANTIC_DCM.OVERTURE_MAPS_SEMANTIC_LAYER"])
+        for flag, value in (("--from", "/tmp/x"), ("--connection", "my_connection"),
+                            ("--role", "MY_INSTALLER_ROLE")):
+            self.assertEqual(arguments[arguments.index(flag) + 1], value)
+        self.assertTrue(arguments[arguments.index("--alias") + 1].startswith(
+            install.marker(self.config) + ":deploy:"))
+        old = subprocess.CompletedProcess([], 0, "Snowflake CLI version: 3.16.0\n", "")
+        with patch.object(install.subprocess, "run", return_value=old):
+            with self.assertRaisesRegex(ValueError, "SNOW_CLI"):
+                install.run_dcm("plan", self.config, Path("/tmp/x"))
+
+    def test_cleanup_purges_model_before_dropping_project(self) -> None:
+        statements = []
+        def query(sql):
+            statements.append(sql)
+            if "information_schema.schemata" in sql:
+                return [{"SCHEMA_NAME": "S", "COMMENT": install.marker(self.config)}]
+            if sql.startswith("show dcm projects"):
+                return [{"NAME": install.DCM_PROJECT}]
+            return []
+        with patch.object(install, "run_dcm", side_effect=lambda *a, **k: statements.append("PURGE")), \
+                patch.object(install, "cowork_object", return_value=None):
+            install.cleanup(self.config, unittest.mock.Mock(query=query))
+        order = [next(i for i, sql in enumerate(statements) if needle in sql)
+                 for needle in ("drop agent if exists", "PURGE", "drop dcm project",
+                                'drop schema "MY_DATABASE"."OVERTURE_SEMANTIC_DCM"',
+                                'drop schema "MY_DATABASE"."OVERTURE_SEMANTIC_RAW"')]
+        self.assertEqual(order, sorted(order))
+        self.assertFalse(any('drop schema "MY_DATABASE"."OVERTURE_SEMANTIC" ' in sql for sql in statements))
+
+    def test_s3_dataset_comes_from_load_info(self) -> None:
+        config = self.optional_config([], "s3")
+        client = unittest.mock.Mock()
+        client.query.side_effect = [[{"SCHEMA_NAME": "R", "COMMENT": "m"}],
+                                    [{"RELEASE": "2026-10-21.0", "COVERAGE": "Places bbox"}]]
+        self.assertEqual(install.dataset(config, client),
+                         {"RELEASE": "2026-10-21.0", "COVERAGE": "Places bbox"})
+        self.assertIn('"OVERTURE_SEMANTIC_RAW".LOAD_INFO', client.query.call_args.args[0])
+        client.query.side_effect = [[]]
+        with self.assertRaisesRegex(ValueError, "run load-s3 first"):
+            install.dataset(config, client)
 
     def test_load_into_loaded_schema_points_to_cleanup(self) -> None:
         config = deepcopy(self.config)
         config["source"]["mode"] = "s3"
         client = unittest.mock.Mock()
         client.query.return_value = [{"NAME": "RAW_PLACE"}]
-        with patch.object(install, "ensure_namespace"), patch.object(install, "check_owned_objects"):
+        with patch.object(install, "ensure_owned_schema"), patch.object(install, "check_raw_objects"):
             with self.assertRaisesRegex(ValueError, "run cleanup first"):
                 install.load_s3(config, client)
 
     def test_matching_namespace_does_not_recreate(self) -> None:
         client = unittest.mock.Mock()
-        client.query.return_value = [{"SCHEMA_NAME": self.config["schema"],
+        client.query.return_value = [{"SCHEMA_NAME": self.config["project_schema"],
                                       "COMMENT": install.marker(self.config)}]
-        install.ensure_namespace(self.config, client, create=True)
+        install.ensure_owned_schema(self.config, client, "project_schema")
         self.assertEqual(client.query.call_count, 1)
         self.assertTrue(client.query.call_args.args[0].startswith("select "))
 
@@ -468,7 +544,7 @@ class InstallerTests(unittest.TestCase):
         config["source"]["mode"] = "s3"
         client = unittest.mock.Mock()
         client.query.return_value = [{"NAME": "RAW_PLACE"}]
-        with patch.object(install, "ensure_namespace"), patch.object(install, "check_owned_objects"):
+        with patch.object(install, "ensure_owned_schema"), patch.object(install, "check_raw_objects"):
             with self.assertRaises(ValueError):
                 install.load_s3(config, client)
         self.assertEqual(client.query.call_count, 1)

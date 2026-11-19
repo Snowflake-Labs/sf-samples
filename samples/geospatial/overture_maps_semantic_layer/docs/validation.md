@@ -131,6 +131,52 @@ object (tib85385 has one and it was not dropped), so it is covered offline only.
 Also not verified: a separate viewer role (viewer equalled installer, so no
 grants ran), an S3 load, agent answers and native map rendering in CoWork.
 
+## DCM-based installer (2026-11-02)
+
+The semantic model moved into a DCM project (`dcm/`): the views, `CATEGORY_VOCAB`
+(now a full-refresh dynamic table), `DATASET_INFO` (now a view), the semantic
+view and the viewer grants on them. Pre-deploy SQL guards the schema and creates
+the project object; post-deploy SQL creates category search, the agent and the
+CoWork registration, which DCM cannot define. Snowflake CLI 3.31.0 was used for
+`snow dcm`.
+
+Offline: 96 tests pass. The DCM definitions render, through jinja2, to the same
+statements as the previous renderer for three configurations (core themes, all
+optional themes, S3 with buildings), compared against fixtures captured from the
+pre-DCM code. Without jinja2 the 11 rendering tests are skipped.
+
+On tib85385 (ACCOUNTADMIN, MEDIUM, Marketplace shares), in new schemas, leaving
+`OVERTURE_SEMANTIC` and the five-agent CoWork baseline untouched:
+
+- Spike: the previous templates, rewritten as `DEFINE`, deployed as a DCM project.
+  The semantic view's DDL was identical to the 1.1.0 installation apart from the
+  ownership hash, with all 59 comments and 9 verified queries. A search service
+  compiled over the DCM-managed dynamic table. `snow dcm purge` removed all 11
+  entities.
+- Fresh install into `OVERTURE_DCM_E2E` with the building theme: completed in
+  3 min 18 s. DCM deployed 10 entities, all checks passed, the agent was added to
+  CoWork, and all 7 applicable reference queries passed (164, 394, 500, 58, 20, 1
+  and 10 rows).
+- Re-plan of the unchanged installation: no changes.
+- Removing an optional theme: the plan dropped only that theme's view and altered
+  the semantic view; deploying it left a zero-change plan. The first attempt also
+  altered every object, because their comments carried the config hash; comments
+  on DCM objects are now `overture-maps-semantic-layer:2.0.0`, and the full marker
+  is in each deploy alias.
+- `--expect-account` with the wrong account stopped before any change.
+- Migration: a 1.1.0 installation was created in `OVERTURE_LEGACY_E2E` with the
+  previous code. `install` refused it and named `migrate-legacy`; after
+  `migrate-legacy`, `install` deployed 9 entities and passed all checks.
+- Cleanup of both installations: the first attempt failed because `snow dcm purge`
+  reused the last deploy's alias, and aliases must be unique per project. Aliases
+  now carry a UTC timestamp; the retry dropped everything. No DCM project or test
+  schema remained, and the CoWork list was back to the original five agents.
+
+Not verified live: DCM grants to a separate viewer role (viewer equalled
+installer, so `access.sql` rendered no grants), the S3 path including
+`migrate-legacy` moving `RAW_*` tables, a scheduled `CATEGORY_VOCAB` refresh, and
+the agent path driving the DCM step from a recorded session.
+
 ## Isolated live smoke test
 
 On 2026-09-24, an explicitly approved isolated installation reused the existing

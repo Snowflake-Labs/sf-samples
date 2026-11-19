@@ -117,46 +117,61 @@ class AgentInstallerTests(unittest.TestCase):
         def workflow(command, config, client, load_id=None, release=None):
             client.query("create schema TEST.SAMPLE")
         with patch.object(install, "execute_workflow", workflow):
-            result = agent.next_statement("install", self.config, self.receipt("install"))
+            result = agent.next_statement("pre-deploy", self.config, self.receipt("pre-deploy"))
             self.assertEqual(result["status"], "approval_required")
-            result = agent.next_statement("install", self.config, self.receipt("install", True))
+            result = agent.next_statement("pre-deploy", self.config, self.receipt("pre-deploy", True))
             self.assertEqual(result["status"], "next")
 
     def test_cleanup_not_supported_by_agent(self) -> None:
         with self.assertRaisesRegex(ValueError, "cleanup"):
             agent.next_statement("cleanup", self.config, self.receipt("cleanup", True))
 
+    def test_dcm_step_not_replayed_by_agent(self) -> None:
+        for command in ("install", "plan", "deploy", "migrate-legacy"):
+            with self.subTest(command=command), self.assertRaisesRegex(ValueError, "CLI connection"):
+                agent.next_statement(command, self.config, self.receipt(command, True))
+
     def test_self_audience_does_not_grant_to_self(self) -> None:
         self.config["viewer_role"] = self.config["role"]
         self.assertEqual(install.grant_sql(self.config), "")
 
     def test_all_templates_split(self) -> None:
-        self.assertEqual(len(agent.split_statements(install.render_file("sql/10_sources.sql", self.config))), 4)
-        self.assertEqual(len(agent.split_statements(install.render_file("semantic/overture.sql", self.config))), 1)
+        self.assertEqual(len(agent.split_statements(install.search_sql(self.config))), 1)
+        self.assertEqual(len(agent.split_statements(install.grant_sql(self.config, '"X"'))), 5)
         self.assertEqual(len(agent.split_statements(install.agent_sql(self.config, {"COVERAGE": "a;b"}))), 1)
 
     def test_existing_installation_replay(self) -> None:
         for has_cowork in (True, False):
             with self.subTest(has_cowork=has_cowork):
-                self.replay_install(has_cowork)
+                self.replay("preflight", has_cowork)
+                pre = self.replay("pre-deploy", has_cowork)
+                self.assertEqual(len(pre), 2)
+                self.assertTrue(pre[1].startswith("create dcm project if not exists"))
+                # snow dcm deploy runs here, through scripts/install.py and the CLI.
+                post = self.replay("post-deploy", has_cowork)
+                self.assertEqual(sum("add agent" in sql for sql in post), int(has_cowork))
+                self.assertFalse(any("snowflake intelligence" in sql and "create" in sql
+                                     for sql in post))
+                self.assertTrue(any("create or replace agent" in sql for sql in post))
+                self.assertFalse(any("semantic view" in sql.lower() and "create" in sql.lower()
+                                     for sql in post))
 
-    def replay_install(self, has_cowork: bool) -> None:
-        receipt = self.receipt("install", True)
+    def replay(self, command: str, has_cowork: bool) -> list[str]:
+        """Drive one replayable command to completion; return the mutations it emitted."""
+        receipt = self.receipt(command, True)
         seen_mutations = []
         registered = False
         for _ in range(100):
-            result = agent.next_statement("install", self.config, receipt)
+            result = agent.next_statement(command, self.config, receipt)
             if result["status"] == "complete":
                 self.assertEqual(result["native_maps"], "not tested")
                 self.assertEqual(result["agent_execution"], "not tested")
-                self.assertEqual(result["cowork_registration"],
-                                 "passed" if has_cowork else "not required")
-                self.assertEqual(sum("add agent" in sql for sql in seen_mutations), int(has_cowork))
-                self.assertFalse(any("snowflake intelligence" in sql and "create" in sql
-                                     for sql in seen_mutations))
-                self.assertTrue(any("create or replace agent" in sql for sql in seen_mutations))
-                self.assertFalse(any("if not exists" in sql for sql in seen_mutations))
-                break
+                if command == "post-deploy":
+                    self.assertEqual(result["cowork_registration"],
+                                     "passed" if has_cowork else "not required")
+                self.assertFalse(any("if not exists" in sql for sql in seen_mutations
+                                     if not sql.startswith("create dcm project")))
+                return seen_mutations
             self.assertEqual(result["status"], "next")
             sql = result["sql"]
             rows = []
@@ -187,8 +202,7 @@ class AgentInstallerTests(unittest.TestCase):
             if result["mutates"]:
                 seen_mutations.append(sql)
             receipt["history"].append({"sql": sql, "ok": True, "rows": rows})
-        else:
-            self.fail("Workflow did not terminate")
+        self.fail("Workflow did not terminate")
 
     def test_schema_collision_stops_before_mutation(self) -> None:
         receipt = self.receipt("load-s3", True)

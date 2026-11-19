@@ -38,8 +38,10 @@ Overture from public S3 after approval. Both sources use the same semantic model
 
 Open **Cortex Code Desktop**, connect to the account where you want the sample,
 and paste this prompt. You do not need to clone the repo, edit TOML, or run setup
-commands yourself. Cortex Code needs local file access and Python 3.11+; this
-agent workflow does not require a separately configured Snowflake CLI connection.
+commands yourself. Cortex Code needs local file access and Python 3.11+. The
+semantic model deploys as a DCM project, which needs Snowflake CLI 3.24 or later
+with a named connection to the same account; Cortex Code checks for it and asks
+which connection to use.
 
 ```text
 Install Overture Maps Semantic Layer in my connected Snowflake account.
@@ -104,12 +106,16 @@ Existing Overture tables / Marketplace shares / approved S3 load
 | `PLACE`, `DIVISION`, `DIVISION_AREA`, `DIVISION_BOUNDARY` | Consistent local views over the chosen Overture sources. |
 | `ADDRESS`, `SEGMENT`, `BUILDING` | Optional views over the addresses, transportation and buildings themes, added only when listed in `source.optional_themes`. |
 | `OVERTURE_MAPS_SV` | Entity definitions, geographic metrics and reference-query examples for Cortex Analyst. |
-| `CATEGORY_VOCAB`, `CATEGORY_SEARCH` | Category lookup so the agent can resolve place types to actual tags. |
+| `CATEGORY_VOCAB`, `CATEGORY_SEARCH` | Category lookup so the agent can resolve place types to actual tags. `CATEGORY_VOCAB` is a dynamic table refreshed weekly. |
 | `OVERTURE_MAPS_AGENT` | Agent displayed as **Overture Maps**. Added to the account's Snowflake CoWork object only if one already exists. |
 | `DATASET_INFO` | Recorded release and source coverage. |
-| `RAW_*`, `OVERTURE_S3`, `OVERTURE_PARQUET` | Optional S3-loaded data, stage and file format. |
+| `OVERTURE_MAPS_SEMANTIC_LAYER` | DCM project, in `<schema>_DCM`, that owns the views, `CATEGORY_VOCAB`, `DATASET_INFO`, the semantic view and their viewer grants. |
+| `RAW_*`, `LOAD_INFO`, `OVERTURE_S3`, `OVERTURE_PARQUET` | Optional S3-loaded data, load record, stage and file format, in `<schema>_RAW`. |
 
-Objects live in an approved dedicated schema. Existing source tables and shares
+Objects live in an approved dedicated schema. The semantic model is the DCM
+project in [`dcm/`](dcm), so a deploy shows a plan first and changes only what
+differs. Search, the agent and CoWork registration are objects DCM cannot define;
+the installer creates them after the deploy. Existing source tables and shares
 are not overwritten. The four places and divisions themes above are required.
 Addresses, road segments and buildings are opt-in because they are global tables
 with hundreds of millions to billions of rows. When enabled, they join the same
@@ -233,11 +239,13 @@ it is not automatically discarded or reloaded. Do not run concurrent installers
 against the same schema.
 
 There is one installation per schema. Rerunning install, with an unchanged or a
-newer configuration or sample, upgrades it in place: views, semantic view,
-category search and agent are replaced, and views for removed optional themes are
-dropped. Only objects carrying the sample's marker are touched; a foreign object
-in the schema stops the installer. Cleanup is an explicit destructive operation
-and is never automatic error recovery.
+newer configuration or sample, is a DCM deploy against the same project: the plan
+lists what changes, an unchanged installation deploys nothing, and views for
+removed optional themes are dropped because their definitions are gone. Category
+search and the agent are then replaced. The installer deploys only into a schema
+that is absent or already owned by this sample. A 1.x installation (before DCM)
+must be migrated once with `install.py migrate-legacy`, which keeps S3 data.
+Cleanup is an explicit destructive operation and is never automatic error recovery.
 
 ## Limits and troubleshooting
 
@@ -270,8 +278,12 @@ Travel routing and real-time opening hours are not included.
 - [Conversation acceptance cases](tests/map_scenarios.json): unexecuted map and recovery scenarios.
 
 Run offline tests from this sample directory with `python3 -m unittest discover -s tests -v`.
-The agent and manual CLI paths share installation functions and SQL templates.
-DCM is not required. No external map application or container deployment is included.
+The DCM render tests need `jinja2` and are skipped without it; run them with
+`uv run --with jinja2 python -m unittest discover -s tests -v`. After editing
+`examples/prompts.json`, run `python3 scripts/build_dcm.py` to regenerate the
+verified-queries macro.
+The agent and manual CLI paths share installation functions and the `dcm/` project.
+No external map application or container deployment is included.
 
 ## Attribution and support
 
