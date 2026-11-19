@@ -1,0 +1,47 @@
+version: 2
+
+name: INCIDENT_ROOM_APP
+database: INCIDENT_ROOM
+schema: APP
+query_warehouse: INCIDENT_ROOM_WH
+
+label: "Multi-player AI Incident Room"
+description: "Humans and three specialist agents triage a broken pipeline together, prove a fix on a zero-copy clone, and ship only after a human vote."
+icon: public/icon.svg
+
+ignore:
+  - node_modules
+  - .env*
+  - __pycache__
+  - "*.pyc"
+  - .next
+  - .git
+  - snowflake.log
+  - "*.tsbuildinfo"
+  - coverage
+  - sql
+  - setup.sql
+  - demo
+  - __tests__
+  - AGENTS.md
+  - vitest.config.ts
+
+install:
+  commands:
+    - ["npm", "ci", "--include=dev"]
+
+build:
+  commands:
+    - ["npm", "run", "build"]
+    - ["cp", "-r", ".next/static", ".next/standalone/.next/static"]
+    - ["cp", "-r", "public", ".next/standalone/public"]
+    - ["rm", "-rf", "node_modules"]
+
+run:
+  command: ["node", ".next/standalone/server.js"]
+
+# The live room bus is in memory, so the app runs as exactly one instance.
+min_instances: 1
+max_instances: 1
+auto_resume: true
+auto_suspend_secs: 900

@@ -1,0 +1,199 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* dark: utilities follow the .dark class set by components/theme-provider.tsx */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * THEMING
+ * -------
+ * Brand colors are defined as CSS variables below.
+ * To change the color scheme, edit the values in :root.
+ * Light/dark mode is handled automatically via the variable overrides below.
+ */
+
+@layer base {
+  :root {
+    /* Brand tokens */
+    --brand-primary: #29b5e8;
+    --brand-primary-foreground: #ffffff;
+    --brand-nav-bg: #0a2f5a;
+    --brand-nav-fg: #ffffff;
+
+    /* shadcn/ui semantic tokens — slate-based light mode */
+    --background: #f8fafc;        /* slate-50: white cards lift off the page */
+    --foreground: #0f172a;        /* slate-900 */
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+
+    /* Primary wired to brand color */
+    --primary: var(--brand-primary);
+    --primary-foreground: var(--brand-primary-foreground);
+
+    --secondary: #f1f5f9;         /* slate-100 */
+    --secondary-foreground: #0f172a;
+    --muted: #f1f5f9;             /* slate-100 */
+    --muted-foreground: #64748b;  /* slate-500 */
+    --accent: #f1f5f9;            /* slate-100 */
+    --accent-foreground: #0f172a;
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: #ffffff;
+    --border: #e2e8f0;            /* slate-200 */
+    --input: #e2e8f0;             /* slate-200 */
+    --ring: var(--brand-primary);
+    --radius: 0.625rem;
+
+    /* Status colors */
+    --success: #059669;           /* emerald-600 */
+    --warning: #d97706;           /* amber-600 */
+
+    /* Chart palette. --chart-1 follows the brand color; the rest stay
+       distinct from each other in light and dark mode. */
+    --chart-1: var(--brand-primary);
+    --chart-2: #6366f1;           /* indigo-500 */
+    --chart-3: #f59e0b;           /* amber-500 */
+    --chart-4: #10b981;           /* emerald-500 */
+    --chart-5: #f43f5e;           /* rose-500 */
+    --chart-grid: #e2e8f0;        /* slate-200 */
+    --chart-axis: #64748b;        /* slate-500 */
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Dark look: near-black stage, soft cyan and indigo glows, glass panels. */
+@layer base {
+  .dark {
+    --brand-primary: #22d3ee;     /* cyan-400 */
+    --brand-primary-foreground: #04060c;
+    --background: #04060c;
+    --foreground: #e6edf7;
+    --card: rgba(15, 23, 42, 0.6);
+    --card-foreground: #e6edf7;
+    --popover: #0f172a;
+    --popover-foreground: #e6edf7;
+    --secondary: rgba(30, 41, 59, 0.7);
+    --secondary-foreground: #e6edf7;
+    --muted: rgba(30, 41, 59, 0.55);
+    --muted-foreground: #8b9ab3;
+    --accent: rgba(30, 41, 59, 0.8);
+    --accent-foreground: #e6edf7;
+    --destructive: #f87171;       /* red-400 */
+    --destructive-foreground: #04060c;
+    --border: rgba(148, 163, 184, 0.18);
+    --input: rgba(148, 163, 184, 0.24);
+    --success: #34d399;           /* emerald-400 */
+    --warning: #fbbf24;           /* amber-400 */
+    --chart-2: #818cf8;
+    --chart-3: #fbbf24;
+    --chart-4: #34d399;
+    --chart-5: #fb7185;
+    --chart-grid: #1e293b;
+    --chart-axis: #8b9ab3;
+  }
+  .dark body {
+    background:
+      radial-gradient(1200px 600px at 20% 85%, rgba(56, 189, 248, 0.10), transparent 60%),
+      radial-gradient(900px 500px at 75% 20%, rgba(129, 140, 248, 0.14), transparent 60%),
+      #04060c;
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  .eyebrow {
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: #22d3ee;
+  }
+  .glass {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.45));
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(6px);
+    transition: border-color 0.4s ease, box-shadow 0.4s ease;
+  }
+  .glow-cyan {
+    border-color: rgba(34, 211, 238, 0.55) !important;
+    box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.25), 0 0 60px -10px rgba(34, 211, 238, 0.55), 0 30px 60px -20px rgba(0, 0, 0, 0.6);
+  }
+  .glow-emerald {
+    border-color: rgba(52, 211, 153, 0.6) !important;
+    box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.3), 0 0 70px -10px rgba(52, 211, 153, 0.55), 0 30px 60px -20px rgba(0, 0, 0, 0.6);
+  }
+  .glow-red {
+    border-color: rgba(248, 113, 113, 0.65) !important;
+    box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.3), 0 0 70px -10px rgba(248, 113, 113, 0.5), 0 30px 60px -20px rgba(0, 0, 0, 0.6);
+  }
+  .glow-amber {
+    border-color: rgba(251, 191, 36, 0.6) !important;
+    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.28), 0 0 60px -10px rgba(251, 191, 36, 0.45), 0 30px 60px -20px rgba(0, 0, 0, 0.6);
+  }
+  /* New items in the room rise in. */
+  .chip-in {
+    animation: chip-in 0.6s ease both;
+  }
+  .live-dot {
+    animation: dot-pulse 0.9s ease-in-out infinite;
+  }
+}
+
+@keyframes chip-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chip-in, .live-dot { animation-duration: 1ms; animation-iteration-count: 1; }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    -webkit-font-smoothing: antialiased;
+  }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
