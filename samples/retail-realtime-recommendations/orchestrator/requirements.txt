@@ -1,0 +1,7 @@
+fastapi==0.115.0
+uvicorn==0.30.0
+snowflake-connector-python==3.12.0
+pandas==2.2.0
+numpy==1.26.4
+requests==2.32.0
+psycopg2-binary==2.9.9
