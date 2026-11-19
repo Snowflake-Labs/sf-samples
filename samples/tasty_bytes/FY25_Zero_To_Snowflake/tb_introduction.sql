@@ -98,6 +98,10 @@ GRANT ALL ON SCHEMA tb_101.raw_pos TO ROLE tb_admin;
 GRANT ALL ON SCHEMA tb_101.raw_pos TO ROLE tb_data_engineer;
 GRANT ALL ON SCHEMA tb_101.raw_pos TO ROLE tb_dev;
 
+GRANT ALL ON SCHEMA tb_101.raw_customer TO ROLE tb_admin;
+GRANT ALL ON SCHEMA tb_101.raw_customer TO ROLE tb_data_engineer;
+GRANT ALL ON SCHEMA tb_101.raw_customer TO ROLE tb_dev;
+
 GRANT ALL ON SCHEMA tb_101.harmonized TO ROLE tb_admin;
 GRANT ALL ON SCHEMA tb_101.harmonized TO ROLE tb_data_engineer;
 GRANT ALL ON SCHEMA tb_101.harmonized TO ROLE tb_dev;
