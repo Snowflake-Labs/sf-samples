@@ -137,7 +137,7 @@ SNOWFLAKE_DEFAULT_CONNECTION_NAME=<connection> npm run dev
 
 - **Playing several teammates:** use the `dev: be DASH CLAIRE EVA` links in the room header, one per browser.
 - **Agents locally** run through `SNOWFLAKE.CORTEX.DATA_AGENT_RUN` with your connection's role. Replies arrive whole rather than streamed, and there are no threads, so each call sends the full room transcript.
-- **Agents when deployed** use the streaming Cortex Agents REST API with one Cortex thread per agent per incident and the service token pinned to `INCIDENT_ROOM_AGENT`.
+- **Agents when deployed** use the [Cortex Agent SDK](https://www.npmjs.com/package/@snowflake/cortex-agent-sdk) (`@snowflake/cortex-agent-sdk`), streamed, with one Cortex thread per agent per incident and the service token pinned to `INCIDENT_ROOM_AGENT`.
 - **Environment:** unset `SNOWFLAKE_USER` and `SNOWFLAKE_PASSWORD` if they're exported for another account, because the SDK prefers them over the connection.
 
 ## Tests
