@@ -1,0 +1,5 @@
+catboost>=1.2
+scikit-learn>=1.3
+numpy>=1.24
+pandas>=2.0
+snowflake-connector-python>=3.6
