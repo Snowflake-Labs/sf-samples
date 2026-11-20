@@ -45,7 +45,7 @@ If it doesn't fit neatly into one of those — or crosses multiple areas — thi
 |--------|-------------|
 | [cloudflare-r2-logpush-agent](samples/cloudflare-r2-logpush-agent) | Cloudflare HTTP log pipeline from R2 into Snowflake with a natural-language Cortex Agent |
 | [create_ai_agents_on_snowflake_with_lang_ai](samples/create_ai_agents_on_snowflake_with_lang_ai) | Retention AI Agent using Lang.ai's Native App |
-| [multi-player-ai-incident-room](samples/multi-player-ai-incident-room) | A live room where a team and three Cortex Agents triage a broken pipeline, prove the fix on a zero-copy clone, and ship only after two people approve |
+| [multi-player-ai-incident-room](samples/multi-player-ai-incident-room) | A live room where people and Cortex Agents triage a broken pipeline together, prove the fix on a zero-copy clone, and ship only after two people approve |
 | [vehicle-insurance-agentic-ai](samples/vehicle-insurance-agentic-ai) | End-to-end agentic insurance claim processor using Cortex Document AI and LangGraph |
 
 ### RAG and Document Intelligence

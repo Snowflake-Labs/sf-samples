@@ -61,7 +61,7 @@ export default function HomePage() {
     <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
       <PageHeader
         eyebrow="Multi-player incident room"
-        title="Your whole team and three agents, in one live room."
+        title="People and agents, in one live room."
         description="Everyone on the incident sees every message, tool call and vote as it happens. @triage finds what broke, @fixer proves a fix on a zero-copy clone, @scribe keeps the record. Agents do the legwork; people decide: two must approve before anything ships, and anyone can pull the andon to stop the line."
       />
 
