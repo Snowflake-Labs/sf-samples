@@ -1,6 +1,6 @@
 # Multi-player AI Incident Room
 
-AI is single-player by default. Incidents aren't. This sample puts the whole team and three Cortex Agents in one live room when a pipeline breaks, all inside Snowflake.
+AI is single-player by default. Incidents aren't. This sample gives a pipeline incident one live room, inside Snowflake, where people and Cortex Agents work it together. One person can run it alone; anyone who joins sees the same room.
 
 - **@triage** finds what broke, when, and the blast radius (from Snowflake lineage). Read-only.
 - **@fixer** writes a fix and proves it on a **zero-copy clone**. It cannot touch prod.
